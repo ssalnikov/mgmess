@@ -157,11 +157,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         isLoading: false,
         error: failure.message,
       )),
-      (posts) => emit(state.copyWith(
-        posts: posts,
-        isLoading: false,
-        hasMore: posts.length >= 60,
-      )),
+      (posts) {
+        final rootPosts = _filterAndCountReplies(posts);
+        emit(state.copyWith(
+          posts: rootPosts,
+          isLoading: false,
+          hasMore: posts.length >= 60,
+        ));
+      },
     );
   }
 
@@ -183,11 +186,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     result.fold(
       (failure) => emit(state.copyWith(isLoadingMore: false)),
-      (newPosts) => emit(state.copyWith(
-        posts: [...state.posts, ...newPosts],
-        isLoadingMore: false,
-        hasMore: newPosts.length >= 60,
-      )),
+      (newPosts) {
+        final newRootPosts = _filterAndCountReplies(newPosts);
+        emit(state.copyWith(
+          posts: [...state.posts, ...newRootPosts],
+          isLoadingMore: false,
+          hasMore: newPosts.length >= 60,
+        ));
+      },
     );
   }
 
@@ -262,6 +268,17 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         final post = PostModel.fromJson(
           jsonDecode(postJson) as Map<String, dynamic>,
         );
+        if (post.isReply) {
+          // Update root post's reply count
+          final posts = state.posts.map((p) {
+            if (p.id == post.rootId) {
+              return p.copyWith(replyCount: p.replyCount + 1);
+            }
+            return p;
+          }).toList();
+          emit(state.copyWith(posts: posts));
+          return;
+        }
         // Avoid duplicates (from optimistic send)
         if (state.posts.any((p) => p.id == post.id)) return;
         emit(state.copyWith(posts: [post, ...state.posts]));
@@ -291,7 +308,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       try {
         final deleted = jsonDecode(postJson) as Map<String, dynamic>;
         final postId = deleted['id'] as String?;
-        if (postId != null) {
+        final rootId = deleted['root_id'] as String? ?? '';
+        if (postId == null) return;
+        if (rootId.isNotEmpty) {
+          // Reply deleted — decrement root post's reply count
+          final posts = state.posts.map((p) {
+            if (p.id == rootId && p.replyCount > 0) {
+              return p.copyWith(replyCount: p.replyCount - 1);
+            }
+            return p;
+          }).toList();
+          emit(state.copyWith(posts: posts));
+        } else {
           final posts = state.posts.where((p) => p.id != postId).toList();
           emit(state.copyWith(posts: posts));
         }
@@ -317,6 +345,22 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         wsEvent: WsEvent(event: '_clear_typing', data: {}),
       ));
     });
+  }
+
+  /// Filters out replies and computes accurate replyCount for root posts
+  /// by counting replies visible in the response.
+  List<Post> _filterAndCountReplies(List<Post> posts) {
+    final replyCounts = <String, int>{};
+    for (final p in posts) {
+      if (p.isReply) {
+        replyCounts[p.rootId] = (replyCounts[p.rootId] ?? 0) + 1;
+      }
+    }
+    return posts.where((p) => !p.isReply).map((p) {
+      final counted = replyCounts[p.id] ?? 0;
+      final best = p.replyCount >= counted ? p.replyCount : counted;
+      return best != p.replyCount ? p.copyWith(replyCount: best) : p;
+    }).toList();
   }
 
   @override

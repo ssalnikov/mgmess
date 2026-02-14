@@ -11,6 +11,7 @@ import '../../presentation/screens/profile/edit_profile_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/profile/user_profile_screen.dart';
 import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
+import '../../presentation/screens/thread/thread_screen.dart';
 import '../../presentation/widgets/bottom_nav_shell.dart';
 import 'route_names.dart';
 
@@ -81,6 +82,13 @@ class AppRouter {
         builder: (context, state) {
           final userId = state.pathParameters['userId']!;
           return UserProfileScreen(userId: userId);
+        },
+      ),
+      GoRoute(
+        path: RouteNames.thread,
+        builder: (context, state) {
+          final postId = state.pathParameters['postId']!;
+          return ThreadScreen(postId: postId);
         },
       ),
     ],

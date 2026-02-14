@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../core/error/exceptions.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -45,6 +47,21 @@ class UserRemoteDataSource {
       return UserModel.fromJson(response.data as Map<String, dynamic>);
     } catch (e) {
       throw ServerException(message: 'Failed to update user: $e');
+    }
+  }
+
+  Future<void> uploadUserImage(String userId, String filePath) async {
+    try {
+      final formData = FormData.fromMap({
+        'image': await MultipartFile.fromFile(filePath),
+      });
+      await _apiClient.dio.post(
+        ApiEndpoints.userImage(userId),
+        data: formData,
+        options: Options(contentType: 'multipart/form-data'),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to upload avatar: $e');
     }
   }
 

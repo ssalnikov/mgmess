@@ -59,6 +59,19 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<Either<Failure, void>> uploadUserImage(
+    String userId,
+    String filePath,
+  ) async {
+    try {
+      await _remoteDataSource.uploadUserImage(userId, filePath);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, String>>> getUserStatuses(
     List<String> userIds,
   ) async {

@@ -9,6 +9,7 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/channel.dart';
 import '../../../domain/repositories/channel_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
@@ -57,6 +58,12 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     }
   }
 
+  String get _currentUserId {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) return authState.user.id;
+    return '';
+  }
+
   @override
   void dispose() {
     _channelsBloc.close();
@@ -98,6 +105,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                       itemBuilder: (context, index) =>
                           _ChannelListTile(
                         channel: state.filteredChannels[index],
+                        currentUserId: _currentUserId,
                       ),
                     ),
                   );
@@ -139,19 +147,61 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
   }
 }
 
-class _ChannelListTile extends StatelessWidget {
+class _ChannelListTile extends StatefulWidget {
   final Channel channel;
+  final String currentUserId;
 
-  const _ChannelListTile({required this.channel});
+  const _ChannelListTile({
+    required this.channel,
+    required this.currentUserId,
+  });
+
+  @override
+  State<_ChannelListTile> createState() => _ChannelListTileState();
+}
+
+class _ChannelListTileState extends State<_ChannelListTile> {
+  String? _dmDisplayName;
+
+  Channel get channel => widget.channel;
+
+  @override
+  void initState() {
+    super.initState();
+    if (channel.isDirect) {
+      _fetchDmUserName();
+    }
+  }
+
+  void _fetchDmUserName() {
+    final parts = channel.name.split('__');
+    if (parts.length != 2) return;
+    final otherId = parts.first == widget.currentUserId
+        ? parts.last
+        : parts.first;
+    sl<UserRepository>().getUser(otherId).then((result) {
+      if (!mounted) return;
+      result.fold((_) {}, (user) {
+        setState(() => _dmDisplayName = user.displayName);
+      });
+    });
+  }
+
+  String get _title {
+    if (channel.isDirect && _dmDisplayName != null) {
+      return _dmDisplayName!;
+    }
+    return channel.displayName.isNotEmpty
+        ? channel.displayName
+        : channel.name;
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
       leading: _buildLeading(),
       title: Text(
-        channel.displayName.isNotEmpty
-            ? channel.displayName
-            : channel.name,
+        _title,
         style: channel.hasUnread
             ? AppTextStyles.channelName
                 .copyWith(fontWeight: FontWeight.bold)
@@ -169,7 +219,7 @@ class _ChannelListTile extends StatelessWidget {
       onTap: () {
         context.push(
           RouteNames.chatPath(channel.id),
-          extra: channel.displayName,
+          extra: _title,
         );
       },
     );
@@ -177,9 +227,10 @@ class _ChannelListTile extends StatelessWidget {
 
   Widget _buildLeading() {
     if (channel.isDirect) {
-      // DM: extract other user ID from channel name
       final parts = channel.name.split('__');
-      final otherId = parts.length == 2 ? parts.first : channel.id;
+      final otherId = parts.length == 2
+          ? (parts.first == widget.currentUserId ? parts.last : parts.first)
+          : channel.id;
       return UserAvatar(userId: otherId);
     }
 

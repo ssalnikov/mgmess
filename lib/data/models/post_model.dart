@@ -21,6 +21,8 @@ class PostModel extends Post {
     super.replyCount,
     super.reactions,
     super.pendingId,
+    super.forwardedPostMessage,
+    super.forwardedChannelName,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,26 @@ class PostModel extends Post {
       for (final r in reactionsJson) {
         final emoji = r['emoji_name'] as String? ?? '';
         reactionMap[emoji] = (reactionMap[emoji] ?? 0) + 1;
+      }
+    }
+
+    // Parse forwarded post from permalink embed
+    String forwardedMsg = '';
+    String forwardedChannel = '';
+    final embeds = meta['embeds'] as List<dynamic>?;
+    if (embeds != null) {
+      for (final embed in embeds) {
+        if (embed is Map<String, dynamic> &&
+            embed['type'] == 'permalink') {
+          final data = embed['data'] as Map<String, dynamic>?;
+          if (data != null) {
+            final embedPost = data['post'] as Map<String, dynamic>?;
+            forwardedMsg = embedPost?['message'] as String? ?? '';
+            forwardedChannel =
+                data['channel_display_name'] as String? ?? '';
+            break;
+          }
+        }
       }
     }
 
@@ -61,6 +83,8 @@ class PostModel extends Post {
       replyCount: json['reply_count'] as int? ?? 0,
       reactions: reactionMap,
       pendingId: json['pending_post_id'] as String? ?? '',
+      forwardedPostMessage: forwardedMsg,
+      forwardedChannelName: forwardedChannel,
     );
   }
 

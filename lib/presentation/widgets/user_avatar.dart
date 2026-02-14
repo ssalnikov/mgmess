@@ -7,69 +7,90 @@ import '../../core/network/api_endpoints.dart';
 import '../../core/storage/secure_storage.dart';
 import '../../core/theme/app_colors.dart';
 
-class UserAvatar extends StatelessWidget {
+class UserAvatar extends StatefulWidget {
   final String userId;
   final double radius;
   final String? status;
+  final int? cacheBuster;
 
   const UserAvatar({
     super.key,
     required this.userId,
     this.radius = 20,
     this.status,
+    this.cacheBuster,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final url =
-        '${AppConfig.baseUrl}${ApiEndpoints.userImage(userId)}';
+  State<UserAvatar> createState() => _UserAvatarState();
+}
 
+class _UserAvatarState extends State<UserAvatar> {
+  late Future<String?> _tokenFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _tokenFuture = sl<SecureStorage>().getToken();
+  }
+
+  String get _imageUrl {
+    final base =
+        '${AppConfig.baseUrl}${ApiEndpoints.userImage(widget.userId)}';
+    if (widget.cacheBuster != null) {
+      return '$base?_=${widget.cacheBuster}';
+    }
+    return base;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Stack(
       children: [
         FutureBuilder<String?>(
-          future: sl<SecureStorage>().getToken(),
+          future: _tokenFuture,
           builder: (context, snapshot) {
             final token = snapshot.data;
             return CircleAvatar(
-              radius: radius,
+              radius: widget.radius,
               backgroundColor: AppColors.divider,
               child: ClipOval(
                 child: token != null
                     ? CachedNetworkImage(
-                        imageUrl: url,
+                        imageUrl: _imageUrl,
                         httpHeaders: {'Authorization': 'Bearer $token'},
-                        width: radius * 2,
-                        height: radius * 2,
+                        width: widget.radius * 2,
+                        height: widget.radius * 2,
                         fit: BoxFit.cover,
                         placeholder: (_, __) => Icon(
                           Icons.person,
-                          size: radius,
+                          size: widget.radius,
                           color: AppColors.textSecondary,
                         ),
                         errorWidget: (_, __, ___) => Icon(
                           Icons.person,
-                          size: radius,
+                          size: widget.radius,
                           color: AppColors.textSecondary,
                         ),
                       )
                     : Icon(
                         Icons.person,
-                        size: radius,
+                        size: widget.radius,
                         color: AppColors.textSecondary,
                       ),
               ),
             );
           },
         ),
-        if (status != null)
+        if (widget.status != null)
           Positioned(
             bottom: 0,
             right: 0,
             child: Container(
-              width: radius * 0.6,
-              height: radius * 0.6,
+              width: widget.radius * 0.6,
+              height: widget.radius * 0.6,
               decoration: BoxDecoration(
-                color: _statusColor(status!),
+                color: _statusColor(widget.status!),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
               ),

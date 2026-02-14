@@ -21,6 +21,8 @@ class Post extends Equatable {
   final int replyCount;
   final Map<String, int> reactions;
   final String pendingId;
+  final String forwardedPostMessage;
+  final String forwardedChannelName;
 
   const Post({
     required this.id,
@@ -41,6 +43,8 @@ class Post extends Equatable {
     this.replyCount = 0,
     this.reactions = const {},
     this.pendingId = '',
+    this.forwardedPostMessage = '',
+    this.forwardedChannelName = '',
   });
 
   bool get isDeleted => deleteAt > 0;
@@ -48,6 +52,7 @@ class Post extends Equatable {
   bool get isSystemMessage => type.isNotEmpty;
   bool get isReply => rootId.isNotEmpty;
   bool get hasFiles => fileIds.isNotEmpty;
+  bool get isForwarded => forwardedPostMessage.isNotEmpty;
 
   Post copyWith({
     String? message,
@@ -78,6 +83,8 @@ class Post extends Equatable {
       replyCount: replyCount ?? this.replyCount,
       reactions: reactions ?? this.reactions,
       pendingId: pendingId,
+      forwardedPostMessage: forwardedPostMessage,
+      forwardedChannelName: forwardedChannelName,
     );
   }
 

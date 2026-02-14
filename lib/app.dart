@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'core/di/injection.dart';
+import 'core/router/app_router.dart';
+import 'core/theme/app_theme.dart';
+import 'presentation/blocs/auth/auth_bloc.dart';
+import 'presentation/blocs/auth/auth_event.dart';
+import 'presentation/blocs/auth/auth_state.dart';
+import 'presentation/blocs/connectivity/connectivity_cubit.dart';
+import 'presentation/blocs/websocket/websocket_bloc.dart';
+import 'presentation/blocs/websocket/websocket_event.dart';
+
+class App extends StatefulWidget {
+  const App({super.key});
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> {
+  late final AuthBloc _authBloc;
+  late final WebSocketBloc _wsBloc;
+  late final ConnectivityCubit _connectivityCubit;
+  late final AppRouter _appRouter;
+
+  @override
+  void initState() {
+    super.initState();
+    _authBloc = sl<AuthBloc>();
+    _wsBloc = sl<WebSocketBloc>();
+    _connectivityCubit = sl<ConnectivityCubit>();
+    _appRouter = AppRouter(authBloc: _authBloc);
+
+    // Check if user has active session
+    _authBloc.add(const AuthCheckSession());
+  }
+
+  @override
+  void dispose() {
+    _authBloc.close();
+    _wsBloc.close();
+    _connectivityCubit.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _authBloc),
+        BlocProvider.value(value: _wsBloc),
+        BlocProvider.value(value: _connectivityCubit),
+      ],
+      child: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthAuthenticated) {
+            _wsBloc.add(const WebSocketConnect());
+          } else if (state is AuthUnauthenticated) {
+            _wsBloc.add(const WebSocketDisconnect());
+          }
+        },
+        child: MaterialApp.router(
+          title: 'MGMess',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          routerConfig: _appRouter.router,
+          debugShowCheckedModeBanner: false,
+        ),
+      ),
+    );
+  }
+}

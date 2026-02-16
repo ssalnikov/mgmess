@@ -4,12 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MGMess is a Flutter mobile Mattermost client for MyGames corporate server (`https://mm.my.games`). It supports GitLab OAuth authentication, real-time messaging via WebSocket, file sharing, read receipts ("seens" — custom MyGames backend extension), saved messages, and mentions. Targets iOS and Android.
+MGMess is a Flutter mobile Mattermost client for MyGames corporate server (`https://mm.my.games`). It supports GitLab OAuth authentication, real-time messaging via WebSocket, file sharing, read receipts ("seens" — custom MyGames backend extension), saved messages, mentions, and push notifications (FCM). Targets iOS and Android.
 
 ## Commands
 
 ```bash
-# Run all tests (68 tests)
+# Run all tests (82 tests)
 flutter test
 
 # Run a single test file
@@ -45,6 +45,7 @@ Global BLoCs (live for app lifetime, provided in `App` via `MultiBlocProvider`):
 - `AuthBloc` — session lifecycle, OAuth, logout
 - `WebSocketBloc` — WS connection, broadcasts `wsEvents` stream to other blocs
 - `ConnectivityCubit` — network state
+- `NotificationBloc` — FCM token lifecycle, WS events → local notifications, active channel suppression
 
 Screen-scoped BLoCs (created in screen `initState`, disposed on screen disposal):
 - `ChannelsBloc` — channel list, search, WS unread updates
@@ -73,6 +74,17 @@ Server must have `"mgmess://"` in `NativeAppSettings.AppCustomURLSchemes`.
 
 GoRouter in `lib/core/router/app_router.dart` with auth redirect guard. ShellRoute for bottom nav (channels, saved, mentions, profile). Redirects to `/auth` when `AuthUnauthenticated`.
 
+### Push Notifications (FCM)
+
+Firebase Cloud Messaging for push notifications. `Firebase.initializeApp()` is wrapped in try/catch — app works without Firebase configs (google-services.json / GoogleService-Info.plist), but push is disabled.
+
+- `NotificationService` (`lib/core/notifications/`) — FCM init, permissions, local notification display via `flutter_local_notifications`
+- `NotificationRemoteDataSource` — registers FCM token with Mattermost via `PUT /users/sessions/device_id` (device_id format: `android:<fcm_token>`)
+- `NotificationBloc` — global BLoC, subscribes to `WebSocketBloc.wsEvents`, shows local notifications for `posted` events when app is in foreground. Suppresses notifications for active channel and own messages. Filter settings (all / mentions+DM / DM only) stored in `SharedPreferences`.
+- Notification settings screen at `/profile/notifications`
+
+Setup: see `docs/push_notifications.md`.
+
 ### Custom Backend: Seens (Read Receipts)
 
 MyGames extension endpoints: `GET /api/v4/channels/{id}/seens`, `GET /api/v4/posts/{id}/seens`. WS events: `channel_seens_updated`, `thread_seens_updated`. Mobile marker constant: `WebsocketMessagePropertySeensMark = "its_need_to_mark_seen_for_mobile"`.
@@ -90,7 +102,13 @@ MyGames extension endpoints: `GET /api/v4/channels/{id}/seens`, `GET /api/v4/pos
 - Server URL: `lib/core/config/app_config.dart` — `AppConfig.serverUrl`
 - Deep link scheme: `mgmess://` — configured in `AndroidManifest.xml` and `ios/Runner/Info.plist`
 - Token storage keys: `mm_auth_token`, `mm_csrf_token`, `mm_user_id` in `SecureStorage`
+- Firebase: requires `android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist` (not in repo — see `docs/push_notifications.md`)
+- Notification prefs: `notification_enabled` (bool), `notification_filter` (string: all/mentions_dm/dm_only) in `SharedPreferences`
+
+## Git
+
+- Do NOT add `Co-Authored-By` lines to commit messages.
 
 ## Documentation
 
-Russian-language docs in `docs/`: architecture.md, authentication.md, api.md, websocket.md, state_management.md, testing.md, server_setup.md.
+Russian-language docs in `docs/`: architecture.md, authentication.md, api.md, websocket.md, state_management.md, testing.md, server_setup.md, push_notifications.md.

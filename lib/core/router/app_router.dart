@@ -8,6 +8,7 @@ import '../../presentation/screens/channels/channels_screen.dart';
 import '../../presentation/screens/chat/chat_screen.dart';
 import '../../presentation/screens/mentions/mentions_screen.dart';
 import '../../presentation/screens/profile/edit_profile_screen.dart';
+import '../../presentation/screens/profile/notification_settings_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/profile/user_profile_screen.dart';
 import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
@@ -76,6 +77,11 @@ class AppRouter {
       GoRoute(
         path: RouteNames.editProfile,
         builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.notificationSettings,
+        builder: (context, state) =>
+            const NotificationSettingsScreen(),
       ),
       GoRoute(
         path: RouteNames.userProfile,

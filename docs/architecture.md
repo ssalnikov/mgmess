@@ -50,6 +50,9 @@ lib/
 │   │   ├── app_theme.dart                 # Light/Dark темы
 │   │   ├── app_colors.dart                # Палитра цветов
 │   │   └── app_text_styles.dart           # Стили текста
+│   ├── notifications/
+│   │   ├── notification_service.dart      # FCM + flutter_local_notifications
+│   │   └── notification_channels.dart     # Android notification channel IDs
 │   └── utils/
 │       └── date_formatter.dart            # Форматирование дат/времени
 │
@@ -67,7 +70,8 @@ lib/
 │       ├── channel_repository.dart
 │       ├── post_repository.dart
 │       ├── file_repository.dart
-│       └── seens_repository.dart
+│       ├── seens_repository.dart
+│       └── notification_repository.dart
 │
 ├── data/                                  # Реализация доступа к данным
 │   ├── datasources/remote/                # Удалённые источники данных (REST API)
@@ -76,7 +80,8 @@ lib/
 │   │   ├── channel_remote_datasource.dart
 │   │   ├── post_remote_datasource.dart
 │   │   ├── file_remote_datasource.dart
-│   │   └── seens_remote_datasource.dart
+│   │   ├── seens_remote_datasource.dart
+│   │   └── notification_remote_datasource.dart
 │   ├── models/                            # DTO — маппинг JSON <-> Entity
 │   │   ├── user_model.dart
 │   │   ├── channel_model.dart
@@ -89,20 +94,22 @@ lib/
 │       ├── channel_repository_impl.dart
 │       ├── post_repository_impl.dart
 │       ├── file_repository_impl.dart
-│       └── seens_repository_impl.dart
+│       ├── seens_repository_impl.dart
+│       └── notification_repository_impl.dart
 │
 └── presentation/                          # UI и управление состоянием
     ├── blocs/                             # Глобальные BLoC/Cubit
     │   ├── auth/                          # AuthBloc — сессия, OAuth, logout
     │   ├── websocket/                     # WebSocketBloc — WS-подключение
-    │   └── connectivity/                  # ConnectivityCubit — состояние сети
+    │   ├── connectivity/                  # ConnectivityCubit — состояние сети
+    │   └── notification/                  # NotificationBloc — FCM, push-уведомления
     ├── screens/
     │   ├── auth/                          # Экран авторизации
     │   ├── channels/                      # Список каналов + ChannelsBloc
     │   ├── chat/                          # Чат + ChatBloc + виджеты сообщений
     │   ├── saved_messages/                # Сохранённые сообщения + SavedMessagesBloc
     │   ├── mentions/                      # Упоминания + MentionsBloc
-    │   └── profile/                       # Профиль (свой, чужой, редактирование)
+    │   └── profile/                       # Профиль, настройки уведомлений
     └── widgets/                           # Переиспользуемые виджеты
         ├── user_avatar.dart
         ├── bottom_nav_shell.dart
@@ -158,10 +165,10 @@ void main() async {
 ```
 
 Порядок регистрации:
-1. Core-сервисы (SecureStorage, ApiClient, WebSocketClient, NetworkInfo)
+1. Core-сервисы (SecureStorage, ApiClient, WebSocketClient, NetworkInfo, NotificationService)
 2. DataSources (все remote data sources)
 3. Repositories (реализации, зарегистрированные по абстрактным типам)
-4. BLoCs (AuthBloc, WebSocketBloc, ConnectivityCubit)
+4. BLoCs (AuthBloc, WebSocketBloc, ConnectivityCubit, NotificationBloc)
 
 Доступ к зависимостям: `sl<AuthRepository>()` (где `sl` — глобальный экземпляр GetIt).
 
@@ -178,6 +185,7 @@ void main() async {
 | `/profile` | ProfileScreen | Профиль текущего пользователя |
 | `/chat/:channelId` | ChatScreen | Чат в канале |
 | `/profile/edit` | EditProfileScreen | Редактирование профиля |
+| `/profile/notifications` | NotificationSettingsScreen | Настройки push-уведомлений |
 | `/user/:userId` | UserProfileScreen | Просмотр профиля другого пользователя |
 
 **Auth guard**: если пользователь не авторизован — любой маршрут редиректит на `/auth`. При авторизации — `/auth` редиректит на `/channels`.
@@ -200,4 +208,8 @@ void main() async {
 | `photo_view` | Полноэкранный просмотр изображений |
 | `image_picker` / `file_picker` | Выбор файлов для отправки |
 | `connectivity_plus` | Мониторинг состояния сети |
+| `firebase_core` | Инициализация Firebase |
+| `firebase_messaging` | Firebase Cloud Messaging (push-уведомления) |
+| `flutter_local_notifications` | Локальные уведомления (foreground) |
+| `flutter_app_badger` | Бейдж на иконке приложения |
 | `logger` | Структурированное логирование |

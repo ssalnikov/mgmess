@@ -60,6 +60,9 @@ class ApiEndpoints {
   // Status
   static const String usersStatus = '/users/status/ids';
 
+  // Device
+  static const String deviceId = '/users/sessions/device_id';
+
   // Config
   static const String clientConfig = '/config/client';
 }

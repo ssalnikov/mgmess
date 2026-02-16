@@ -39,6 +39,7 @@ UI (BlocBuilder)
 | `AuthBloc` | `presentation/blocs/auth/` | Управление сессией, OAuth, logout |
 | `WebSocketBloc` | `presentation/blocs/websocket/` | WS-соединение, трансляция событий |
 | `ConnectivityCubit` | `presentation/blocs/connectivity/` | Состояние сетевого подключения |
+| `NotificationBloc` | `presentation/blocs/notification/` | FCM-токен, push-уведомления, фильтрация |
 
 ### Экранные (создаются/уничтожаются вместе с экраном)
 
@@ -70,8 +71,8 @@ AuthError(message)      // Ошибка
 ```
 
 ### Взаимодействие
-- При `AuthAuthenticated` → WebSocketBloc подключается
-- При `AuthUnauthenticated` → WebSocketBloc отключается, GoRouter редиректит на `/auth`
+- При `AuthAuthenticated` → WebSocketBloc подключается, NotificationBloc инициализируется
+- При `AuthUnauthenticated` → WebSocketBloc отключается, NotificationBloc делает logout, GoRouter редиректит на `/auth`
 
 ## WebSocketBloc
 
@@ -198,6 +199,40 @@ ConnectivityState(isConnected: bool)
 
 Подписывается на `connectivity_plus` и эмитит новое состояние при изменении сети.
 
+## NotificationBloc
+
+Управление push-уведомлениями через Firebase Cloud Messaging.
+
+### События
+```dart
+NotificationInit(userId)              // Инициализация при авторизации
+NotificationTokenRefreshed(token)     // Обновление FCM-токена
+NotificationWsEvent(wsEvent)          // WS-событие (posted → показать уведомление)
+NotificationSetActiveChannel(id)      // Пользователь открыл канал → подавление
+NotificationClearActiveChannel        // Пользователь вышел из канала
+NotificationLogout                    // Выход из системы
+```
+
+### Состояния
+```dart
+NotificationInitial                           // Начальное
+NotificationReady(token, enabled)             // Готов к работе
+NotificationError(message)                    // Ошибка
+```
+
+### Логика обработки WS-событий
+При получении `NotificationWsEvent` с типом `posted`:
+1. Проверяется, что state = `NotificationReady` и `enabled = true`
+2. Проверяется, что канал сообщения ≠ активному каналу
+3. Проверяется, что отправитель ≠ текущему пользователю
+4. Применяется фильтр (all / mentions_dm / dm_only)
+5. Если все проверки пройдены — вызывается `NotificationService.showNotification()`
+
+### Взаимодействие
+- `App` подписывает NotificationBloc на `WebSocketBloc.wsEvents`
+- При `AuthAuthenticated` → `NotificationInit(userId)` → регистрация FCM-токена на сервере
+- При `AuthUnauthenticated` → `NotificationLogout` → снятие device_id с сессии
+
 ## Поток данных
 
 ```
@@ -241,6 +276,7 @@ MultiBlocProvider(
     BlocProvider.value(value: _authBloc),
     BlocProvider.value(value: _wsBloc),
     BlocProvider.value(value: _connectivityCubit),
+    BlocProvider.value(value: _notificationBloc),
   ],
   child: MaterialApp.router(...),
 )

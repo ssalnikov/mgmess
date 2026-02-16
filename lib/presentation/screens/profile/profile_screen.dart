@@ -80,6 +80,13 @@ class ProfileScreen extends StatelessWidget {
                 icon: const Icon(Icons.edit),
                 label: const Text('Edit Profile'),
               ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    context.push(RouteNames.notificationSettings),
+                icon: const Icon(Icons.notifications_outlined),
+                label: const Text('Notification Settings'),
+              ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () {

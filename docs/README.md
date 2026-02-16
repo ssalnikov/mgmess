@@ -18,6 +18,7 @@ MGMess — нативное мобильное приложение (iOS + Andro
 - Сохраненные сообщения (flagged posts)
 - Упоминания (@mentions)
 - Read receipts (MyGames seens) — кастомное расширение бэкенда
+- Push-уведомления (Firebase Cloud Messaging)
 - Профиль пользователя с редактированием
 
 ## Требования
@@ -65,4 +66,5 @@ flutter build ios --release
 | [API](api.md) | REST-эндпоинты Mattermost API v4 |
 | [State Management](state_management.md) | BLoC-паттерн, список блоков, потоки данных |
 | [Тестирование](testing.md) | Стратегия, структура тестов, запуск |
+| [Push-уведомления](push_notifications.md) | Firebase Cloud Messaging: настройка, конфигурация, troubleshooting |
 | [Настройка сервера](server_setup.md) | Конфигурация бэкенда для работы с приложением |

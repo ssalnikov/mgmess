@@ -6,6 +6,7 @@ class RouteNames {
   static const String mentions = '/mentions';
   static const String profile = '/profile';
   static const String editProfile = '/profile/edit';
+  static const String notificationSettings = '/profile/notifications';
   static const String userProfile = '/user/:userId';
   static const String thread = '/thread/:postId';
 

@@ -17,11 +17,13 @@ import 'widgets/message_input.dart';
 class ChatScreen extends StatefulWidget {
   final String channelId;
   final String channelName;
+  final String? initialDraft;
 
   const ChatScreen({
     super.key,
     required this.channelId,
     this.channelName = '',
+    this.initialDraft,
   });
 
   @override
@@ -94,6 +96,8 @@ class _ChatScreenState extends State<ChatScreen> {
             _buildTypingIndicator(),
             MessageInput(
               channelId: widget.channelId,
+              channelName: widget.channelName,
+              initialDraft: widget.initialDraft,
               onSend: (message, {fileIds}) {
                 _chatBloc.add(SendMessage(
                   message: message,

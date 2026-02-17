@@ -82,6 +82,8 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
         body: Column(
           children: [
             _buildSearchBar(),
+            _buildThreadsRow(),
+            _buildDraftsRow(),
             Expanded(
               child: BlocBuilder<ChannelsBloc, ChannelsState>(
                 builder: (context, state) {
@@ -104,6 +106,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                       itemCount: state.filteredChannels.length,
                       itemBuilder: (context, index) =>
                           _ChannelListTile(
+                        key: ValueKey(state.filteredChannels[index].id),
                         channel: state.filteredChannels[index],
                         currentUserId: _currentUserId,
                       ),
@@ -115,6 +118,30 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildThreadsRow() {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        child: const Icon(Icons.forum_outlined, color: AppColors.primary, size: 20),
+      ),
+      title: const Text('Threads'),
+      dense: true,
+      onTap: () => context.push(RouteNames.threads),
+    );
+  }
+
+  Widget _buildDraftsRow() {
+    return ListTile(
+      leading: CircleAvatar(
+        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+        child: const Icon(Icons.edit_note, color: AppColors.primary, size: 20),
+      ),
+      title: const Text('Drafts'),
+      dense: true,
+      onTap: () => context.push(RouteNames.drafts),
     );
   }
 
@@ -152,6 +179,7 @@ class _ChannelListTile extends StatefulWidget {
   final String currentUserId;
 
   const _ChannelListTile({
+    super.key,
     required this.channel,
     required this.currentUserId,
   });
@@ -170,6 +198,17 @@ class _ChannelListTileState extends State<_ChannelListTile> {
     super.initState();
     if (channel.isDirect) {
       _fetchDmUserName();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChannelListTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.channel.id != widget.channel.id) {
+      _dmDisplayName = null;
+      if (channel.isDirect) {
+        _fetchDmUserName();
+      }
     }
   }
 
@@ -217,9 +256,12 @@ class _ChannelListTileState extends State<_ChannelListTile> {
           : null,
       trailing: _buildTrailing(),
       onTap: () {
+        context.read<ChannelsBloc>().add(
+              MarkChannelAsRead(channelId: channel.id),
+            );
         context.push(
           RouteNames.chatPath(channel.id),
-          extra: _title,
+          extra: <String, dynamic>{'channelName': _title},
         );
       },
     );

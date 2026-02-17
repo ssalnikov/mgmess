@@ -29,6 +29,7 @@ import '../network/api_client.dart';
 import '../network/network_info.dart';
 import '../network/websocket_client.dart';
 import '../notifications/notification_service.dart';
+import '../storage/draft_storage.dart';
 import '../storage/secure_storage.dart';
 
 final sl = GetIt.instance;
@@ -36,6 +37,7 @@ final sl = GetIt.instance;
 Future<void> initDependencies() async {
   // Core
   sl.registerLazySingleton(() => SecureStorage());
+  sl.registerLazySingleton(() => DraftStorage());
   sl.registerLazySingleton(() => ApiClient(secureStorage: sl()));
   sl.registerLazySingleton(() => WebSocketClient(secureStorage: sl()));
   sl.registerLazySingleton(() => NetworkInfo());

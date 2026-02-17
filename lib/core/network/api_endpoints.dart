@@ -31,6 +31,8 @@ class ApiEndpoints {
   static String post(String id) => '/posts/$id';
   static String postThread(String id) => '/posts/$id/thread';
   static String flaggedPosts(String userId) => '/users/$userId/posts/flagged';
+  static String userThreads(String userId, String teamId) =>
+      '/users/$userId/teams/$teamId/threads';
   static String teamPostsSearch(String teamId) =>
       '/teams/$teamId/posts/search';
   static String pinPost(String id) => '/posts/$id/pin';

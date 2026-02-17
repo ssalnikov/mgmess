@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../core/error/failures.dart';
 import '../entities/post.dart';
+import '../entities/user_thread.dart';
 
 abstract class PostRepository {
   Future<Either<Failure, List<Post>>> getChannelPosts(
@@ -30,4 +31,10 @@ abstract class PostRepository {
   );
   Future<Either<Failure, void>> flagPost(String userId, String postId);
   Future<Either<Failure, void>> unflagPost(String userId, String postId);
+  Future<Either<Failure, List<UserThread>>> getUserThreads(
+    String userId,
+    String teamId, {
+    int perPage,
+    String? before,
+  });
 }

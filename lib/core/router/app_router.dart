@@ -12,7 +12,9 @@ import '../../presentation/screens/profile/notification_settings_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/profile/user_profile_screen.dart';
 import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
+import '../../presentation/screens/drafts/drafts_screen.dart';
 import '../../presentation/screens/thread/thread_screen.dart';
+import '../../presentation/screens/threads/threads_screen.dart';
 import '../../presentation/widgets/bottom_nav_shell.dart';
 import 'route_names.dart';
 
@@ -63,14 +65,30 @@ class AppRouter {
         ],
       ),
       GoRoute(
+        path: RouteNames.threads,
+        builder: (context, state) => const ThreadsScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.drafts,
+        builder: (context, state) => const DraftsScreen(),
+      ),
+      GoRoute(
         path: RouteNames.chat,
         builder: (context, state) {
           final channelId = state.pathParameters['channelId']!;
-          final channelName =
-              state.extra as String? ?? '';
+          final extra = state.extra;
+          String channelName = '';
+          String? initialDraft;
+          if (extra is String) {
+            channelName = extra;
+          } else if (extra is Map<String, dynamic>) {
+            channelName = extra['channelName'] as String? ?? '';
+            initialDraft = extra['draftMessage'] as String?;
+          }
           return ChatScreen(
             channelId: channelId,
             channelName: channelName,
+            initialDraft: initialDraft,
           );
         },
       ),

@@ -1,18 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/storage/draft_storage.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../domain/entities/draft.dart';
 import '../../../../domain/repositories/file_repository.dart';
 
 class MessageInput extends StatefulWidget {
   final String channelId;
+  final String channelName;
+  final String? initialDraft;
   final void Function(String message, {List<String>? fileIds}) onSend;
 
   const MessageInput({
     super.key,
     required this.channelId,
+    this.channelName = '',
+    this.initialDraft,
     required this.onSend,
   });
 
@@ -26,9 +34,47 @@ class _MessageInputState extends State<MessageInput> {
   final List<String> _pendingFileIds = [];
   final List<String> _pendingFileNames = [];
   bool _isUploading = false;
+  Timer? _draftTimer;
+  final _draftStorage = sl<DraftStorage>();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDraft();
+    _controller.addListener(_onTextChanged);
+  }
+
+  Future<void> _loadDraft() async {
+    if (widget.initialDraft != null && widget.initialDraft!.isNotEmpty) {
+      _controller.text = widget.initialDraft!;
+      return;
+    }
+    final draft = await _draftStorage.getDraft(widget.channelId);
+    if (draft != null && mounted) {
+      _controller.text = draft.message;
+    }
+  }
+
+  void _onTextChanged() {
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 500), _saveDraft);
+  }
+
+  Future<void> _saveDraft() async {
+    final text = _controller.text.trim();
+    await _draftStorage.saveDraft(Draft(
+      channelId: widget.channelId,
+      channelName: widget.channelName,
+      message: text,
+      updatedAt: DateTime.now(),
+    ));
+  }
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
+    _saveDraft();
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -44,6 +90,8 @@ class _MessageInputState extends State<MessageInput> {
     );
 
     _controller.clear();
+    _draftTimer?.cancel();
+    _draftStorage.deleteDraft(widget.channelId);
     setState(() {
       _pendingFileIds.clear();
       _pendingFileNames.clear();

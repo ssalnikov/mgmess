@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/user_thread.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../datasources/remote/post_remote_datasource.dart';
 
@@ -126,6 +127,26 @@ class PostRepositoryImpl implements PostRepository {
     try {
       await _remoteDataSource.flagPost(userId, postId);
       return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<UserThread>>> getUserThreads(
+    String userId,
+    String teamId, {
+    int perPage = 25,
+    String? before,
+  }) async {
+    try {
+      final threads = await _remoteDataSource.getUserThreads(
+        userId,
+        teamId,
+        perPage: perPage,
+        before: before,
+      );
+      return Right(threads);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

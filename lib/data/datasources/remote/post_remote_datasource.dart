@@ -2,6 +2,7 @@ import '../../../core/error/exceptions.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../models/post_model.dart';
+import '../../models/user_thread_model.dart';
 
 class PostRemoteDataSource {
   final ApiClient _apiClient;
@@ -180,6 +181,33 @@ class PostRemoteDataSource {
       );
     } catch (e) {
       throw ServerException(message: 'Failed to flag post: $e');
+    }
+  }
+
+  Future<List<UserThreadModel>> getUserThreads(
+    String userId,
+    String teamId, {
+    int perPage = 25,
+    String? before,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{
+        'per_page': perPage,
+        'extended': true,
+      };
+      if (before != null) queryParams['before'] = before;
+
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.userThreads(userId, teamId),
+        queryParameters: queryParams,
+      );
+      final data = response.data as Map<String, dynamic>;
+      final threads = data['threads'] as List<dynamic>? ?? [];
+      return threads
+          .map((t) => UserThreadModel.fromJson(t as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ServerException(message: 'Failed to get user threads: $e');
     }
   }
 

@@ -34,6 +34,13 @@ class SearchChannels extends ChannelsEvent {
   List<Object?> get props => [query];
 }
 
+class MarkChannelAsRead extends ChannelsEvent {
+  final String channelId;
+  const MarkChannelAsRead({required this.channelId});
+  @override
+  List<Object?> get props => [channelId];
+}
+
 class ChannelWsEvent extends ChannelsEvent {
   final WsEvent wsEvent;
   const ChannelWsEvent({required this.wsEvent});
@@ -92,6 +99,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     on<LoadChannels>(_onLoadChannels);
     on<RefreshChannels>(_onRefreshChannels);
     on<SearchChannels>(_onSearchChannels);
+    on<MarkChannelAsRead>(_onMarkChannelAsRead);
     on<ChannelWsEvent>(_onWsEvent);
   }
 
@@ -160,6 +168,31 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
       filteredChannels: filtered,
       searchQuery: query,
     ));
+  }
+
+  Future<void> _onMarkChannelAsRead(
+    MarkChannelAsRead event,
+    Emitter<ChannelsState> emit,
+  ) async {
+    final channels = state.channels.map((c) {
+      if (c.id == event.channelId) {
+        return c.copyWith(
+          msgCount: c.totalMsgCount,
+          mentionCount: 0,
+        );
+      }
+      return c;
+    }).toList();
+
+    emit(state.copyWith(
+      channels: channels,
+      filteredChannels:
+          state.searchQuery.isEmpty ? channels : state.filteredChannels,
+    ));
+
+    if (_userId.isNotEmpty) {
+      await _channelRepository.viewChannel(_userId, event.channelId);
+    }
   }
 
   void _onWsEvent(ChannelWsEvent event, Emitter<ChannelsState> emit) {

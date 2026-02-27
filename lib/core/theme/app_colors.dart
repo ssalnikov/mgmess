@@ -33,6 +33,10 @@ class AppColors {
   static const Color mention = Color(0xFFFFF3CD);
   static const Color unreadBadge = Color(0xFFD24B4E);
 
+  // Priority
+  static const Color priorityUrgent = Color(0xFFD24B4E);
+  static const Color priorityImportant = Color(0xFFF5A623);
+
   // Misc
   static const Color divider = Color(0xFFE0E0E0);
   static const Color error = Color(0xFFD24B4E);

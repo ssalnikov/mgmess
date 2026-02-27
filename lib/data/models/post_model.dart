@@ -23,12 +23,15 @@ class PostModel extends Post {
     super.pendingId,
     super.forwardedPostMessage,
     super.forwardedChannelName,
+    super.priority,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
     final meta = json['metadata'] as Map<String, dynamic>? ?? {};
     final filesJson = meta['files'] as List<dynamic>?;
     final reactionsJson = meta['reactions'] as List<dynamic>?;
+    final priorityData = meta['priority'] as Map<String, dynamic>?;
+    final priority = priorityData?['priority'] as String? ?? '';
 
     final Map<String, int> reactionMap = {};
     if (reactionsJson != null) {
@@ -85,6 +88,7 @@ class PostModel extends Post {
       pendingId: json['pending_post_id'] as String? ?? '',
       forwardedPostMessage: forwardedMsg,
       forwardedChannelName: forwardedChannel,
+      priority: priority,
     );
   }
 

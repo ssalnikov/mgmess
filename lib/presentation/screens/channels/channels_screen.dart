@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -12,8 +13,10 @@ import '../../../domain/repositories/channel_repository.dart';
 import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../blocs/notification/notification_bloc.dart';
+import '../../blocs/notification/notification_event.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
-import '../../widgets/loading_indicator.dart';
+import 'widgets/channel_skeleton.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/user_avatar.dart';
 import 'channels_bloc.dart';
@@ -78,6 +81,12 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Channels'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.search),
+              onPressed: () => context.push(RouteNames.search),
+            ),
+          ],
         ),
         body: Column(
           children: [
@@ -85,11 +94,21 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
             _buildThreadsRow(),
             _buildDraftsRow(),
             Expanded(
-              child: BlocBuilder<ChannelsBloc, ChannelsState>(
+              child: BlocConsumer<ChannelsBloc, ChannelsState>(
+                listener: (context, state) {
+                  final mutedIds = state.channels
+                      .where((c) => c.isMuted)
+                      .map((c) => c.id)
+                      .toSet();
+                  context.read<NotificationBloc>().add(
+                        NotificationUpdateMutedChannels(
+                          mutedChannelIds: mutedIds,
+                        ),
+                      );
+                },
                 builder: (context, state) {
                   if (state.isLoading && state.channels.isEmpty) {
-                    return const LoadingIndicator(
-                        message: 'Loading channels...');
+                    return const ChannelSkeletonList();
                   }
                   if (state.error != null && state.channels.isEmpty) {
                     return ErrorDisplay(
@@ -100,6 +119,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                   }
                   return RefreshIndicator(
                     onRefresh: () async {
+                      HapticFeedback.selectionClick();
                       _channelsBloc.add(const RefreshChannels());
                     },
                     child: ListView.builder(
@@ -237,14 +257,17 @@ class _ChannelListTileState extends State<_ChannelListTile> {
 
   @override
   Widget build(BuildContext context) {
+    final isMuted = channel.isMuted;
     return ListTile(
       leading: _buildLeading(),
       title: Text(
         _title,
-        style: channel.hasUnread
+        style: (channel.hasUnread && !isMuted)
             ? AppTextStyles.channelName
                 .copyWith(fontWeight: FontWeight.bold)
-            : AppTextStyles.channelName,
+            : AppTextStyles.channelName.copyWith(
+                color: isMuted ? AppColors.textSecondary : null,
+              ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -259,11 +282,53 @@ class _ChannelListTileState extends State<_ChannelListTile> {
         context.read<ChannelsBloc>().add(
               MarkChannelAsRead(channelId: channel.id),
             );
+        final extra = <String, dynamic>{
+          'channelName': _title,
+          'lastViewedAt': channel.lastViewedAt,
+        };
+        if (channel.isDirect) {
+          final parts = channel.name.split('__');
+          if (parts.length == 2) {
+            extra['dmUserId'] = parts.first == widget.currentUserId
+                ? parts.last
+                : parts.first;
+          }
+        }
         context.push(
           RouteNames.chatPath(channel.id),
-          extra: <String, dynamic>{'channelName': _title},
+          extra: extra,
         );
       },
+      onLongPress: () => _showChannelActions(context),
+    );
+  }
+
+  void _showChannelActions(BuildContext context) {
+    final isMuted = channel.isMuted;
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                isMuted ? Icons.notifications : Icons.notifications_off,
+              ),
+              title: Text(isMuted ? 'Unmute' : 'Mute'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.read<ChannelsBloc>().add(
+                      ToggleMuteChannel(
+                        channelId: channel.id,
+                        userId: widget.currentUserId,
+                      ),
+                    );
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -273,7 +338,10 @@ class _ChannelListTileState extends State<_ChannelListTile> {
       final otherId = parts.length == 2
           ? (parts.first == widget.currentUserId ? parts.last : parts.first)
           : channel.id;
-      return UserAvatar(userId: otherId);
+      return UserAvatar(
+        userId: otherId,
+        heroTag: 'channel_avatar_${channel.id}',
+      );
     }
 
     IconData icon;
@@ -295,6 +363,13 @@ class _ChannelListTileState extends State<_ChannelListTile> {
   }
 
   Widget? _buildTrailing() {
+    if (channel.isMuted) {
+      return const Icon(
+        Icons.notifications_off,
+        size: 18,
+        color: AppColors.textSecondary,
+      );
+    }
     if (channel.hasMention) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

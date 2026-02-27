@@ -5,15 +5,20 @@ import 'package:mocktail/mocktail.dart';
 import 'package:mgmess/core/error/failures.dart';
 import 'package:mgmess/domain/entities/post.dart';
 import 'package:mgmess/domain/repositories/post_repository.dart';
+import 'package:mgmess/domain/services/ws_post_parser.dart';
 import 'package:mgmess/presentation/screens/chat/chat_bloc.dart';
 
 class MockPostRepository extends Mock implements PostRepository {}
 
+class MockWsPostParser extends Mock implements WsPostParser {}
+
 void main() {
   late MockPostRepository mockRepo;
+  late MockWsPostParser mockParser;
 
   setUp(() {
     mockRepo = MockPostRepository();
+    mockParser = MockWsPostParser();
   });
 
   const posts = [
@@ -27,7 +32,7 @@ void main() {
       build: () {
         when(() => mockRepo.getChannelPosts(any()))
             .thenAnswer((_) async => const Right(posts));
-        return ChatBloc(postRepository: mockRepo);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
       },
       act: (bloc) => bloc.add(const LoadPosts(channelId: 'ch1')),
       expect: () => [
@@ -46,7 +51,7 @@ void main() {
         when(() => mockRepo.getChannelPosts(any()))
             .thenAnswer((_) async =>
                 const Left(ServerFailure(message: 'Failed')));
-        return ChatBloc(postRepository: mockRepo);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
       },
       act: (bloc) => bloc.add(const LoadPosts(channelId: 'ch1')),
       expect: () => [
@@ -68,7 +73,7 @@ void main() {
             )).thenAnswer((_) async => const Right(
               Post(id: 'p3', channelId: 'ch1', userId: 'u1', message: 'New'),
             ));
-        return ChatBloc(postRepository: mockRepo);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
       },
       seed: () => ChatState(channelId: 'ch1', posts: posts),
       act: (bloc) => bloc.add(const SendMessage(message: 'New')),
@@ -86,7 +91,7 @@ void main() {
       build: () {
         when(() => mockRepo.deletePost(any()))
             .thenAnswer((_) async => const Right(null));
-        return ChatBloc(postRepository: mockRepo);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
       },
       seed: () => ChatState(channelId: 'ch1', posts: posts),
       act: (bloc) => bloc.add(const DeleteMessage(postId: 'p1')),
@@ -99,7 +104,7 @@ void main() {
 
     blocTest<ChatBloc, ChatState>(
       'LoadMorePosts does nothing when already loading more',
-      build: () => ChatBloc(postRepository: mockRepo),
+      build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser),
       seed: () => ChatState(
         channelId: 'ch1',
         posts: posts,
@@ -111,7 +116,7 @@ void main() {
 
     blocTest<ChatBloc, ChatState>(
       'LoadMorePosts does nothing when no more posts',
-      build: () => ChatBloc(postRepository: mockRepo),
+      build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser),
       seed: () => ChatState(
         channelId: 'ch1',
         posts: posts,

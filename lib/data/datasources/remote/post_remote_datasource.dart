@@ -51,6 +51,7 @@ class PostRemoteDataSource {
     required String message,
     String? rootId,
     List<String>? fileIds,
+    String? priority,
   }) async {
     try {
       final body = <String, dynamic>{
@@ -60,6 +61,14 @@ class PostRemoteDataSource {
       if (rootId != null && rootId.isNotEmpty) body['root_id'] = rootId;
       if (fileIds != null && fileIds.isNotEmpty) {
         body['file_ids'] = fileIds;
+      }
+      if (priority != null && priority.isNotEmpty) {
+        body['metadata'] = {
+          'priority': {
+            'priority': priority,
+            'requested_ack': false,
+          },
+        };
       }
 
       final response = await _apiClient.dio.post(
@@ -81,6 +90,18 @@ class PostRemoteDataSource {
           response.data as Map<String, dynamic>);
     } catch (e) {
       throw ServerException(message: 'Failed to get post: $e');
+    }
+  }
+
+  Future<PostModel> editPost(String postId, String message) async {
+    try {
+      final response = await _apiClient.dio.put(
+        ApiEndpoints.postPatch(postId),
+        data: {'message': message},
+      );
+      return PostModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw ServerException(message: 'Failed to edit post: $e');
     }
   }
 
@@ -208,6 +229,49 @@ class PostRemoteDataSource {
           .toList();
     } catch (e) {
       throw ServerException(message: 'Failed to get user threads: $e');
+    }
+  }
+
+  Future<List<PostModel>> getPinnedPosts(String channelId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.channelPinnedPosts(channelId),
+      );
+      final data = response.data as Map<String, dynamic>;
+      final posts = data['posts'] as Map<String, dynamic>? ?? {};
+      final order = (data['order'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [];
+      return order
+          .where((id) => posts.containsKey(id))
+          .map((id) =>
+              PostModel.fromJson(posts[id] as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ServerException(message: 'Failed to get pinned posts: $e');
+    }
+  }
+
+  Future<PostModel> pinPost(String postId) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.pinPost(postId),
+      );
+      return PostModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw ServerException(message: 'Failed to pin post: $e');
+    }
+  }
+
+  Future<PostModel> unpinPost(String postId) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.unpinPost(postId),
+      );
+      return PostModel.fromJson(response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw ServerException(message: 'Failed to unpin post: $e');
     }
   }
 

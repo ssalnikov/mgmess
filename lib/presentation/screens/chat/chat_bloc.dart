@@ -5,9 +5,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/websocket_events.dart';
-import '../../../data/models/post_model.dart';
 import '../../../domain/entities/post.dart';
 import '../../../domain/repositories/post_repository.dart';
+import '../../../domain/services/ws_post_parser.dart';
 
 // Events
 abstract class ChatEvent extends Equatable {
@@ -31,13 +31,15 @@ class SendMessage extends ChatEvent {
   final String message;
   final String? rootId;
   final List<String>? fileIds;
+  final String? priority;
   const SendMessage({
     required this.message,
     this.rootId,
     this.fileIds,
+    this.priority,
   });
   @override
-  List<Object?> get props => [message, rootId, fileIds];
+  List<Object?> get props => [message, rootId, fileIds, priority];
 }
 
 class DeleteMessage extends ChatEvent {
@@ -45,6 +47,65 @@ class DeleteMessage extends ChatEvent {
   const DeleteMessage({required this.postId});
   @override
   List<Object?> get props => [postId];
+}
+
+class EditMessage extends ChatEvent {
+  final String postId;
+  final String message;
+  const EditMessage({required this.postId, required this.message});
+  @override
+  List<Object?> get props => [postId, message];
+}
+
+class StartEditMessage extends ChatEvent {
+  final Post post;
+  const StartEditMessage({required this.post});
+  @override
+  List<Object?> get props => [post];
+}
+
+class CancelEditMessage extends ChatEvent {
+  const CancelEditMessage();
+}
+
+class SetLastViewedAt extends ChatEvent {
+  final int lastViewedAt;
+  const SetLastViewedAt({required this.lastViewedAt});
+  @override
+  List<Object?> get props => [lastViewedAt];
+}
+
+class ClearNewMessages extends ChatEvent {
+  const ClearNewMessages();
+}
+
+class IncrementNewMessages extends ChatEvent {
+  const IncrementNewMessages();
+}
+
+class PinMessage extends ChatEvent {
+  final String postId;
+  const PinMessage({required this.postId});
+  @override
+  List<Object?> get props => [postId];
+}
+
+class UnpinMessage extends ChatEvent {
+  final String postId;
+  const UnpinMessage({required this.postId});
+  @override
+  List<Object?> get props => [postId];
+}
+
+class ScrollToMessage extends ChatEvent {
+  final String postId;
+  const ScrollToMessage({required this.postId});
+  @override
+  List<Object?> get props => [postId];
+}
+
+class ClearHighlight extends ChatEvent {
+  const ClearHighlight();
 }
 
 class ChatWsEvent extends ChatEvent {
@@ -64,6 +125,11 @@ class ChatState extends Equatable {
   final String? error;
   final Set<String> typingUsers;
   final bool isSending;
+  final Post? editingPost;
+  final int lastViewedAt;
+  final int newMessagesCount;
+  final String? firstUnreadId;
+  final String? highlightedPostId;
 
   const ChatState({
     this.channelId = '',
@@ -74,6 +140,11 @@ class ChatState extends Equatable {
     this.error,
     this.typingUsers = const {},
     this.isSending = false,
+    this.editingPost,
+    this.lastViewedAt = 0,
+    this.newMessagesCount = 0,
+    this.firstUnreadId,
+    this.highlightedPostId,
   });
 
   ChatState copyWith({
@@ -85,6 +156,14 @@ class ChatState extends Equatable {
     String? error,
     Set<String>? typingUsers,
     bool? isSending,
+    Post? editingPost,
+    bool clearEditingPost = false,
+    int? lastViewedAt,
+    int? newMessagesCount,
+    String? firstUnreadId,
+    bool clearFirstUnreadId = false,
+    String? highlightedPostId,
+    bool clearHighlightedPostId = false,
   }) {
     return ChatState(
       channelId: channelId ?? this.channelId,
@@ -95,6 +174,11 @@ class ChatState extends Equatable {
       error: error,
       typingUsers: typingUsers ?? this.typingUsers,
       isSending: isSending ?? this.isSending,
+      editingPost: clearEditingPost ? null : (editingPost ?? this.editingPost),
+      lastViewedAt: lastViewedAt ?? this.lastViewedAt,
+      newMessagesCount: newMessagesCount ?? this.newMessagesCount,
+      firstUnreadId: clearFirstUnreadId ? null : (firstUnreadId ?? this.firstUnreadId),
+      highlightedPostId: clearHighlightedPostId ? null : (highlightedPostId ?? this.highlightedPostId),
     );
   }
 
@@ -108,22 +192,41 @@ class ChatState extends Equatable {
         error,
         typingUsers,
         isSending,
+        editingPost,
+        lastViewedAt,
+        newMessagesCount,
+        firstUnreadId,
+        highlightedPostId,
       ];
 }
 
 // BLoC
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final PostRepository _postRepository;
+  final WsPostParser _wsPostParser;
   StreamSubscription<WsEvent>? _wsSub;
   Timer? _typingTimer;
 
-  ChatBloc({required PostRepository postRepository})
-      : _postRepository = postRepository,
+  ChatBloc({
+    required PostRepository postRepository,
+    required WsPostParser wsPostParser,
+  })  : _postRepository = postRepository,
+        _wsPostParser = wsPostParser,
         super(const ChatState()) {
     on<LoadPosts>(_onLoadPosts);
     on<LoadMorePosts>(_onLoadMorePosts);
     on<SendMessage>(_onSendMessage);
+    on<EditMessage>(_onEditMessage);
+    on<StartEditMessage>(_onStartEditMessage);
+    on<CancelEditMessage>(_onCancelEditMessage);
     on<DeleteMessage>(_onDeleteMessage);
+    on<SetLastViewedAt>(_onSetLastViewedAt);
+    on<ClearNewMessages>(_onClearNewMessages);
+    on<IncrementNewMessages>(_onIncrementNewMessages);
+    on<PinMessage>(_onPinMessage);
+    on<UnpinMessage>(_onUnpinMessage);
+    on<ScrollToMessage>(_onScrollToMessage);
+    on<ClearHighlight>(_onClearHighlight);
     on<ChatWsEvent>(_onWsEvent);
   }
 
@@ -159,10 +262,22 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       )),
       (posts) {
         final rootPosts = _filterAndCountReplies(posts);
+        // Determine firstUnreadId
+        String? unreadId;
+        if (state.lastViewedAt > 0) {
+          // Posts are sorted newest first; find the first (oldest) post with createAt > lastViewedAt
+          for (int i = rootPosts.length - 1; i >= 0; i--) {
+            if (rootPosts[i].createAt > state.lastViewedAt) {
+              unreadId = rootPosts[i].id;
+              break;
+            }
+          }
+        }
         emit(state.copyWith(
           posts: rootPosts,
           isLoading: false,
           hasMore: posts.length >= 60,
+          firstUnreadId: unreadId,
         ));
       },
     );
@@ -208,6 +323,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       message: event.message,
       rootId: event.rootId,
       fileIds: event.fileIds,
+      priority: event.priority,
     );
 
     result.fold(
@@ -229,6 +345,37 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     );
   }
 
+  Future<void> _onEditMessage(
+    EditMessage event,
+    Emitter<ChatState> emit,
+  ) async {
+    final result = await _postRepository.editPost(event.postId, event.message);
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (editedPost) {
+        final posts = state.posts.map((p) {
+          if (p.id == editedPost.id) return editedPost;
+          return p;
+        }).toList();
+        emit(state.copyWith(posts: posts, clearEditingPost: true));
+      },
+    );
+  }
+
+  void _onStartEditMessage(
+    StartEditMessage event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(editingPost: event.post));
+  }
+
+  void _onCancelEditMessage(
+    CancelEditMessage event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(clearEditingPost: true));
+  }
+
   Future<void> _onDeleteMessage(
     DeleteMessage event,
     Emitter<ChatState> emit,
@@ -242,6 +389,131 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         emit(state.copyWith(posts: posts));
       },
     );
+  }
+
+  void _onSetLastViewedAt(
+    SetLastViewedAt event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(lastViewedAt: event.lastViewedAt));
+  }
+
+  void _onClearNewMessages(
+    ClearNewMessages event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(
+      newMessagesCount: 0,
+      clearFirstUnreadId: true,
+    ));
+  }
+
+  void _onIncrementNewMessages(
+    IncrementNewMessages event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(
+      newMessagesCount: state.newMessagesCount + 1,
+    ));
+  }
+
+  Future<void> _onPinMessage(
+    PinMessage event,
+    Emitter<ChatState> emit,
+  ) async {
+    final result = await _postRepository.pinPost(event.postId);
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (_) {
+        final posts = state.posts.map((p) {
+          if (p.id == event.postId) return p.copyWith(isPinned: true);
+          return p;
+        }).toList();
+        emit(state.copyWith(posts: posts));
+      },
+    );
+  }
+
+  Future<void> _onUnpinMessage(
+    UnpinMessage event,
+    Emitter<ChatState> emit,
+  ) async {
+    final result = await _postRepository.unpinPost(event.postId);
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (_) {
+        final posts = state.posts.map((p) {
+          if (p.id == event.postId) return p.copyWith(isPinned: false);
+          return p;
+        }).toList();
+        emit(state.copyWith(posts: posts));
+      },
+    );
+  }
+
+  Future<void> _onScrollToMessage(
+    ScrollToMessage event,
+    Emitter<ChatState> emit,
+  ) async {
+    // If post is already loaded, just highlight it
+    if (state.posts.any((p) => p.id == event.postId)) {
+      emit(state.copyWith(highlightedPostId: event.postId));
+      return;
+    }
+
+    // Load posts around the target post
+    emit(state.copyWith(isLoading: true));
+
+    final postResult = await _postRepository.getPost(event.postId);
+    await postResult.fold(
+      (failure) async {
+        emit(state.copyWith(
+          isLoading: false,
+          error: failure.message,
+        ));
+      },
+      (targetPost) async {
+        // Load posts before and after
+        final beforeResult = await _postRepository.getChannelPosts(
+          state.channelId,
+          after: event.postId,
+          perPage: 30,
+        );
+        final afterResult = await _postRepository.getChannelPosts(
+          state.channelId,
+          before: event.postId,
+          perPage: 30,
+        );
+
+        final allPosts = <Post>[targetPost];
+        beforeResult.fold((_) {}, (posts) => allPosts.addAll(posts));
+        afterResult.fold((_) {}, (posts) => allPosts.addAll(posts));
+
+        // Deduplicate and sort by createAt descending (newest first)
+        final seen = <String>{};
+        final unique = <Post>[];
+        for (final p in allPosts) {
+          if (seen.add(p.id)) unique.add(p);
+        }
+        unique.sort((a, b) => b.createAt.compareTo(a.createAt));
+
+        final rootPosts = _filterAndCountReplies(unique);
+
+        emit(state.copyWith(
+          posts: rootPosts,
+          isLoading: false,
+          highlightedPostId: event.postId,
+          hasMore: true,
+        ));
+      },
+    );
+  }
+
+  void _onClearHighlight(
+    ClearHighlight event,
+    Emitter<ChatState> emit,
+  ) {
+    emit(state.copyWith(clearHighlightedPostId: true));
   }
 
   void _onWsEvent(ChatWsEvent event, Emitter<ChatState> emit) {
@@ -263,43 +535,39 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
   void _handleNewPost(WsEvent wsEvent, Emitter<ChatState> emit) {
     final postJson = wsEvent.data['post'];
-    if (postJson is String) {
-      try {
-        final post = PostModel.fromJson(
-          jsonDecode(postJson) as Map<String, dynamic>,
-        );
-        if (post.isReply) {
-          // Update root post's reply count
-          final posts = state.posts.map((p) {
-            if (p.id == post.rootId) {
-              return p.copyWith(replyCount: p.replyCount + 1);
-            }
-            return p;
-          }).toList();
-          emit(state.copyWith(posts: posts));
-          return;
+    if (postJson is! String) return;
+
+    final post = _wsPostParser.parsePost(postJson);
+    if (post == null) return;
+
+    if (post.isReply) {
+      // Update root post's reply count
+      final posts = state.posts.map((p) {
+        if (p.id == post.rootId) {
+          return p.copyWith(replyCount: p.replyCount + 1);
         }
-        // Avoid duplicates (from optimistic send)
-        if (state.posts.any((p) => p.id == post.id)) return;
-        emit(state.copyWith(posts: [post, ...state.posts]));
-      } catch (_) {}
+        return p;
+      }).toList();
+      emit(state.copyWith(posts: posts));
+      return;
     }
+    // Avoid duplicates (from optimistic send)
+    if (state.posts.any((p) => p.id == post.id)) return;
+    emit(state.copyWith(posts: [post, ...state.posts]));
   }
 
   void _handlePostEdited(WsEvent wsEvent, Emitter<ChatState> emit) {
     final postJson = wsEvent.data['post'];
-    if (postJson is String) {
-      try {
-        final edited = PostModel.fromJson(
-          jsonDecode(postJson) as Map<String, dynamic>,
-        );
-        final posts = state.posts.map((p) {
-          if (p.id == edited.id) return edited;
-          return p;
-        }).toList();
-        emit(state.copyWith(posts: posts));
-      } catch (_) {}
-    }
+    if (postJson is! String) return;
+
+    final edited = _wsPostParser.parsePost(postJson);
+    if (edited == null) return;
+
+    final posts = state.posts.map((p) {
+      if (p.id == edited.id) return edited;
+      return p;
+    }).toList();
+    emit(state.copyWith(posts: posts));
   }
 
   void _handlePostDeleted(WsEvent wsEvent, Emitter<ChatState> emit) {

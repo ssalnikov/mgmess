@@ -17,7 +17,7 @@
 			<string>my.games.mgmess</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>mgmess</string>
+				<string>mmauth</string>
 			</array>
 		</dict>
 	</array>

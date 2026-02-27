@@ -48,6 +48,25 @@ OAuth авторизация проходит через браузер, а не
 | POST | `/users/ids` | Получить список пользователей по массиву ID |
 | PUT | `/users/{id}/patch` | Обновить профиль пользователя |
 | POST | `/users/status/ids` | Получить статусы пользователей (online/away/dnd/offline) |
+| GET | `/users/autocomplete?name=...` | Автодополнение пользователей по имени |
+
+#### Автодополнение пользователей
+
+```http
+GET /api/v4/users/autocomplete?name=ivan&in_channel=abc123
+```
+
+Ответ:
+```json
+{
+  "users": [
+    { "id": "user1", "username": "ivan", "first_name": "Иван", ... }
+  ],
+  "out_of_channel": []
+}
+```
+
+Параметр `in_channel` опционален — ограничивает поиск участниками канала.
 
 #### Пример: обновление профиля
 
@@ -114,6 +133,9 @@ POST /api/v4/channels/members/{userId}/view
 | DELETE | `/posts/{id}` | Удалить сообщение |
 | GET | `/posts/{id}/thread` | Получить тред (ответы на сообщение) |
 | GET | `/users/{id}/posts/flagged` | Сохранённые сообщения |
+| GET | `/channels/{id}/pinned` | Закреплённые сообщения канала |
+| POST | `/posts/{id}/pin` | Закрепить сообщение |
+| POST | `/posts/{id}/unpin` | Открепить сообщение |
 | POST | `/teams/{id}/posts/search` | Поиск сообщений |
 
 #### Пагинация сообщений
@@ -155,6 +177,41 @@ POST /api/v4/posts
 
 - `root_id` — ID родительского сообщения (для ответов в треде). Пустая строка для обычных сообщений.
 - `file_ids` — массив ID предварительно загруженных файлов.
+
+#### Создание сообщения с приоритетом
+
+```http
+POST /api/v4/posts
+```
+```json
+{
+  "channel_id": "abc123",
+  "message": "Срочно!",
+  "metadata": {
+    "priority": {
+      "priority": "urgent",
+      "requested_ack": false
+    }
+  }
+}
+```
+
+Допустимые значения `priority`: `""` (стандартный), `"important"`, `"urgent"`.
+
+#### Закреплённые сообщения
+
+```http
+GET /api/v4/channels/{id}/pinned
+```
+
+Ответ — PostList формат `{order, posts}` (аналогично `GET /channels/{id}/posts`).
+
+```http
+POST /api/v4/posts/{id}/pin
+POST /api/v4/posts/{id}/unpin
+```
+
+Ответ — обновлённый объект Post.
 
 #### Поиск упоминаний
 

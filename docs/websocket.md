@@ -193,6 +193,19 @@ enum WsConnectionState { disconnected, connecting, connected }
 
 Доступны через `WebSocketBloc.state.connectionState` для отображения статуса в UI (например, баннер "Подключение...").
 
+## Парсинг постов из WS-событий (WsPostParser)
+
+Сервис `WsPostParser` (`domain/services/ws_post_parser.dart`) централизует логику парсинга `data.post` JSON-строки из WS-событий `posted`, `post_edited`, `post_deleted`. Реализация — `WsPostParserImpl` (`data/services/ws_post_parser_impl.dart`).
+
+Ранее каждый блок (`ChatBloc`, `ThreadBloc`) дублировал логику `jsonDecode(event.data['post'])` + `PostModel.fromJson()`. Теперь они получают `WsPostParser` через DI и вызывают единый метод.
+
+```dart
+final post = wsPostParser.parsePost(wsEvent);
+if (post != null) {
+  // обработка поста
+}
+```
+
 ## Фильтрация событий
 
 `ChatBloc` подписывается только на события текущего канала:

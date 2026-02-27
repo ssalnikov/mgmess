@@ -17,6 +17,7 @@ class ChannelModel extends Channel {
     super.msgCount,
     super.mentionCount,
     super.lastViewedAt,
+    super.isMuted,
   });
 
   factory ChannelModel.fromJson(Map<String, dynamic> json) {
@@ -42,6 +43,13 @@ class ChannelModel extends Channel {
   ) {
     final channel = ChannelModel.fromJson(channelJson);
     if (memberJson == null) return channel;
+
+    bool muted = false;
+    final notifyProps = memberJson['notify_props'] as Map<String, dynamic>?;
+    if (notifyProps != null) {
+      muted = notifyProps['mark_unread'] == 'mention';
+    }
+
     return ChannelModel(
       id: channel.id,
       teamId: channel.teamId,
@@ -58,6 +66,7 @@ class ChannelModel extends Channel {
       msgCount: memberJson['msg_count'] as int? ?? 0,
       mentionCount: memberJson['mention_count'] as int? ?? 0,
       lastViewedAt: memberJson['last_viewed_at'] as int? ?? 0,
+      isMuted: muted,
     );
   }
 

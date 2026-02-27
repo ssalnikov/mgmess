@@ -17,4 +17,12 @@ abstract class ChannelRepository {
     String userId,
     String otherUserId,
   );
+  Future<Either<Failure, void>> muteChannel(
+    String channelId,
+    String userId,
+  );
+  Future<Either<Failure, void>> unmuteChannel(
+    String channelId,
+    String userId,
+  );
 }

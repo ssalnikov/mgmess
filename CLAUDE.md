@@ -4,13 +4,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MGMess is a Flutter mobile Mattermost client for MyGames corporate server (`https://mm.my.games`). It supports GitLab OAuth authentication, real-time messaging via WebSocket, file sharing, read receipts ("seens" — custom MyGames backend extension), saved messages, mentions, and push notifications (FCM). Targets iOS and Android.
+MGMess is a Flutter mobile Mattermost client for MyGames corporate server (`https://mm.my.games`). It supports GitLab OAuth authentication, real-time messaging via WebSocket, file sharing, read receipts ("seens" — custom MyGames backend extension), saved messages, mentions, push notifications (FCM), pinned messages, haptic feedback, and offline mode with local database (Drift/SQLite). Targets iOS and Android.
 
 ## Commands
 
 ```bash
-# Run all tests (82 tests)
+# Run all tests — unit + integration (139 tests)
 flutter test
+
+# Run only unit tests (114 tests)
+flutter test test/
+
+# Run only integration tests as widget tests (25 tests, no device required)
+flutter test test/integration_runner_test.dart
+
+# Run integration tests on device/simulator
+flutter test integration_test/scenarios/ -d <device_id>
 
 # Run a single test file
 flutter test test/blocs/auth_bloc_test.dart
@@ -33,9 +42,16 @@ flutter build ios
 
 Clean Architecture with three layers — all cross-layer calls go through abstract repository contracts returning `Either<Failure, T>` (dartz).
 
+Локальная БД (Drift/SQLite):
+`AppDatabase` (`lib/data/datasources/local/app_database.dart`) с таблицами Posts, Channels, Users. Каждая сущность имеет DAO + Mapper. Репозитории используют `NetworkInfo` для выбора источника: онлайн → API + фоновый кеш, офлайн → локальная БД, ошибка сервера → fallback на кеш. `SendQueueService` отправляет pending-посты при восстановлении сети. При добавлении новых кешируемых сущностей: создай таблицу в `app_database.dart`, DAO, Mapper и LocalDataSource.
+
+UI Performance:
+Чаты — это длинные списки.
+Инструкция: "При рендеринге списка сообщений всегда используй ListView.builder или SliverList. Не используй ShrinkWrap без необходимости".
+
 **Domain** (`lib/domain/`) — Entities and abstract repository interfaces. Pure Dart, no framework dependencies. The `Post` entity uses `metadata` (not `props`) to avoid conflict with `Equatable.props`.
 
-**Data** (`lib/data/`) — Models (DTOs with `fromJson`/`toJson`), remote data sources (Dio-based), and repository implementations. Mattermost PostList responses use `{order: [...], posts: {...}}` format — `PostRemoteDataSource` handles this mapping.
+**Data** (`lib/data/`) — Models (DTOs with `fromJson`/`toJson`), remote data sources (Dio-based), local data sources (Drift-based for offline cache), repository implementations, and services (`WsPostParserImpl`, `SendQueueService`). Mattermost PostList responses use `{order: [...], posts: {...}}` format — `PostRemoteDataSource` handles this mapping.
 
 **Presentation** (`lib/presentation/`) — BLoC state management, screens, and widgets.
 
@@ -46,17 +62,19 @@ Global BLoCs (live for app lifetime, provided in `App` via `MultiBlocProvider`):
 - `WebSocketBloc` — WS connection, broadcasts `wsEvents` stream to other blocs
 - `ConnectivityCubit` — network state
 - `NotificationBloc` — FCM token lifecycle, WS events → local notifications, active channel suppression
+- `UserStatusCubit` — user statuses (online/away/dnd/offline), batched fetching, WS `status_change` events
 
 Screen-scoped BLoCs (created in screen `initState`, disposed on screen disposal):
 - `ChannelsBloc` — channel list, search, WS unread updates
-- `ChatBloc` — messages, optimistic send, pagination, typing indicator
+- `ChatBloc` — messages, optimistic send, pagination, typing indicator, pin/unpin, scroll-to-message with highlight
+- `PinnedMessagesBloc` — pinned messages list per channel with unpin
 - `SavedMessagesBloc`, `MentionsBloc`
 
 Pattern: other blocs subscribe to `WebSocketBloc.wsEvents` stream and filter events by `channelId`/event type.
 
 ### Dependency Injection
 
-GetIt service locator in `lib/core/di/injection.dart`. Registration order: Core (storage, API, WS) -> DataSources -> Repositories (registered by abstract type) -> BLoCs. Access via `sl<Type>()`.
+GetIt service locator in `lib/core/di/injection.dart`. Registration order: Core (storage, API, WS, NetworkInfo) -> Database (AppDatabase) -> DAOs -> Local DataSources -> Remote DataSources -> Services (WsPostParser, SendQueueService) -> Repositories (registered by abstract type) -> BLoCs. Access via `sl<Type>()`.
 
 ### Networking
 
@@ -85,17 +103,59 @@ Firebase Cloud Messaging for push notifications. `Firebase.initializeApp()` is w
 
 Setup: see `docs/push_notifications.md`.
 
+### Pinned Messages
+
+API `GET /channels/{id}/pinned` returns PostList `{order, posts}`. Pin/unpin via `POST /posts/{id}/pin` and `POST /posts/{id}/unpin`. `Post.isPinned` and `Post.copyWith(isPinned:)` are used throughout.
+
+- `PinnedMessagesBloc` (`lib/presentation/screens/chat/widgets/pinned_messages_bloc.dart`) — loads pinned posts, handles unpin, groups by date
+- `PinnedMessagesSheet` (`lib/presentation/screens/chat/widgets/pinned_messages_sheet.dart`) — DraggableScrollableSheet showing pinned messages with unpin buttons
+- Pin icon in `ChatScreen` AppBar opens the sheet; long-press context menu offers Pin/Unpin actions
+- Pinned messages display a "Pinned" indicator badge in `MessageBubble`
+
+### Hero Animations
+
+`UserAvatar` supports optional `heroTag` parameter for Hero transitions. Used for DM channel avatars — avatar animates from channel list to chat AppBar. `dmUserId` is passed via GoRouter extra to `ChatScreen`.
+
+### Haptic Feedback
+
+`HapticFeedback` is used across the app: `lightImpact()` on message long-press and send, `selectionClick()` on context menu actions and pull-to-refresh.
+
+### Thread-to-Channel Navigation
+
+ThreadScreen has a "Show in channel" button (`Icons.open_in_new`) that navigates to ChatScreen with `scrollToPostId`. ChatBloc handles `ScrollToMessage` event (loads surrounding posts if target not in view) and `ClearHighlight` (auto-clears after 3s). MessageBubble animates highlight via `TweenAnimationBuilder`.
+
 ### Custom Backend: Seens (Read Receipts)
 
 MyGames extension endpoints: `GET /api/v4/channels/{id}/seens`, `GET /api/v4/posts/{id}/seens`. WS events: `channel_seens_updated`, `thread_seens_updated`. Mobile marker constant: `WebsocketMessagePropertySeensMark = "its_need_to_mark_seen_for_mobile"`.
 
 ## Testing Conventions
 
+### Unit Tests (`test/`)
+
 - Test files: `test/<category>/<unit>_test.dart`
 - BLoC tests use `blocTest` from `bloc_test` package with `build`/`seed`/`act`/`expect` pattern
 - Mocks via `mocktail`: `class MockX extends Mock implements X {}`
 - Repositories tested with mocked data sources, verifying both success and error paths
 - Model tests cover `fromJson`, `toJson`, computed properties, and empty/missing field edge cases
+
+### Integration Tests (`integration_test/`)
+
+Full-screen user flow testing with mocked repositories via GetIt. All 7 repositories (`AuthRepository`, `ChannelRepository`, `PostRepository`, `UserRepository`, `FileRepository`, `SeensRepository`, `NotificationRepository`) are replaced with `mocktail` mocks. WebSocket is faked via `FakeWebSocketClient` with `simulateEvent()` for controlled WS event injection.
+
+Structure:
+- `mocks/` — `MockXRepository` (mocktail), `FakeWebSocketClient`, `FakeSecureStorage`, `FakeNotificationService`
+- `fixtures/` — `test_data.dart` (entities), `ws_event_factory.dart` (WS event builders)
+- `helpers/` — `test_di.dart` (GetIt setup with mocks), `test_app.dart` (scenario setup helpers), `pump_helpers.dart` (WidgetTester extensions)
+- `scenarios/` — test files per user flow (auth, channels, chat, WS, pin, search, threads, edit/delete)
+- `patrol/` — Patrol tests for native interactions (OAuth via system browser)
+
+Runner: `test/integration_runner_test.dart` imports all scenarios so they can run as regular widget tests without a device via `flutter test test/integration_runner_test.dart`.
+
+When adding a new integration test scenario:
+1. Create `integration_test/scenarios/<name>_test.dart`
+2. Add import + `<name>.main()` call in `test/integration_runner_test.dart`
+3. Use `createTestApp()` + `setupXxx()` helpers from `test_app.dart`
+4. Use `when(() => mocks.xxxRepository.method(...))` for scenario-specific stubs
 
 ## Key Configuration
 
@@ -105,10 +165,11 @@ MyGames extension endpoints: `GET /api/v4/channels/{id}/seens`, `GET /api/v4/pos
 - Firebase: requires `android/app/google-services.json` and `ios/Runner/GoogleService-Info.plist` (not in repo — see `docs/push_notifications.md`)
 - Notification prefs: `notification_enabled` (bool), `notification_filter` (string: all/mentions_dm/dm_only) in `SharedPreferences`
 
-## Git
-
-- Do NOT add `Co-Authored-By` lines to commit messages.
+## Critical Instructions
+- When modifying models, ALWAYS run the build runner command immediately after.
+- For chat lists, ensure optimized rendering (const constructors, keys).
+- Never commit code with linter errors.
 
 ## Documentation
 
-Russian-language docs in `docs/`: architecture.md, authentication.md, api.md, websocket.md, state_management.md, testing.md, server_setup.md, push_notifications.md.
+Russian-language docs in `docs/`: architecture.md, authentication.md, api.md, websocket.md, state_management.md, testing.md (unit + integration), server_setup.md, push_notifications.md.

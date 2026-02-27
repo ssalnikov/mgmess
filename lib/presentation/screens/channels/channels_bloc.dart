@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
+import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/websocket_events.dart';
@@ -39,6 +40,14 @@ class MarkChannelAsRead extends ChannelsEvent {
   const MarkChannelAsRead({required this.channelId});
   @override
   List<Object?> get props => [channelId];
+}
+
+class ToggleMuteChannel extends ChannelsEvent {
+  final String channelId;
+  final String userId;
+  const ToggleMuteChannel({required this.channelId, required this.userId});
+  @override
+  List<Object?> get props => [channelId, userId];
 }
 
 class ChannelWsEvent extends ChannelsEvent {
@@ -100,6 +109,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     on<RefreshChannels>(_onRefreshChannels);
     on<SearchChannels>(_onSearchChannels);
     on<MarkChannelAsRead>(_onMarkChannelAsRead);
+    on<ToggleMuteChannel>(_onToggleMuteChannel);
     on<ChannelWsEvent>(_onWsEvent);
   }
 
@@ -135,6 +145,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
           filteredChannels: sorted,
           isLoading: false,
         ));
+        _updateAppBadge(sorted);
       },
     );
   }
@@ -189,9 +200,64 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
       filteredChannels:
           state.searchQuery.isEmpty ? channels : state.filteredChannels,
     ));
+    _updateAppBadge(channels);
 
     if (_userId.isNotEmpty) {
       await _channelRepository.viewChannel(_userId, event.channelId);
+    }
+  }
+
+  Future<void> _onToggleMuteChannel(
+    ToggleMuteChannel event,
+    Emitter<ChannelsState> emit,
+  ) async {
+    final channel = state.channels.firstWhere(
+      (c) => c.id == event.channelId,
+      orElse: () => Channel(id: event.channelId),
+    );
+
+    final shouldMute = !channel.isMuted;
+
+    final result = shouldMute
+        ? await _channelRepository.muteChannel(event.channelId, event.userId)
+        : await _channelRepository.unmuteChannel(
+            event.channelId, event.userId);
+
+    result.fold(
+      (_) {},
+      (_) {
+        final channels = state.channels.map((c) {
+          if (c.id == event.channelId) {
+            return c.copyWith(isMuted: shouldMute);
+          }
+          return c;
+        }).toList();
+
+        emit(state.copyWith(
+          channels: channels,
+          filteredChannels:
+              state.searchQuery.isEmpty ? channels : state.filteredChannels,
+        ));
+        _updateAppBadge(channels);
+      },
+    );
+  }
+
+  Future<void> _updateAppBadge(List<Channel> channels) async {
+    int totalMentions = 0;
+    for (final c in channels) {
+      if (!c.isMuted) {
+        totalMentions += c.mentionCount;
+      }
+    }
+    try {
+      if (totalMentions > 0) {
+        await AppBadgePlus.updateBadge(totalMentions);
+      } else {
+        await AppBadgePlus.updateBadge(0);
+      }
+    } catch (_) {
+      // Platform channel not available (e.g. in tests)
     }
   }
 
@@ -241,6 +307,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
       filteredChannels:
           state.searchQuery.isEmpty ? sorted : state.filteredChannels,
     ));
+    _updateAppBadge(sorted);
   }
 
   void _handleChannelViewed(
@@ -263,6 +330,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
       filteredChannels:
           state.searchQuery.isEmpty ? channels : state.filteredChannels,
     ));
+    _updateAppBadge(channels);
   }
 
   List<Channel> _sortChannels(List<Channel> channels) {

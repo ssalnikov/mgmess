@@ -51,6 +51,23 @@ class ChannelRemoteDataSource {
     }
   }
 
+  Future<List<Map<String, dynamic>>> getChannelMembersForUser(
+    String userId,
+    String teamId,
+  ) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.channelMembersForUser(userId, teamId),
+      );
+      return (response.data as List<dynamic>)
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      throw ServerException(
+          message: 'Failed to get channel members: $e');
+    }
+  }
+
   Future<void> viewChannel(String userId, String channelId) async {
     try {
       await _apiClient.dio.post(
@@ -59,6 +76,22 @@ class ChannelRemoteDataSource {
       );
     } catch (e) {
       throw ServerException(message: 'Failed to view channel: $e');
+    }
+  }
+
+  Future<void> updateChannelNotifyProps(
+    String channelId,
+    String userId,
+    Map<String, String> notifyProps,
+  ) async {
+    try {
+      await _apiClient.dio.put(
+        ApiEndpoints.channelMemberNotifyProps(channelId, userId),
+        data: notifyProps,
+      );
+    } catch (e) {
+      throw ServerException(
+          message: 'Failed to update notify props: $e');
     }
   }
 

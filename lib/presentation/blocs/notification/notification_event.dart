@@ -52,3 +52,12 @@ class NotificationClearActiveChannel extends NotificationEvent {
 class NotificationLogout extends NotificationEvent {
   const NotificationLogout();
 }
+
+class NotificationUpdateMutedChannels extends NotificationEvent {
+  final Set<String> mutedChannelIds;
+
+  const NotificationUpdateMutedChannels({required this.mutedChannelIds});
+
+  @override
+  List<Object?> get props => [mutedChannelIds];
+}

@@ -21,13 +21,19 @@ class ApiEndpoints {
   static String channelMembers(String id) => '/channels/$id/members';
   static String channelMember(String channelId, String userId) =>
       '/channels/$channelId/members/$userId';
+  static String channelMembersForUser(String userId, String teamId) =>
+      '/users/$userId/teams/$teamId/channels/members';
   static String channelViewForUser(String userId) =>
       '/channels/members/$userId/view';
   static String directChannel = '/channels/direct';
+  static String channelMemberNotifyProps(String channelId, String userId) =>
+      '/channels/$channelId/members/$userId/notify_props';
 
   // Posts
   static String channelPosts(String channelId) =>
       '/channels/$channelId/posts';
+  static String channelPinnedPosts(String channelId) =>
+      '/channels/$channelId/pinned';
   static String post(String id) => '/posts/$id';
   static String postThread(String id) => '/posts/$id/thread';
   static String flaggedPosts(String userId) => '/users/$userId/posts/flagged';
@@ -35,6 +41,7 @@ class ApiEndpoints {
       '/users/$userId/teams/$teamId/threads';
   static String teamPostsSearch(String teamId) =>
       '/teams/$teamId/posts/search';
+  static String postPatch(String id) => '/posts/$id/patch';
   static String pinPost(String id) => '/posts/$id/pin';
   static String unpinPost(String id) => '/posts/$id/unpin';
 
@@ -58,6 +65,9 @@ class ApiEndpoints {
   static String channelSeens(String channelId) =>
       '/channels/$channelId/seens';
   static String postSeens(String postId) => '/posts/$postId/seens';
+
+  // Users autocomplete
+  static const String usersAutocomplete = '/users/autocomplete';
 
   // Status
   static const String usersStatus = '/users/status/ids';

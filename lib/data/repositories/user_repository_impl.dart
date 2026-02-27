@@ -6,23 +6,31 @@ import '../../core/error/failures.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/user_repository.dart';
+import '../datasources/local/user_local_datasource.dart';
 import '../datasources/remote/user_remote_datasource.dart';
 
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource _remoteDataSource;
-  final Map<String, User> _cache = {};
+  final UserLocalDataSource _localDataSource;
 
-  UserRepositoryImpl({required UserRemoteDataSource remoteDataSource})
-      : _remoteDataSource = remoteDataSource;
+  UserRepositoryImpl({
+    required UserRemoteDataSource remoteDataSource,
+    required UserLocalDataSource localDataSource,
+  })  : _remoteDataSource = remoteDataSource,
+        _localDataSource = localDataSource;
 
   @override
   Future<Either<Failure, User>> getUser(String userId) async {
-    if (_cache.containsKey(userId)) {
-      return Right(_cache[userId]!);
-    }
+    // Try local cache first
+    try {
+      final cached = await _localDataSource.getUser(userId);
+      if (cached != null) return Right(cached);
+    } catch (_) {}
+
+    // Not in cache — fetch from API
     try {
       final user = await _remoteDataSource.getUser(userId);
-      _cache[userId] = user;
+      _localDataSource.cacheUsers([user]).catchError((_) {});
       return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
@@ -35,9 +43,7 @@ class UserRepositoryImpl implements UserRepository {
   ) async {
     try {
       final users = await _remoteDataSource.getUsersByIds(userIds);
-      for (final user in users) {
-        _cache[user.id] = user;
-      }
+      _localDataSource.cacheUsers(users).catchError((_) {});
       return Right(users);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
@@ -51,7 +57,7 @@ class UserRepositoryImpl implements UserRepository {
   ) async {
     try {
       final user = await _remoteDataSource.updateUser(userId, patch);
-      _cache[userId] = user;
+      _localDataSource.cacheUsers([user]).catchError((_) {});
       return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
@@ -66,6 +72,23 @@ class UserRepositoryImpl implements UserRepository {
     try {
       await _remoteDataSource.uploadUserImage(userId, filePath);
       return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<User>>> autocompleteUsers(
+    String name, {
+    String? channelId,
+  }) async {
+    try {
+      final users = await _remoteDataSource.autocompleteUsers(
+        name,
+        channelId: channelId,
+      );
+      _localDataSource.cacheUsers(users).catchError((_) {});
+      return Right(users);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

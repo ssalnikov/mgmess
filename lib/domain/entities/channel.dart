@@ -20,6 +20,7 @@ class Channel extends Equatable {
   final int msgCount;
   final int mentionCount;
   final int lastViewedAt;
+  final bool isMuted;
 
   const Channel({
     required this.id,
@@ -37,6 +38,7 @@ class Channel extends Equatable {
     this.msgCount = 0,
     this.mentionCount = 0,
     this.lastViewedAt = 0,
+    this.isMuted = false,
   });
 
   int get unreadCount => totalMsgCount - msgCount;
@@ -53,6 +55,7 @@ class Channel extends Equatable {
     int? mentionCount,
     int? lastViewedAt,
     String? displayName,
+    bool? isMuted,
   }) {
     return Channel(
       id: id,
@@ -70,6 +73,7 @@ class Channel extends Equatable {
       msgCount: msgCount ?? this.msgCount,
       mentionCount: mentionCount ?? this.mentionCount,
       lastViewedAt: lastViewedAt ?? this.lastViewedAt,
+      isMuted: isMuted ?? this.isMuted,
     );
   }
 
@@ -95,5 +99,6 @@ class Channel extends Equatable {
         lastPostAt,
         msgCount,
         mentionCount,
+        isMuted,
       ];
 }

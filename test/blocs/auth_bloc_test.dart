@@ -45,7 +45,7 @@ void main() {
         act: (bloc) => bloc.add(const AuthCheckSession()),
         expect: () => [
           const AuthLoading(),
-          const AuthAuthenticated(user: testUser, teamId: 'team1'),
+          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team'),
         ],
       );
 
@@ -102,7 +102,7 @@ void main() {
         )),
         expect: () => [
           const AuthLoading(),
-          const AuthAuthenticated(user: testUser, teamId: 'team1'),
+          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team'),
         ],
       );
 
@@ -146,7 +146,7 @@ void main() {
         )),
         expect: () => [
           const AuthLoading(),
-          const AuthAuthenticated(user: testUser, teamId: 'team1'),
+          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team'),
         ],
       );
 
@@ -181,7 +181,7 @@ void main() {
             (_) async => const Right({
               'EnableSignInWithEmail': 'true',
               'EnableSignInWithUsername': 'true',
-              'EnableSignUpWithGitlab': 'true',
+              'EnableSignUpWithGitLab': 'true',
             }),
           );
           return AuthBloc(authRepository: mockAuthRepository);
@@ -203,7 +203,7 @@ void main() {
             (_) async => const Right({
               'EnableSignInWithEmail': 'false',
               'EnableSignInWithUsername': 'false',
-              'EnableSignUpWithGitlab': 'true',
+              'EnableSignUpWithGitLab': 'true',
             }),
           );
           return AuthBloc(authRepository: mockAuthRepository);
@@ -230,8 +230,8 @@ void main() {
         act: (bloc) => bloc.add(const AuthLoadConfig()),
         expect: () => [
           const AuthConfigLoaded(
-            enableSignInWithEmail: false,
-            enableSignInWithUsername: false,
+            enableSignInWithEmail: true,
+            enableSignInWithUsername: true,
             enableSignUpWithGitLab: true,
           ),
         ],

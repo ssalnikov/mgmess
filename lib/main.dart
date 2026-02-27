@@ -2,8 +2,10 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/config/app_config.dart';
 import 'core/di/injection.dart';
 import 'core/notifications/notification_service.dart';
+import 'presentation/widgets/restart_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,7 +18,12 @@ void main() async {
     // Firebase not configured — push notifications will be disabled
   }
 
-  await initDependencies();
-  await sl<NotificationService>().init();
-  runApp(const App());
+  await AppConfig.loadFromStorage();
+
+  if (AppConfig.isServerConfigured) {
+    await initDependencies();
+    await sl<NotificationService>().init();
+  }
+
+  runApp(const RestartWidget(child: App()));
 }

@@ -19,6 +19,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   StreamSubscription<String>? _tokenRefreshSub;
   String? _activeChannelId;
   String? _currentUserId;
+  Set<String> _mutedChannelIds = {};
 
   static const _prefKeyEnabled = 'notification_enabled';
   static const _prefKeyFilter = 'notification_filter';
@@ -35,6 +36,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<NotificationSetActiveChannel>(_onSetActiveChannel);
     on<NotificationClearActiveChannel>(_onClearActiveChannel);
     on<NotificationLogout>(_onLogout);
+    on<NotificationUpdateMutedChannels>(_onUpdateMutedChannels);
   }
 
   Future<void> _onInit(
@@ -96,6 +98,9 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
     // Don't show notification for the currently active channel
     if (channelId == _activeChannelId) return;
+
+    // Don't show notification for muted channels
+    if (_mutedChannelIds.contains(channelId)) return;
 
     final postJson = wsEvent.data['post'];
     if (postJson is! String) return;
@@ -160,6 +165,13 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     _activeChannelId = null;
   }
 
+  void _onUpdateMutedChannels(
+    NotificationUpdateMutedChannels event,
+    Emitter<NotificationState> emit,
+  ) {
+    _mutedChannelIds = event.mutedChannelIds;
+  }
+
   Future<void> _onLogout(
     NotificationLogout event,
     Emitter<NotificationState> emit,
@@ -168,6 +180,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     _tokenRefreshSub = null;
     _activeChannelId = null;
     _currentUserId = null;
+    _mutedChannelIds = {};
     await _repository.unregisterDevice();
     emit(const NotificationInitial());
   }

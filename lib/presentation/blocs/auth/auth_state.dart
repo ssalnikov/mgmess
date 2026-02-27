@@ -20,11 +20,16 @@ class AuthLoading extends AuthState {
 class AuthAuthenticated extends AuthState {
   final User user;
   final String teamId;
+  final String teamName;
 
-  const AuthAuthenticated({required this.user, this.teamId = ''});
+  const AuthAuthenticated({
+    required this.user,
+    this.teamId = '',
+    this.teamName = '',
+  });
 
   @override
-  List<Object?> get props => [user, teamId];
+  List<Object?> get props => [user, teamId, teamName];
 }
 
 class AuthUnauthenticated extends AuthState {

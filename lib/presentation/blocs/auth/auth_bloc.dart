@@ -17,11 +17,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
-  Future<String> _fetchTeamId() async {
+  Future<({String id, String name})> _fetchTeamInfo() async {
     final result = await _authRepository.getMyTeams();
     return result.fold(
-      (_) => '',
-      (teams) => teams.isNotEmpty ? teams.first.id : '',
+      (_) => (id: '', name: ''),
+      (teams) => teams.isNotEmpty
+          ? (id: teams.first.id, name: teams.first.name)
+          : (id: '', name: ''),
     );
   }
 
@@ -37,8 +39,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         (failure) async =>
             emit(AuthUnauthenticated(message: failure.message)),
         (user) async {
-          final teamId = await _fetchTeamId();
-          emit(AuthAuthenticated(user: user, teamId: teamId));
+          final team = await _fetchTeamInfo();
+          emit(AuthAuthenticated(
+            user: user,
+            teamId: team.id,
+            teamName: team.name,
+          ));
         },
       );
     } else {
@@ -63,8 +69,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (failure) async => emit(AuthError(message: failure.message)),
       (user) async {
-        final teamId = await _fetchTeamId();
-        emit(AuthAuthenticated(user: user, teamId: teamId));
+        final team = await _fetchTeamInfo();
+        emit(AuthAuthenticated(
+          user: user,
+          teamId: team.id,
+          teamName: team.name,
+        ));
       },
     );
   }
@@ -81,8 +91,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (failure) async => emit(AuthError(message: failure.message)),
       (user) async {
-        final teamId = await _fetchTeamId();
-        emit(AuthAuthenticated(user: user, teamId: teamId));
+        final team = await _fetchTeamInfo();
+        emit(AuthAuthenticated(
+          user: user,
+          teamId: team.id,
+          teamName: team.name,
+        ));
       },
     );
   }
@@ -94,14 +108,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _authRepository.getClientConfig();
     result.fold(
       (failure) => emit(const AuthConfigLoaded(
-        enableSignInWithEmail: false,
-        enableSignInWithUsername: false,
+        enableSignInWithEmail: true,
+        enableSignInWithUsername: true,
         enableSignUpWithGitLab: true,
       )),
       (config) => emit(AuthConfigLoaded(
         enableSignInWithEmail: config['EnableSignInWithEmail'] == 'true',
         enableSignInWithUsername: config['EnableSignInWithUsername'] == 'true',
-        enableSignUpWithGitLab: config['EnableSignUpWithGitlab'] == 'true',
+        enableSignUpWithGitLab: config['EnableSignUpWithGitLab'] == 'true',
       )),
     );
   }

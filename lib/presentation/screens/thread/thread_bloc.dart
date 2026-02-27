@@ -5,9 +5,9 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/websocket_events.dart';
-import '../../../data/models/post_model.dart';
 import '../../../domain/entities/post.dart';
 import '../../../domain/repositories/post_repository.dart';
+import '../../../domain/services/ws_post_parser.dart';
 
 // Events
 abstract class ThreadEvent extends Equatable {
@@ -31,6 +31,32 @@ class SendThreadReply extends ThreadEvent {
   List<Object?> get props => [message, fileIds];
 }
 
+class EditThreadPost extends ThreadEvent {
+  final String postId;
+  final String message;
+  const EditThreadPost({required this.postId, required this.message});
+  @override
+  List<Object?> get props => [postId, message];
+}
+
+class StartEditThreadPost extends ThreadEvent {
+  final Post post;
+  const StartEditThreadPost({required this.post});
+  @override
+  List<Object?> get props => [post];
+}
+
+class CancelEditThreadPost extends ThreadEvent {
+  const CancelEditThreadPost();
+}
+
+class DeleteThreadPost extends ThreadEvent {
+  final String postId;
+  const DeleteThreadPost({required this.postId});
+  @override
+  List<Object?> get props => [postId];
+}
+
 class ThreadWsEvent extends ThreadEvent {
   final WsEvent wsEvent;
   const ThreadWsEvent({required this.wsEvent});
@@ -46,6 +72,7 @@ class ThreadState extends Equatable {
   final bool isLoading;
   final bool isSending;
   final String? error;
+  final Post? editingPost;
 
   const ThreadState({
     this.rootPostId = '',
@@ -54,6 +81,7 @@ class ThreadState extends Equatable {
     this.isLoading = false,
     this.isSending = false,
     this.error,
+    this.editingPost,
   });
 
   ThreadState copyWith({
@@ -63,6 +91,8 @@ class ThreadState extends Equatable {
     bool? isLoading,
     bool? isSending,
     String? error,
+    Post? editingPost,
+    bool clearEditingPost = false,
   }) {
     return ThreadState(
       rootPostId: rootPostId ?? this.rootPostId,
@@ -71,24 +101,33 @@ class ThreadState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isSending: isSending ?? this.isSending,
       error: error,
+      editingPost: clearEditingPost ? null : (editingPost ?? this.editingPost),
     );
   }
 
   @override
   List<Object?> get props =>
-      [rootPostId, channelId, posts, isLoading, isSending, error];
+      [rootPostId, channelId, posts, isLoading, isSending, error, editingPost];
 }
 
 // BLoC
 class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
   final PostRepository _postRepository;
+  final WsPostParser _wsPostParser;
   StreamSubscription<WsEvent>? _wsSub;
 
-  ThreadBloc({required PostRepository postRepository})
-      : _postRepository = postRepository,
+  ThreadBloc({
+    required PostRepository postRepository,
+    required WsPostParser wsPostParser,
+  })  : _postRepository = postRepository,
+        _wsPostParser = wsPostParser,
         super(const ThreadState()) {
     on<LoadThread>(_onLoadThread);
     on<SendThreadReply>(_onSendReply);
+    on<EditThreadPost>(_onEditPost);
+    on<StartEditThreadPost>(_onStartEditPost);
+    on<CancelEditThreadPost>(_onCancelEditPost);
+    on<DeleteThreadPost>(_onDeletePost);
     on<ThreadWsEvent>(_onWsEvent);
   }
 
@@ -161,43 +200,90 @@ class ThreadBloc extends Bloc<ThreadEvent, ThreadState> {
     );
   }
 
+  Future<void> _onEditPost(
+    EditThreadPost event,
+    Emitter<ThreadState> emit,
+  ) async {
+    final result = await _postRepository.editPost(event.postId, event.message);
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (editedPost) {
+        final posts = state.posts.map((p) {
+          if (p.id == editedPost.id) return editedPost;
+          return p;
+        }).toList();
+        emit(state.copyWith(posts: posts, clearEditingPost: true));
+      },
+    );
+  }
+
+  void _onStartEditPost(
+    StartEditThreadPost event,
+    Emitter<ThreadState> emit,
+  ) {
+    emit(state.copyWith(editingPost: event.post));
+  }
+
+  void _onCancelEditPost(
+    CancelEditThreadPost event,
+    Emitter<ThreadState> emit,
+  ) {
+    emit(state.copyWith(clearEditingPost: true));
+  }
+
+  Future<void> _onDeletePost(
+    DeleteThreadPost event,
+    Emitter<ThreadState> emit,
+  ) async {
+    final result = await _postRepository.deletePost(event.postId);
+    result.fold(
+      (_) {},
+      (_) {
+        final posts =
+            state.posts.where((p) => p.id != event.postId).toList();
+        emit(state.copyWith(posts: posts));
+      },
+    );
+  }
+
   void _onWsEvent(ThreadWsEvent event, Emitter<ThreadState> emit) {
     final wsEvent = event.wsEvent;
     final postJson = wsEvent.data['post'];
     if (postJson is! String) return;
 
-    try {
-      final json = jsonDecode(postJson) as Map<String, dynamic>;
+    switch (wsEvent.event) {
+      case WsEventType.posted:
+        final post = _wsPostParser.parsePost(postJson);
+        if (post == null) return;
+        if (post.rootId != state.rootPostId &&
+            post.id != state.rootPostId) {
+          return;
+        }
+        if (state.posts.any((p) => p.id == post.id)) return;
+        emit(state.copyWith(posts: [...state.posts, post]));
 
-      switch (wsEvent.event) {
-        case WsEventType.posted:
-          final post = PostModel.fromJson(json);
-          if (post.rootId != state.rootPostId &&
-              post.id != state.rootPostId) {
-            return;
-          }
-          if (state.posts.any((p) => p.id == post.id)) return;
-          emit(state.copyWith(posts: [...state.posts, post]));
+      case WsEventType.postEdited:
+        final edited = _wsPostParser.parsePost(postJson);
+        if (edited == null) return;
+        if (edited.rootId != state.rootPostId &&
+            edited.id != state.rootPostId) {
+          return;
+        }
+        final posts = state.posts.map((p) {
+          if (p.id == edited.id) return edited;
+          return p;
+        }).toList();
+        emit(state.copyWith(posts: posts));
 
-        case WsEventType.postEdited:
-          final edited = PostModel.fromJson(json);
-          if (edited.rootId != state.rootPostId &&
-              edited.id != state.rootPostId) {
-            return;
-          }
-          final posts = state.posts.map((p) {
-            if (p.id == edited.id) return edited;
-            return p;
-          }).toList();
-          emit(state.copyWith(posts: posts));
-
-        case WsEventType.postDeleted:
+      case WsEventType.postDeleted:
+        try {
+          final json = jsonDecode(postJson) as Map<String, dynamic>;
           final postId = json['id'] as String?;
           if (postId == null) return;
           final posts = state.posts.where((p) => p.id != postId).toList();
           emit(state.copyWith(posts: posts));
-      }
-    } catch (_) {}
+        } catch (_) {}
+    }
   }
 
   @override

@@ -17,8 +17,10 @@ abstract class PostRepository {
     required String message,
     String? rootId,
     List<String>? fileIds,
+    String? priority,
   });
   Future<Either<Failure, Post>> getPost(String postId);
+  Future<Either<Failure, Post>> editPost(String postId, String message);
   Future<Either<Failure, void>> deletePost(String postId);
   Future<Either<Failure, List<Post>>> getPostThread(String postId);
   Future<Either<Failure, List<Post>>> getFlaggedPosts(String userId, {
@@ -29,6 +31,9 @@ abstract class PostRepository {
     String teamId,
     String terms,
   );
+  Future<Either<Failure, List<Post>>> getPinnedPosts(String channelId);
+  Future<Either<Failure, Post>> pinPost(String postId);
+  Future<Either<Failure, Post>> unpinPost(String postId);
   Future<Either<Failure, void>> flagPost(String userId, String postId);
   Future<Either<Failure, void>> unflagPost(String userId, String postId);
   Future<Either<Failure, List<UserThread>>> getUserThreads(

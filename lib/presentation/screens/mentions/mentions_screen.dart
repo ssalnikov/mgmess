@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/post.dart';
@@ -92,6 +94,16 @@ class _MentionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap: () {
+        if (post.rootId.isNotEmpty) {
+          context.push(RouteNames.threadPath(post.rootId));
+        } else {
+          context.push(
+            RouteNames.chatPath(post.channelId),
+            extra: <String, dynamic>{'scrollToPostId': post.id},
+          );
+        }
+      },
       leading: UserAvatar(userId: post.userId, radius: 20),
       title: MarkdownBody(
         data: post.message,

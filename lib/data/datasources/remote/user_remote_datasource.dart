@@ -65,6 +65,30 @@ class UserRemoteDataSource {
     }
   }
 
+  Future<List<UserModel>> autocompleteUsers(
+    String name, {
+    String? channelId,
+  }) async {
+    try {
+      final queryParams = <String, dynamic>{
+        'name': name,
+      };
+      if (channelId != null) queryParams['in_channel'] = channelId;
+
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.usersAutocomplete,
+        queryParameters: queryParams,
+      );
+      final data = response.data as Map<String, dynamic>;
+      final users = data['users'] as List<dynamic>? ?? [];
+      return users
+          .map((u) => UserModel.fromJson(u as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ServerException(message: 'Failed to autocomplete users: $e');
+    }
+  }
+
   Future<Map<String, String>> getUserStatuses(
     List<String> userIds,
   ) async {

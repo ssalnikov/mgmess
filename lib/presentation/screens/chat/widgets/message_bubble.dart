@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,12 +10,21 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../domain/entities/post.dart';
 import '../../../widgets/user_avatar.dart';
 import 'file_attachment_widget.dart';
+import 'message_actions_sheet.dart';
+import 'swipe_to_reply.dart';
 
 class MessageBubble extends StatelessWidget {
   final Post post;
   final bool isOwn;
   final bool showAvatar;
   final void Function(String postId)? onThreadTap;
+  final void Function(Post post)? onQuote;
+  final void Function(Post post)? onForward;
+  final void Function(Post post)? onEdit;
+  final void Function(Post post)? onDelete;
+  final void Function(Post post)? onPin;
+  final void Function(Post post)? onUnpin;
+  final bool isHighlighted;
 
   const MessageBubble({
     super.key,
@@ -22,6 +32,13 @@ class MessageBubble extends StatelessWidget {
     required this.isOwn,
     required this.showAvatar,
     this.onThreadTap,
+    this.onQuote,
+    this.onForward,
+    this.onEdit,
+    this.onDelete,
+    this.onPin,
+    this.onUnpin,
+    this.isHighlighted = false,
   });
 
   @override
@@ -30,9 +47,12 @@ class MessageBubble extends StatelessWidget {
       return _buildSystemMessage();
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
+    return SwipeToReply(
+      onReply: () => onQuote?.call(post),
+      enabled: !post.isSystemMessage && onQuote != null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment:
             isOwn ? MainAxisAlignment.end : MainAxisAlignment.start,
@@ -48,8 +68,25 @@ class MessageBubble extends StatelessWidget {
             const SizedBox(width: 32),
           const SizedBox(width: 8),
           Flexible(
-            child: GestureDetector(
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(isHighlighted),
+              tween: Tween(begin: isHighlighted ? 1.0 : 0.0, end: 0.0),
+              duration: Duration(milliseconds: isHighlighted ? 2000 : 0),
+              curve: isHighlighted ? Curves.easeIn : Curves.linear,
+              builder: (context, value, child) {
+                return Container(
+                  decoration: value > 0
+                      ? BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.3 * value),
+                          borderRadius: BorderRadius.circular(18),
+                        )
+                      : null,
+                  child: child,
+                );
+              },
+              child: GestureDetector(
               onTap: onThreadTap != null ? () => onThreadTap!(post.id) : null,
+              onLongPress: () => _showActions(context),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 8),
@@ -63,6 +100,16 @@ class MessageBubble extends StatelessWidget {
                     bottomLeft:
                         !isOwn ? const Radius.circular(4) : null,
                   ),
+                  border: post.hasPriority
+                      ? Border(
+                          left: BorderSide(
+                            color: post.isUrgent
+                                ? AppColors.priorityUrgent
+                                : AppColors.priorityImportant,
+                            width: 3,
+                          ),
+                        )
+                      : null,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -74,6 +121,28 @@ class MessageBubble extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (post.hasPriority) ...[
+                      _buildPriorityBadge(),
+                      const SizedBox(height: 4),
+                    ],
+                    if (post.isPinned) ...[
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.push_pin,
+                              size: 12, color: AppColors.accent),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Pinned',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.accent,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                    ],
                     if (post.isForwarded) ...[
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -99,7 +168,7 @@ class MessageBubble extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          border: Border(
+                          border: const Border(
                             left: BorderSide(
                               color: AppColors.accent,
                               width: 2,
@@ -127,7 +196,12 @@ class MessageBubble extends StatelessWidget {
                     if (post.hasFiles) ...[
                       const SizedBox(height: 4),
                       ...post.files.map(
-                        (f) => FileAttachmentWidget(fileInfo: f),
+                        (f) => FileAttachmentWidget(
+                          fileInfo: f,
+                          allMediaFiles: post.files
+                              .where((fi) => fi.isImage || fi.isVideo)
+                              .toList(),
+                        ),
                       ),
                     ],
                     const SizedBox(height: 4),
@@ -169,9 +243,51 @@ class MessageBubble extends StatelessWidget {
               ),
             ),
           ),
+          ),
           if (isOwn) const SizedBox(width: 8),
         ],
       ),
+      ),
+    );
+  }
+
+  void _showActions(BuildContext context) {
+    HapticFeedback.lightImpact();
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => MessageActionsSheet(
+        post: post,
+        isOwn: isOwn,
+        onQuote: onQuote != null ? () => onQuote!(post) : null,
+        onForward: onForward != null ? () => onForward!(post) : null,
+        onEdit: onEdit != null ? () => onEdit!(post) : null,
+        onDelete: onDelete != null ? () => onDelete!(post) : null,
+        onPin: onPin != null ? () => onPin!(post) : null,
+        onUnpin: onUnpin != null ? () => onUnpin!(post) : null,
+      ),
+    );
+  }
+
+  Widget _buildPriorityBadge() {
+    final isUrgent = post.isUrgent;
+    final color =
+        isUrgent ? AppColors.priorityUrgent : AppColors.priorityImportant;
+    final label = isUrgent ? 'Urgent' : 'Important';
+    final icon = isUrgent ? Icons.priority_high : Icons.error_outline;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: AppTextStyles.caption.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 

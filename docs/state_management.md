@@ -40,13 +40,16 @@ UI (BlocBuilder)
 | `WebSocketBloc` | `presentation/blocs/websocket/` | WS-соединение, трансляция событий |
 | `ConnectivityCubit` | `presentation/blocs/connectivity/` | Состояние сетевого подключения |
 | `NotificationBloc` | `presentation/blocs/notification/` | FCM-токен, push-уведомления, фильтрация |
+| `UserStatusCubit` | `presentation/blocs/user_status/` | Статусы пользователей (online/away/dnd/offline) |
 
 ### Экранные (создаются/уничтожаются вместе с экраном)
 
 | Блок | Файл | Описание |
 |------|------|----------|
 | `ChannelsBloc` | `presentation/screens/channels/` | Список каналов, поиск, WS-обновления |
-| `ChatBloc` | `presentation/screens/chat/` | Сообщения, отправка, пагинация, typing |
+| `ChatBloc` | `presentation/screens/chat/` | Сообщения, отправка, пагинация, typing, приоритеты, pin/unpin, scroll-to-message |
+| `ThreadBloc` | `presentation/screens/thread/` | Тред (ответы), удаление постов в треде |
+| `PinnedMessagesBloc` | `presentation/screens/chat/widgets/` | Закреплённые сообщения канала |
 | `SavedMessagesBloc` | `presentation/screens/saved_messages/` | Сохранённые сообщения |
 | `MentionsBloc` | `presentation/screens/mentions/` | Упоминания текущего пользователя |
 
@@ -65,7 +68,7 @@ AuthLogoutRequested     // Выход из системы
 ```dart
 AuthInitial             // Начальное
 AuthLoading             // Загрузка
-AuthAuthenticated(user) // Авторизован
+AuthAuthenticated(user, teamName) // Авторизован (с именем команды)
 AuthUnauthenticated     // Не авторизован
 AuthError(message)      // Ошибка
 ```
@@ -131,12 +134,20 @@ ChannelsState(
 
 Управление сообщениями в конкретном канале.
 
+### Зависимости
+
+`ChatBloc` принимает `PostRepository` и `WsPostParser` — централизованный сервис для парсинга постов из WS-событий (вместо дублирования `PostModel.fromJson` + `jsonDecode` в каждом блоке).
+
 ### События
 ```dart
 LoadPosts(channelId)          // Загрузить сообщения
 LoadMorePosts                 // Загрузить ещё (пагинация при прокрутке вверх)
-SendMessage(message, ...)     // Отправить сообщение
+SendMessage(message, ..., priority) // Отправить сообщение (опциональный приоритет)
 DeleteMessage(postId)         // Удалить сообщение
+PinMessage(postId)            // Закрепить сообщение
+UnpinMessage(postId)          // Открепить сообщение
+ScrollToMessage(postId)       // Прокрутить к сообщению (загрузит контекст если нужно)
+ClearHighlight                // Сбросить подсветку целевого сообщения
 ChatWsEvent(wsEvent)          // WS-событие (new post, edit, delete, typing)
 ```
 
@@ -144,13 +155,14 @@ ChatWsEvent(wsEvent)          // WS-событие (new post, edit, delete, typi
 ```dart
 ChatState(
   channelId,
-  posts,            // Список сообщений (от новых к старым)
+  posts,              // Список сообщений (от новых к старым)
   isLoading,
   isLoadingMore,
-  hasMore,          // Есть ли ещё страницы при пагинации
+  hasMore,            // Есть ли ещё страницы при пагинации
   error,
-  typingUsers,      // Set<String> — ID печатающих пользователей
+  typingUsers,        // Set<String> — ID печатающих пользователей
   isSending,
+  highlightedPostId,  // ID подсвечиваемого сообщения (scroll-to-message)
 )
 ```
 
@@ -163,6 +175,23 @@ ChatState(
 ### Typing индикатор
 - WS-событие `typing` добавляет пользователя в `typingUsers`
 - Через 5 секунд — автоматически очищается
+
+## PinnedMessagesBloc
+
+Закреплённые сообщения канала. Создаётся при открытии панели закреплённых сообщений.
+
+### События
+```dart
+LoadPinnedMessages(channelId)       // Загрузить закреплённые
+UnpinMessage(postId)                // Открепить сообщение
+```
+
+### Состояние
+```dart
+PinnedMessagesState(posts, isLoading, error)
+```
+
+Геттер `groupedByDate` возвращает `Map<String, List<Post>>` для группировки по датам в UI.
 
 ## SavedMessagesBloc
 
@@ -188,6 +217,26 @@ LoadMentions(teamId, username)      // Поиск @username
 ```dart
 MentionsState(posts, isLoading, error)
 ```
+
+## ThreadBloc
+
+Управление сообщениями в треде (ответах на сообщение). Аналогичен `ChatBloc`, но работает с `posts/{id}/thread` API.
+
+### Зависимости
+
+`ThreadBloc` принимает `PostRepository` и `WsPostParser`.
+
+### События
+```dart
+LoadThread(postId)            // Загрузить тред
+SendThreadReply(message, ...) // Ответить в треде
+DeleteThreadPost(postId)      // Удалить пост в треде
+ThreadWsEvent(wsEvent)        // WS-событие (новый пост, редактирование, удаление)
+```
+
+### Обработка WS-событий
+
+Использует `WsPostParser` для парсинга постов из WS JSON-строк. Обрабатывает `posted`, `post_edited`, `post_deleted` для текущего треда.
 
 ## ConnectivityCubit
 
@@ -233,6 +282,21 @@ NotificationError(message)                    // Ошибка
 - При `AuthAuthenticated` → `NotificationInit(userId)` → регистрация FCM-токена на сервере
 - При `AuthUnauthenticated` → `NotificationLogout` → снятие device_id с сессии
 
+## UserStatusCubit
+
+Управление статусами пользователей (online / away / dnd / offline) с батчированием запросов.
+
+### Состояние
+```dart
+UserStatusState(statuses: Map<String, String>)  // userId -> status
+```
+
+### Логика
+- `subscribeToWs(wsEvents)` — слушает WS-события `status_change`, обновляет статус пользователя
+- `fetchStatuses(userIds)` — загружает статусы через `UserRepository.getUserStatuses()`
+- `requestStatus(userId)` — ленивый запрос: если статус не в кеше, добавляет в очередь. Через 100ms батч запрос отправляется на сервер
+- Используется в `UserAvatar` — запрашивает статус при рендеринге, показывает цветной индикатор
+
 ## Поток данных
 
 ```
@@ -251,11 +315,25 @@ NotificationError(message)                    // Ошибка
                  │(Remote) │ │Bloc      │
                  └────┬───┘ └──┬───────┘
                       │        │
-                 ┌────▼───┐    │ wsEvents
-                 │Reposit.│    │
-                 └────┬───┘    │
-                      │        │
-                 ┌────▼────────▼───┐
+              ┌───────▼───┐    │ wsEvents
+              │ Repository │    │
+              │ (online →  │    │
+              │  remote +  │    │
+              │  cache;    │    │
+              │  offline → │    │
+              │  local DB) │    │
+              └───┬───┬───┘    │
+                  │   │        │
+            ┌─────┘   └──────┐ │
+            ▼                ▼ │
+       ┌────────┐   ┌────────┐│
+       │DataSrc │   │SendQ.  ││
+       │(Local) │   │Service ││
+       │ Drift  │   │(pending││
+       └────────┘   │ posts) ││
+                    └────────┘│
+                      │       │
+                 ┌────▼───────▼───┐
                  │    Feature BLoC  │
                  │ (Channels, Chat) │
                  └────────┬────────┘
@@ -291,7 +369,10 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _chatBloc = ChatBloc(postRepository: sl<PostRepository>());
+    _chatBloc = ChatBloc(
+      postRepository: sl<PostRepository>(),
+      wsPostParser: sl<WsPostParser>(),
+    );
     _chatBloc.add(LoadPosts(channelId: widget.channelId));
   }
 

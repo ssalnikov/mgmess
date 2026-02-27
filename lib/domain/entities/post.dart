@@ -23,6 +23,7 @@ class Post extends Equatable {
   final String pendingId;
   final String forwardedPostMessage;
   final String forwardedChannelName;
+  final String priority;
 
   const Post({
     required this.id,
@@ -45,6 +46,7 @@ class Post extends Equatable {
     this.pendingId = '',
     this.forwardedPostMessage = '',
     this.forwardedChannelName = '',
+    this.priority = '',
   });
 
   bool get isDeleted => deleteAt > 0;
@@ -53,6 +55,9 @@ class Post extends Equatable {
   bool get isReply => rootId.isNotEmpty;
   bool get hasFiles => fileIds.isNotEmpty;
   bool get isForwarded => forwardedPostMessage.isNotEmpty;
+  bool get isUrgent => priority == 'urgent';
+  bool get isImportant => priority == 'important';
+  bool get hasPriority => priority.isNotEmpty;
 
   Post copyWith({
     String? message,
@@ -63,6 +68,7 @@ class Post extends Equatable {
     List<FileInfo>? files,
     Map<String, int>? reactions,
     int? replyCount,
+    String? priority,
   }) {
     return Post(
       id: id,
@@ -85,9 +91,21 @@ class Post extends Equatable {
       pendingId: pendingId,
       forwardedPostMessage: forwardedPostMessage,
       forwardedChannelName: forwardedChannelName,
+      priority: priority ?? this.priority,
     );
   }
 
   @override
-  List<Object?> get props => [id];
+  List<Object?> get props => [
+        id,
+        message,
+        deleteAt,
+        editAt,
+        isPinned,
+        isFlagged,
+        replyCount,
+        reactions,
+        files,
+        priority,
+      ];
 }

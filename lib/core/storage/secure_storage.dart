@@ -28,5 +28,9 @@ class SecureStorage {
 
   Future<String?> getUserId() => _storage.read(key: _keyUserId);
 
-  Future<void> clearAll() => _storage.deleteAll();
+  Future<void> clearAll() async {
+    await _storage.delete(key: _keyToken);
+    await _storage.delete(key: _keyCsrf);
+    await _storage.delete(key: _keyUserId);
+  }
 }

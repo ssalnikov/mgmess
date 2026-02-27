@@ -1,17 +1,26 @@
 import 'package:dartz/dartz.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
+import '../../core/network/network_info.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/repositories/channel_repository.dart';
+import '../datasources/local/channel_local_datasource.dart';
 import '../datasources/remote/channel_remote_datasource.dart';
 
 class ChannelRepositoryImpl implements ChannelRepository {
   final ChannelRemoteDataSource _remoteDataSource;
+  final ChannelLocalDataSource _localDataSource;
+  final NetworkInfo _networkInfo;
 
   ChannelRepositoryImpl({
     required ChannelRemoteDataSource remoteDataSource,
-  }) : _remoteDataSource = remoteDataSource;
+    required ChannelLocalDataSource localDataSource,
+    required NetworkInfo networkInfo,
+  })  : _remoteDataSource = remoteDataSource,
+        _localDataSource = localDataSource,
+        _networkInfo = networkInfo;
 
   @override
   Future<Either<Failure, List<Channel>>> getChannelsForUser(
@@ -19,29 +28,63 @@ class ChannelRepositoryImpl implements ChannelRepository {
     String teamId,
   ) async {
     try {
-      final channels =
-          await _remoteDataSource.getChannelsForUser(userId, teamId);
+      if (await _networkInfo.isConnected) {
+        final channels =
+            await _remoteDataSource.getChannelsForUser(userId, teamId);
 
-      // Enrich each channel with membership info
-      final enriched = <Channel>[];
-      for (final channel in channels) {
+        // Fetch all memberships in one batch request
+        final Map<String, Map<String, dynamic>> membersByChannelId = {};
         try {
-          final member = await _remoteDataSource.getChannelMember(
-            channel.id,
+          final members = await _remoteDataSource.getChannelMembersForUser(
             userId,
+            teamId,
           );
-          enriched.add(channel.copyWith(
-            msgCount: member['msg_count'] as int? ?? 0,
-            mentionCount: member['mention_count'] as int? ?? 0,
-            lastViewedAt: member['last_viewed_at'] as int? ?? 0,
-          ));
+          for (final m in members) {
+            final chId = m['channel_id'] as String?;
+            if (chId != null) membersByChannelId[chId] = m;
+          }
         } catch (_) {
-          enriched.add(channel);
+          // If batch fails, channels still show without unread info
         }
+
+        final enriched = channels.map((channel) {
+          final member = membersByChannelId[channel.id];
+          if (member == null) return channel;
+
+          bool isMuted = false;
+          final notifyProps =
+              member['notify_props'] as Map<String, dynamic>?;
+          if (notifyProps != null) {
+            isMuted = notifyProps['mark_unread'] == 'mention';
+          }
+
+          return channel.copyWith(
+            msgCount: (member['msg_count'] as num?)?.toInt() ?? 0,
+            mentionCount: (member['mention_count'] as num?)?.toInt() ?? 0,
+            lastViewedAt: (member['last_viewed_at'] as num?)?.toInt() ?? 0,
+            isMuted: isMuted,
+          );
+        }).toList();
+
+        // Cache in background
+        _localDataSource.cacheChannels(enriched).catchError((e) {
+          debugPrint('ChannelRepo: cache error: $e');
+        });
+        return Right(enriched);
+      } else {
+        // Offline — read from cache
+        final cached = await _localDataSource.getAllChannels();
+        return Right(cached);
       }
-      return Right(enriched);
     } on ServerException catch (e) {
+      // On server error, try cache as fallback
+      try {
+        final cached = await _localDataSource.getAllChannels();
+        if (cached.isNotEmpty) return Right(cached);
+      } catch (_) {}
       return Left(ServerFailure(message: e.message));
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message));
     }
   }
 
@@ -79,6 +122,40 @@ class ChannelRepositoryImpl implements ChannelRepository {
         otherUserId,
       );
       return Right(channel);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> muteChannel(
+    String channelId,
+    String userId,
+  ) async {
+    try {
+      await _remoteDataSource.updateChannelNotifyProps(
+        channelId,
+        userId,
+        {'mark_unread': 'mention'},
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> unmuteChannel(
+    String channelId,
+    String userId,
+  ) async {
+    try {
+      await _remoteDataSource.updateChannelNotifyProps(
+        channelId,
+        userId,
+        {'mark_unread': 'all'},
+      );
+      return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

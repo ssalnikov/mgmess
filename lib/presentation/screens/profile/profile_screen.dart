@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/config/app_config.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../widgets/restart_widget.dart';
 import '../../widgets/user_avatar.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -87,6 +90,18 @@ class ProfileScreen extends StatelessWidget {
                 icon: const Icon(Icons.notifications_outlined),
                 label: const Text('Notification Settings'),
               ),
+              const SizedBox(height: 12),
+              _ProfileItem(
+                icon: Icons.dns,
+                label: 'Server',
+                value: AppConfig.serverUrl,
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => _showChangeServerDialog(context),
+                icon: const Icon(Icons.swap_horiz),
+                label: const Text('Change Server'),
+              ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () {
@@ -102,6 +117,36 @@ class ProfileScreen extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showChangeServerDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Change Server'),
+        content: const Text(
+          'You will be signed out and redirected to the server selection screen.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(dialogContext).pop();
+              context.read<AuthBloc>().add(const AuthLogoutRequested());
+              await AppConfig.clearServerUrl();
+              await GetIt.instance.reset();
+              if (context.mounted) {
+                RestartWidget.restartApp(context);
+              }
+            },
+            child: const Text('Change'),
+          ),
+        ],
       ),
     );
   }

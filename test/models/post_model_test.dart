@@ -111,5 +111,46 @@ void main() {
       expect(post.fileIds, isEmpty);
       expect(post.reactions, isEmpty);
     });
+
+    test('fromJson parses priority from metadata', () {
+      final post = PostModel.fromJson({
+        ...json,
+        'metadata': {
+          ...json['metadata'] as Map<String, dynamic>,
+          'priority': {
+            'priority': 'urgent',
+            'requested_ack': false,
+          },
+        },
+      });
+      expect(post.priority, 'urgent');
+      expect(post.isUrgent, true);
+      expect(post.isImportant, false);
+      expect(post.hasPriority, true);
+    });
+
+    test('fromJson parses important priority', () {
+      final post = PostModel.fromJson({
+        ...json,
+        'metadata': {
+          'priority': {
+            'priority': 'important',
+            'requested_ack': false,
+          },
+        },
+      });
+      expect(post.priority, 'important');
+      expect(post.isImportant, true);
+      expect(post.isUrgent, false);
+      expect(post.hasPriority, true);
+    });
+
+    test('fromJson without priority returns empty string', () {
+      final post = PostModel.fromJson(json);
+      expect(post.priority, '');
+      expect(post.hasPriority, false);
+      expect(post.isUrgent, false);
+      expect(post.isImportant, false);
+    });
   });
 }

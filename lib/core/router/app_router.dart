@@ -13,6 +13,7 @@ import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/profile/user_profile_screen.dart';
 import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
 import '../../presentation/screens/drafts/drafts_screen.dart';
+import '../../presentation/screens/search/search_screen.dart';
 import '../../presentation/screens/thread/thread_screen.dart';
 import '../../presentation/screens/threads/threads_screen.dart';
 import '../../presentation/widgets/bottom_nav_shell.dart';
@@ -65,6 +66,10 @@ class AppRouter {
         ],
       ),
       GoRoute(
+        path: RouteNames.search,
+        builder: (context, state) => const SearchScreen(),
+      ),
+      GoRoute(
         path: RouteNames.threads,
         builder: (context, state) => const ThreadsScreen(),
       ),
@@ -79,16 +84,27 @@ class AppRouter {
           final extra = state.extra;
           String channelName = '';
           String? initialDraft;
+          int lastViewedAt = 0;
           if (extra is String) {
             channelName = extra;
           } else if (extra is Map<String, dynamic>) {
             channelName = extra['channelName'] as String? ?? '';
             initialDraft = extra['draftMessage'] as String?;
+            lastViewedAt = extra['lastViewedAt'] as int? ?? 0;
           }
+          final dmUserId = extra is Map<String, dynamic>
+              ? extra['dmUserId'] as String?
+              : null;
+          final scrollToPostId = extra is Map<String, dynamic>
+              ? extra['scrollToPostId'] as String?
+              : null;
           return ChatScreen(
             channelId: channelId,
             channelName: channelName,
             initialDraft: initialDraft,
+            lastViewedAt: lastViewedAt,
+            dmUserId: dmUserId,
+            scrollToPostId: scrollToPostId,
           );
         },
       ),

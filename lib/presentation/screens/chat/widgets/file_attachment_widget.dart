@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:photo_view/photo_view.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/di/injection.dart';
@@ -10,16 +9,25 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../domain/entities/file_info.dart';
 import '../../../widgets/file_icon.dart';
+import '../../media/media_viewer_screen.dart';
 
 class FileAttachmentWidget extends StatelessWidget {
   final FileInfo fileInfo;
+  final List<FileInfo> allMediaFiles;
 
-  const FileAttachmentWidget({super.key, required this.fileInfo});
+  const FileAttachmentWidget({
+    super.key,
+    required this.fileInfo,
+    this.allMediaFiles = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
     if (fileInfo.isImage) {
-      return _ImageAttachment(fileInfo: fileInfo);
+      return _ImageAttachment(
+        fileInfo: fileInfo,
+        allMediaFiles: allMediaFiles,
+      );
     }
     return _FileAttachment(fileInfo: fileInfo);
   }
@@ -27,15 +35,17 @@ class FileAttachmentWidget extends StatelessWidget {
 
 class _ImageAttachment extends StatelessWidget {
   final FileInfo fileInfo;
+  final List<FileInfo> allMediaFiles;
 
-  const _ImageAttachment({required this.fileInfo});
+  const _ImageAttachment({
+    required this.fileInfo,
+    required this.allMediaFiles,
+  });
 
   @override
   Widget build(BuildContext context) {
     final thumbnailUrl =
         '${AppConfig.baseUrl}${ApiEndpoints.fileThumbnail(fileInfo.id)}';
-    final fullUrl =
-        '${AppConfig.baseUrl}${ApiEndpoints.file(fileInfo.id)}';
 
     return FutureBuilder<String?>(
       future: sl<SecureStorage>().getToken(),
@@ -46,29 +56,32 @@ class _ImageAttachment extends StatelessWidget {
         final headers = {'Authorization': 'Bearer $token'};
 
         return GestureDetector(
-          onTap: () => _openFullscreen(context, fullUrl, headers),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 250,
-                maxHeight: 200,
-              ),
-              child: CachedNetworkImage(
-                imageUrl: thumbnailUrl,
-                httpHeaders: headers,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => Container(
-                  width: 100,
-                  height: 100,
-                  color: AppColors.divider,
-                  child: const Icon(Icons.image),
+          onTap: () => _openFullscreen(context),
+          child: Hero(
+            tag: fileInfo.id,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: 250,
+                  maxHeight: 200,
                 ),
-                errorWidget: (_, __, ___) => Container(
-                  width: 100,
-                  height: 100,
-                  color: AppColors.divider,
-                  child: const Icon(Icons.broken_image),
+                child: CachedNetworkImage(
+                  imageUrl: thumbnailUrl,
+                  httpHeaders: headers,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(
+                    width: 100,
+                    height: 100,
+                    color: AppColors.divider,
+                    child: const Icon(Icons.image),
+                  ),
+                  errorWidget: (_, __, ___) => Container(
+                    width: 100,
+                    height: 100,
+                    color: AppColors.divider,
+                    child: const Icon(Icons.broken_image),
+                  ),
                 ),
               ),
             ),
@@ -78,31 +91,17 @@ class _ImageAttachment extends StatelessWidget {
     );
   }
 
-  void _openFullscreen(
-    BuildContext context,
-    String url,
-    Map<String, String> headers,
-  ) {
+  void _openFullscreen(BuildContext context) {
+    final mediaFiles = allMediaFiles.isNotEmpty
+        ? allMediaFiles
+        : [fileInfo];
+    final initialIndex = mediaFiles.indexWhere((f) => f.id == fileInfo.id);
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => Scaffold(
-          backgroundColor: Colors.black,
-          appBar: AppBar(
-            backgroundColor: Colors.black,
-            iconTheme: const IconThemeData(color: Colors.white),
-            title: Text(
-              fileInfo.name,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-          body: PhotoView(
-            imageProvider: CachedNetworkImageProvider(
-              url,
-              headers: headers,
-            ),
-            minScale: PhotoViewComputedScale.contained,
-            maxScale: PhotoViewComputedScale.covered * 3,
-          ),
+        builder: (_) => MediaViewerScreen(
+          files: mediaFiles,
+          initialIndex: initialIndex >= 0 ? initialIndex : 0,
         ),
       ),
     );

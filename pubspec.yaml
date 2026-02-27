@@ -52,11 +52,13 @@ dependencies:
   image_picker: ^1.1.2
   file_picker: ^9.2.1
 
+  gal: ^2.3.0
+  shimmer: ^3.0.0
+
   # Push Notifications
   firebase_core: ^3.8.0
   firebase_messaging: ^15.1.0
   flutter_local_notifications: ^18.0.0
-  flutter_app_badger: ^1.5.0
 
   # Utils
   intl: ^0.20.2
@@ -65,6 +67,7 @@ dependencies:
   path: ^1.9.1
   collection: ^1.19.1
   logger: ^2.5.0
+  app_badge_plus: ^1.2.7
 
 dev_dependencies:
   flutter_test:
@@ -81,6 +84,11 @@ dev_dependencies:
   # Testing
   bloc_test: ^10.0.0
   mocktail: ^1.0.4
+
+  # Integration / E2E Testing
+  integration_test:
+    sdk: flutter
+  patrol: ^3.13.0
 
 flutter:
   uses-material-design: true

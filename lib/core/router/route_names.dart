@@ -10,6 +10,7 @@ class RouteNames {
   static const String userProfile = '/user/:userId';
   static const String threads = '/threads';
   static const String drafts = '/drafts';
+  static const String search = '/search';
   static const String thread = '/thread/:postId';
 
   static String chatPath(String channelId) => '/chat/$channelId';

@@ -1,17 +1,20 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/di/injection.dart';
 import '../../core/network/api_endpoints.dart';
 import '../../core/storage/secure_storage.dart';
 import '../../core/theme/app_colors.dart';
+import '../blocs/user_status/user_status_cubit.dart';
 
 class UserAvatar extends StatefulWidget {
   final String userId;
   final double radius;
   final String? status;
   final int? cacheBuster;
+  final String? heroTag;
 
   const UserAvatar({
     super.key,
@@ -19,6 +22,7 @@ class UserAvatar extends StatefulWidget {
     this.radius = 20,
     this.status,
     this.cacheBuster,
+    this.heroTag,
   });
 
   @override
@@ -45,7 +49,16 @@ class _UserAvatarState extends State<UserAvatar> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
+    final effectiveStatus = widget.status ??
+        context.select<UserStatusCubit, String?>((cubit) {
+          final s = cubit.state.statuses[widget.userId];
+          if (s == null) {
+            cubit.requestStatus(widget.userId);
+          }
+          return s;
+        });
+
+    final avatar = Stack(
       children: [
         FutureBuilder<String?>(
           future: _tokenFuture,
@@ -82,7 +95,7 @@ class _UserAvatarState extends State<UserAvatar> {
             );
           },
         ),
-        if (widget.status != null)
+        if (effectiveStatus != null)
           Positioned(
             bottom: 0,
             right: 0,
@@ -90,7 +103,7 @@ class _UserAvatarState extends State<UserAvatar> {
               width: widget.radius * 0.6,
               height: widget.radius * 0.6,
               decoration: BoxDecoration(
-                color: _statusColor(widget.status!),
+                color: _statusColor(effectiveStatus),
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 1.5),
               ),
@@ -98,6 +111,11 @@ class _UserAvatarState extends State<UserAvatar> {
           ),
       ],
     );
+
+    if (widget.heroTag != null) {
+      return Hero(tag: widget.heroTag!, child: avatar);
+    }
+    return avatar;
   }
 
   Color _statusColor(String status) {

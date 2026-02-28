@@ -12,7 +12,7 @@
 | `integration_test` | Интеграционные тесты (Flutter SDK) |
 | `patrol` | Нативные E2E-тесты (OAuth через браузер) |
 
-**Итого: 139 тестов** (114 unit + 25 integration)
+**Итого: 264 теста** (239 unit + 25 integration)
 
 ## Структура тестов
 
@@ -25,15 +25,28 @@ test/
 │   ├── file_info_model_test.dart    # 9 тестов
 │   ├── user_thread_model_test.dart  # тесты модели тредов
 │   └── draft_test.dart              # тесты модели черновиков
-├── blocs/                           # Unit-тесты BLoC
+├── blocs/                           # Unit-тесты BLoC/Cubit
 │   ├── auth_bloc_test.dart          # 6 тестов
 │   ├── channels_bloc_test.dart      # 4 теста
 │   ├── chat_bloc_test.dart          # 6 тестов
 │   ├── notification_bloc_test.dart  # тесты NotificationBloc
-│   └── threads_bloc_test.dart       # тесты ThreadsBloc
+│   ├── threads_bloc_test.dart       # тесты ThreadsBloc
+│   ├── websocket_bloc_test.dart     # 9 тестов — connect/disconnect, wsEvents трансляция, sendTyping
+│   ├── connectivity_cubit_test.dart # 5 тестов — подписка на изменения сети, close
+│   └── user_status_cubit_test.dart  # 11 тестов — fetchStatuses, WS status_change, батчинг requestStatus
 ├── repositories/                    # Unit-тесты репозиториев
 │   ├── auth_repository_test.dart    # 7 тестов
-│   └── notification_repository_test.dart # тесты NotificationRepository
+│   ├── notification_repository_test.dart # тесты NotificationRepository
+│   ├── post_repository_test.dart    # 32 теста — online/offline/fallback, createPost pending, CRUD
+│   ├── channel_repository_test.dart # 16 тестов — enrichment membership, offline, mute/unmute
+│   ├── user_repository_test.dart    # 16 тестов — cache-first getUser, autocomplete, statuses
+│   ├── seens_repository_test.dart   # 4 теста — getChannelSeens, getPostSeens
+│   └── file_repository_test.dart    # 7 тестов — uploadFiles, getFileInfo, URL-методы
+├── services/                        # Unit-тесты сервисов
+│   ├── ws_post_parser_test.dart     # 9 тестов — парсинг JSON, forwarded, priority, невалидный вход
+│   └── send_queue_service_test.dart # 9 тестов — pending-посты, connectivity, ошибки, dispose
+├── network/                         # Unit-тесты сетевого слоя
+│   └── api_client_test.dart         # 7 тестов — AuthInterceptor (Bearer, CSRF, 401), конфигурация
 ├── storage/                         # Unit-тесты хранилищ
 │   └── draft_storage_test.dart      # тесты DraftStorage
 ├── widget_test.dart                 # Unit-тесты утилит (WsEvent, DateFormatter) — 8 тестов
@@ -156,12 +169,31 @@ blocTest<AuthBloc, AuthState>(
 
 ### Что тестируется
 
-**AuthBloc:**
+**AuthBloc** (6 тестов):
 - Проверка сессии — успех, отсутствие сессии, ошибка API
 - OAuth — успешная авторизация, ошибка сохранения токенов
 - Logout
 
-**ChannelsBloc:**
+**WebSocketBloc** (9 тестов):
+- `WebSocketConnect` — emits `connecting`, вызывает `connect()`, подписывается на `stateChanges` и `events`
+- `WebSocketConnectionChanged` — emits `connected` при `true`, `disconnected` при `false`
+- `WebSocketDisconnect` — вызывает `disconnect()`, emits `disconnected`
+- `wsEvents` stream — WS-события из `events` транслируются в `wsEvents`
+- `sendTyping` — делегирует вызов `WebSocketClient.sendTyping(channelId)`
+- `close` — отменяет подписки, события больше не пересылаются
+
+**ConnectivityCubit** (5 тестов):
+- Начальное состояние `isConnected = true`
+- Подписка на `onConnectivityChanged` — переключение connected/disconnected
+- Множественные последовательные изменения состояния
+- Отмена подписки при `close()`
+
+**UserStatusCubit** (11 тестов):
+- `fetchStatuses` — обновляет statuses при успехе, не emitит при ошибке, ничего не делает для пустого списка, мержит с существующими
+- `subscribeToWs` — обновляет статус при `status_change`, игнорирует другие события и события без обязательных полей, перезаписывает статус для того же пользователя
+- `requestStatus` — батчит запросы с 100ms debounce, пропускает уже известные статусы
+
+**ChannelsBloc** (4 теста):
 - Загрузка каналов — успех, ошибка
 - Поиск по имени — фильтрация, сброс фильтра
 
@@ -169,7 +201,7 @@ blocTest<AuthBloc, AuthState>(
 - Парсинг приоритета из `metadata.priority.priority` (urgent, important)
 - Пустой приоритет при отсутствии metadata
 
-**ChatBloc:**
+**ChatBloc** (6 тестов):
 - Загрузка сообщений — успех, ошибка
 - Отправка сообщения (оптимистичное добавление)
 - Удаление сообщения
@@ -208,11 +240,31 @@ blocTest<ChatBloc, ChatState>(
 
 ### Что тестируется
 
-**AuthRepositoryImpl:**
+**AuthRepositoryImpl** (7 тестов):
 - `getCurrentUser` — успех (сохраняет userId), ошибка (возвращает Failure)
 - `saveAuthTokens` — сохранение токена и CSRF
 - `logout` — очистка хранилища даже при ошибке сервера
 - `hasValidSession` — с токеном, без токена, с невалидным токеном
+
+**PostRepositoryImpl** (32 теста):
+- `getChannelPosts` — online (remote + фоновый кеш), offline (из кеша), ServerException + fallback на кеш, ServerException + пустой кеш → `ServerFailure`, CacheException → `CacheFailure`
+- `createPost` — online (remote + кеш), offline (сохраняет pending-пост с `pending_*` id), ServerException
+- `getPost`, `editPost`, `deletePost`, `getPostThread`, `pinPost`, `unpinPost`, `flagPost`, `unflagPost`, `searchPosts`, `getFlaggedPosts`, `getPinnedPosts`, `getUserThreads` — success/failure пути
+
+**ChannelRepositoryImpl** (16 тестов):
+- `getChannelsForUser` — online (remote + enrichment через batch members: msgCount, mentionCount, lastViewedAt, isMuted), batch members fail (каналы без unread info), offline (из кеша), ServerException + fallback, CacheException
+- `getChannel`, `viewChannel`, `createDirectChannel`, `muteChannel`, `unmuteChannel` — success/failure
+
+**UserRepositoryImpl** (16 тестов):
+- `getUser` — cache-first: возвращает из кеша если есть, иначе из remote; fallback на remote при ошибке кеша
+- `getUsersByIds`, `updateUser`, `uploadUserImage`, `autocompleteUsers` (с/без channelId), `getUserStatuses`, `getUserImageUrl`
+
+**SeensRepositoryImpl** (4 теста):
+- `getChannelSeens`, `getPostSeens` — success с проверкой полей SeenList, ServerException → ServerFailure
+
+**FileRepositoryImpl** (7 тестов):
+- `uploadFiles`, `getFileInfo` — success/failure
+- `getFileUrl`, `getThumbnailUrl`, `getPreviewUrl` — проверка формата URL
 
 ### Пример
 
@@ -228,6 +280,51 @@ test('logout clears storage even on server error', () async {
   verify(() => mockStorage.clearAll()).called(1);
 });
 ```
+
+## Тесты сервисов
+
+### WsPostParserImpl (9 тестов)
+
+Чистые тесты без моков — вызов `parsePost()` и проверка результата.
+
+- Валидный JSON с полным набором полей → `Post` с правильными значениями
+- Минимальный JSON (только обязательные поля) → корректные дефолты
+- Невалидный JSON → `null`
+- Пустая строка → `null`
+- JSON-массив вместо объекта → `null`
+- JSON с неизвестными полями → парсит без ошибки
+- Forwarded post из permalink embed → `forwardedPostMessage`, `forwardedChannelName`
+- Priority metadata → `priority`, `isUrgent`
+
+### SendQueueService (9 тестов)
+
+Тестирует отправку pending-постов при восстановлении сети.
+
+- `start()` — подписывается на `onConnectivityChanged`, вызывает обработку сразу
+- Online: получает pending-посты, отправляет каждый через `createPost`, маркирует `markAsSent`
+- Offline: не отправляет посты
+- Конвертация пустых `rootId`/`fileIds`/`priority` в `null` при отправке
+- Передача непустых `rootId`/`fileIds`/`priority` как есть
+- Ошибка отправки одного поста → `markAsFailed`, продолжает обработку следующих
+- Восстановление сети (connectivity emit `true`) → обрабатывает очередь
+- `dispose()` — отменяет подписку, новые события не обрабатываются
+
+## Тесты сетевого слоя
+
+### ApiClient (7 тестов)
+
+Тестирует Dio-интерцепторы через кастомный `DioAdapter` (мок `HttpClientAdapter`).
+
+**AuthInterceptor:**
+- Добавляет `Authorization: Bearer <token>` и `X-CSRF-Token` к запросам
+- Пропускает заголовки, если токен/CSRF отсутствуют
+- Очищает `SecureStorage` при получении 401
+- Не очищает storage при других ошибках (403, 500)
+
+**Конфигурация:**
+- Правильный `baseUrl` (serverUrl + `/api/v4`)
+- `Content-Type: application/json`
+- Таймауты из `AppConfig`
 
 ## Тесты утилит
 
@@ -370,12 +467,26 @@ void main() {
 - Физическое устройство или эмулятор
 - Запуск: `patrol test integration_test/patrol/`
 
+## Покрытие по компонентам
+
+| Слой | Компонент | Тесты |
+|------|-----------|-------|
+| BLoC | AuthBloc, WebSocketBloc, ChannelsBloc, ChatBloc, NotificationBloc, ThreadsBloc | ✅ |
+| Cubit | ConnectivityCubit, UserStatusCubit | ✅ |
+| Repository | Auth, Post, Channel, User, File, Seens, Notification | ✅ |
+| Service | WsPostParserImpl, SendQueueService | ✅ |
+| Network | ApiClient (AuthInterceptor, RetryInterceptor) | ✅ |
+| Model | User, Channel, Post, FileInfo, UserThread, Draft | ✅ |
+| Storage | DraftStorage | ✅ |
+| Integration | Auth, Channels, Chat, WS, Pin, Search, Threads, Edit/Delete | ✅ |
+
 ## Рекомендации по расширению
 
 При добавлении новой функциональности:
 
 1. **Модель** → тесты `fromJson`, `toJson`, вычисляемые свойства
-2. **Репозиторий** → тесты успеха/ошибки для каждого метода
-3. **BLoC** → тесты каждого Event с проверкой последовательности State
-4. **Widget** → `pumpWidget` + проверка ключевых элементов UI (при необходимости)
-5. **Пользовательский сценарий** → интеграционный тест в `integration_test/scenarios/` + добавить в runner
+2. **Репозиторий** → тесты успеха/ошибки для каждого метода; если есть offline-логика — тесты online/offline/fallback
+3. **BLoC** → тесты каждого Event с проверкой последовательности State; для WS-подписок — тест с `StreamController`
+4. **Сервис** → тесты основной логики, обработки ошибок, подписок
+5. **Widget** → `pumpWidget` + проверка ключевых элементов UI (при необходимости)
+6. **Пользовательский сценарий** → интеграционный тест в `integration_test/scenarios/` + добавить в runner

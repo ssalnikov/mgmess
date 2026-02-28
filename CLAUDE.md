@@ -9,10 +9,10 @@ MGMess is a Flutter mobile Mattermost client for MyGames corporate server (`http
 ## Commands
 
 ```bash
-# Run all tests — unit + integration (139 tests)
+# Run all tests — unit + integration (264 tests)
 flutter test
 
-# Run only unit tests (114 tests)
+# Run only unit tests (239 tests)
 flutter test test/
 
 # Run only integration tests as widget tests (25 tests, no device required)
@@ -137,6 +137,10 @@ MyGames extension endpoints: `GET /api/v4/channels/{id}/seens`, `GET /api/v4/pos
 - Mocks via `mocktail`: `class MockX extends Mock implements X {}`
 - Repositories tested with mocked data sources, verifying both success and error paths
 - Model tests cover `fromJson`, `toJson`, computed properties, and empty/missing field edge cases
+- All BLoCs/Cubits covered: AuthBloc, WebSocketBloc, ChannelsBloc, ChatBloc, NotificationBloc, ThreadsBloc, ConnectivityCubit, UserStatusCubit
+- All repositories covered: Auth, Post (online/offline/fallback), Channel (enrichment), User (cache-first), File, Seens, Notification
+- Services covered: WsPostParserImpl, SendQueueService (pending posts, connectivity)
+- Network covered: ApiClient interceptors (auth headers, 401 clearance, retry on 5xx)
 
 ### Integration Tests (`integration_test/`)
 

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+
+import '../../../widgets/message_markdown.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/route_names.dart';
+import '../../../../core/utils/emoji_map.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/date_formatter.dart';
@@ -12,41 +15,6 @@ import '../../../widgets/user_avatar.dart';
 import 'file_attachment_widget.dart';
 import 'message_actions_sheet.dart';
 import 'swipe_to_reply.dart';
-
-const _emojiMap = {
-  '+1': '\u{1F44D}',
-  'heart': '\u{2764}\u{FE0F}',
-  'grinning': '\u{1F600}',
-  'white_check_mark': '\u{2705}',
-  'eyes': '\u{1F440}',
-  'raised_hands': '\u{1F64C}',
-  'thumbsup': '\u{1F44D}',
-  'thumbsdown': '\u{1F44E}',
-  'smile': '\u{1F604}',
-  'laughing': '\u{1F606}',
-  'blush': '\u{1F60A}',
-  'slightly_smiling_face': '\u{1F642}',
-  'wink': '\u{1F609}',
-  'joy': '\u{1F602}',
-  'tada': '\u{1F389}',
-  'clap': '\u{1F44F}',
-  'fire': '\u{1F525}',
-  'rocket': '\u{1F680}',
-  'thinking': '\u{1F914}',
-  'pray': '\u{1F64F}',
-  'sob': '\u{1F62D}',
-  'angry': '\u{1F620}',
-  'confused': '\u{1F615}',
-  'ok_hand': '\u{1F44C}',
-  'wave': '\u{1F44B}',
-  'muscle': '\u{1F4AA}',
-  '100': '\u{1F4AF}',
-  'star': '\u{2B50}',
-  'warning': '\u{26A0}\u{FE0F}',
-  'x': '\u{274C}',
-  'heavy_check_mark': '\u{2714}\u{FE0F}',
-  '-1': '\u{1F44E}',
-};
 
 class MessageBubble extends StatelessWidget {
   final Post post;
@@ -222,7 +190,7 @@ class MessageBubble extends StatelessWidget {
                               ),
                               color: Colors.black.withValues(alpha: 0.03),
                             ),
-                            child: MarkdownBody(
+                            child: MessageMarkdown(
                               data: post.forwardedPostMessage,
                               styleSheet: MarkdownStyleSheet(
                                 p: AppTextStyles.body,
@@ -233,7 +201,7 @@ class MessageBubble extends StatelessWidget {
                             const SizedBox(height: 4),
                         ],
                         if (post.message.isNotEmpty)
-                          MarkdownBody(
+                          MessageMarkdown(
                             data: post.message,
                             styleSheet: MarkdownStyleSheet(
                               p: AppTextStyles.body,
@@ -311,7 +279,7 @@ class MessageBubble extends StatelessWidget {
           final userIds = entry.value;
           final count = userIds.length;
           final isMine = currentUserId != null && userIds.contains(currentUserId);
-          final emojiChar = _emojiMap[emoji] ?? ':$emoji:';
+          final emojiChar = emojiMap[emoji] ?? ':$emoji:';
 
           return GestureDetector(
             onTap: () {

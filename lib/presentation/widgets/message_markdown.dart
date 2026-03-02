@@ -1,0 +1,111 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+
+import '../../core/config/app_config.dart';
+import '../../core/di/injection.dart';
+import '../../core/network/api_endpoints.dart';
+import '../../core/storage/secure_storage.dart';
+import '../../core/utils/emoji_utils.dart';
+import '../../data/datasources/remote/emoji_remote_datasource.dart';
+
+/// Reusable markdown widget for message text with emoji support.
+/// Replaces :emoji_code: with Unicode (system) or inline images (custom).
+class MessageMarkdown extends StatelessWidget {
+  final String data;
+  final MarkdownStyleSheet? styleSheet;
+
+  const MessageMarkdown({
+    super.key,
+    required this.data,
+    this.styleSheet,
+  });
+
+  static Map<String, String>? _customEmojiUrls;
+  static bool _loading = false;
+
+  static Future<void> _loadCustomEmojis() async {
+    if (_customEmojiUrls != null || _loading) return;
+    _loading = true;
+    try {
+      final datasource = sl<EmojiRemoteDataSource>();
+      final emojis = await datasource.getCustomEmojis();
+      _customEmojiUrls = {
+        for (final e in emojis)
+          e.name:
+              '${AppConfig.baseUrl}${ApiEndpoints.customEmojiImage(e.id)}',
+      };
+    } catch (_) {
+      _customEmojiUrls = {};
+    } finally {
+      _loading = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_customEmojiUrls == null) {
+      _loadCustomEmojis();
+    }
+
+    final processed = replaceEmojis(
+      data,
+      customEmojiUrls: _customEmojiUrls ?? const {},
+    );
+
+    return MarkdownBody(
+      data: processed,
+      styleSheet: styleSheet,
+      sizedImageBuilder: (config) {
+        final url = config.uri.toString();
+        if (url.contains('/emoji/') && url.contains('/image')) {
+          return _CustomEmojiImage(url: url);
+        }
+        return Image.network(url);
+      },
+    );
+  }
+}
+
+class _CustomEmojiImage extends StatefulWidget {
+  final String url;
+
+  const _CustomEmojiImage({required this.url});
+
+  @override
+  State<_CustomEmojiImage> createState() => _CustomEmojiImageState();
+}
+
+class _CustomEmojiImageState extends State<_CustomEmojiImage> {
+  Map<String, String>? _headers;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHeaders();
+  }
+
+  Future<void> _loadHeaders() async {
+    final token = await sl<SecureStorage>().getToken();
+    if (mounted) {
+      setState(() {
+        _headers = {
+          if (token != null) 'Authorization': 'Bearer $token',
+        };
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_headers == null) {
+      return const SizedBox(width: 20, height: 20);
+    }
+    return Image.network(
+      widget.url,
+      width: 20,
+      height: 20,
+      headers: _headers,
+      errorBuilder: (_, _, _) => const SizedBox(width: 20, height: 20),
+    );
+  }
+}

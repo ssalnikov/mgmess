@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+
+import '../../widgets/message_markdown.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
@@ -105,7 +107,7 @@ class _MentionTile extends StatelessWidget {
         }
       },
       leading: UserAvatar(userId: post.userId, radius: 20),
-      title: MarkdownBody(
+      title: MessageMarkdown(
         data: post.message,
         styleSheet: MarkdownStyleSheet(p: AppTextStyles.body),
       ),

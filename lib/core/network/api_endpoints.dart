@@ -76,6 +76,10 @@ class ApiEndpoints {
   // Device
   static const String deviceId = '/users/sessions/device_id';
 
+  // Emoji
+  static const String customEmojis = '/emoji';
+  static String customEmojiImage(String emojiId) => '/emoji/$emojiId/image';
+
   // Config
   static const String clientConfig = '/config/client';
 }

@@ -8,6 +8,7 @@ import '../../data/datasources/local/daos/user_dao.dart';
 import '../../data/datasources/local/post_local_datasource.dart';
 import '../../data/datasources/local/user_local_datasource.dart';
 import '../../data/datasources/remote/auth_remote_datasource.dart';
+import '../../data/datasources/remote/emoji_remote_datasource.dart';
 import '../../data/datasources/remote/channel_remote_datasource.dart';
 import '../../data/datasources/remote/file_remote_datasource.dart';
 import '../../data/datasources/remote/notification_remote_datasource.dart';
@@ -85,6 +86,8 @@ Future<void> initDependencies() async {
       () => SeensRemoteDataSource(apiClient: sl()));
   sl.registerLazySingleton(
       () => NotificationRemoteDataSource(apiClient: sl()));
+  sl.registerLazySingleton(
+      () => EmojiRemoteDataSource(apiClient: sl()));
 
   // Services
   sl.registerLazySingleton<WsPostParser>(() => WsPostParserImpl());

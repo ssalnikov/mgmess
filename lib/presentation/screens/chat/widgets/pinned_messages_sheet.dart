@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
+import '../../../widgets/message_markdown.dart';
+
 import '../../../../core/di/injection.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -135,7 +137,7 @@ class _PinnedMessagesSheetState extends State<PinnedMessagesSheet> {
                                   onTap: () => widget.onPostTap?.call(post),
                                   leading:
                                       UserAvatar(userId: post.userId, radius: 18),
-                                  title: MarkdownBody(
+                                  title: MessageMarkdown(
                                     data: post.message,
                                     styleSheet: MarkdownStyleSheet(
                                       p: AppTextStyles.body,

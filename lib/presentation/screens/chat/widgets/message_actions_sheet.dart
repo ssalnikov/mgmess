@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/utils/emoji_map.dart';
 import '../../../../domain/entities/post.dart';
 
-const _quickReactions = [
-  ('+1', '\u{1F44D}'),
-  ('heart', '\u{2764}\u{FE0F}'),
-  ('grinning', '\u{1F600}'),
-  ('white_check_mark', '\u{2705}'),
-  ('eyes', '\u{1F440}'),
-  ('raised_hands', '\u{1F64C}'),
-];
+const _quickReactionNames = ['+1', 'heart', 'grinning', 'white_check_mark', 'eyes', 'raised_hands'];
 
 class MessageActionsSheet extends StatelessWidget {
   final Post post;
@@ -130,16 +124,19 @@ class MessageActionsSheet extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: _quickReactions.map((r) {
+        children: _quickReactionNames.map((name) {
           return GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
               Navigator.pop(context);
-              onReaction!(r.$1);
+              onReaction!(name);
             },
             child: Padding(
               padding: const EdgeInsets.all(4),
-              child: Text(r.$2, style: const TextStyle(fontSize: 28)),
+              child: Text(
+                emojiMap[name] ?? ':$name:',
+                style: const TextStyle(fontSize: 28),
+              ),
             ),
           );
         }).toList(),

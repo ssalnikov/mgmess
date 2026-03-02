@@ -71,6 +71,7 @@ class ApiEndpoints {
 
   // Status
   static const String usersStatus = '/users/status/ids';
+  static String userStatus(String userId) => '/users/$userId/status';
 
   // Device
   static const String deviceId = '/users/sessions/device_id';

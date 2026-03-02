@@ -89,6 +89,17 @@ class UserRemoteDataSource {
     }
   }
 
+  Future<void> updateUserStatus(String userId, String status) async {
+    try {
+      await _apiClient.dio.put(
+        ApiEndpoints.userStatus(userId),
+        data: {'user_id': userId, 'status': status, 'manual': true},
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to update user status: $e');
+    }
+  }
+
   Future<Map<String, String>> getUserStatuses(
     List<String> userIds,
   ) async {

@@ -58,6 +58,28 @@ class UserStatusCubit extends Cubit<UserStatusState> {
     );
   }
 
+  Future<void> updateStatus(String userId, String status) async {
+    final previous = state.statuses[userId];
+    final updated = Map<String, String>.from(state.statuses);
+    updated[userId] = status;
+    emit(state.copyWith(statuses: updated));
+
+    final result = await _userRepository.updateUserStatus(userId, status);
+    result.fold(
+      (_) {
+        // Rollback on error
+        final rollback = Map<String, String>.from(state.statuses);
+        if (previous != null) {
+          rollback[userId] = previous;
+        } else {
+          rollback.remove(userId);
+        }
+        emit(state.copyWith(statuses: rollback));
+      },
+      (_) {},
+    );
+  }
+
   void requestStatus(String userId) {
     if (state.statuses.containsKey(userId)) return;
     _pendingIds.add(userId);

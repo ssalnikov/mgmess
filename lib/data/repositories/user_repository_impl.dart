@@ -108,6 +108,19 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<Either<Failure, void>> updateUserStatus(
+    String userId,
+    String status,
+  ) async {
+    try {
+      await _remoteDataSource.updateUserStatus(userId, status);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   String getUserImageUrl(String userId) =>
       '${AppConfig.baseUrl}${ApiEndpoints.userImage(userId)}';
 }

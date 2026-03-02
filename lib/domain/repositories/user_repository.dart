@@ -10,5 +10,6 @@ abstract class UserRepository {
   Future<Either<Failure, void>> uploadUserImage(String userId, String filePath);
   Future<Either<Failure, List<User>>> autocompleteUsers(String name, {String? channelId});
   Future<Either<Failure, Map<String, String>>> getUserStatuses(List<String> userIds);
+  Future<Either<Failure, void>> updateUserStatus(String userId, String status);
   String getUserImageUrl(String userId);
 }

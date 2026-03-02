@@ -138,7 +138,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return BlocProvider.value(
       value: _chatBloc,
       child: SwipeBackWrapper(
-        onSwipeBack: () => context.pop(),
+        onSwipeBack: () => context.go(RouteNames.channels),
         child: Scaffold(
           appBar: AppBar(
             title: widget.dmUserId != null
@@ -161,7 +161,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 : Text(widget.channelName),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
+              onPressed: () => context.go(RouteNames.channels),
             ),
             actions: [
               IconButton(

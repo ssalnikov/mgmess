@@ -12,6 +12,7 @@ class SwipeBackWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final quarterWidth = MediaQuery.of(context).size.width / 4;
     return Stack(
       children: [
         child,
@@ -19,7 +20,7 @@ class SwipeBackWrapper extends StatelessWidget {
           left: 0,
           top: 0,
           bottom: 0,
-          width: 20,
+          width: quarterWidth,
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onHorizontalDragEnd: (details) {

@@ -58,42 +58,33 @@ class _ThreadScreenState extends State<ThreadScreen> {
     return '';
   }
 
+  void _navigateToChannel() {
+    final channelId = _threadBloc.state.channelId;
+    if (channelId.isNotEmpty) {
+      context.go(
+        RouteNames.chatPath(channelId),
+        extra: <String, dynamic>{
+          'scrollToPostId': widget.postId,
+        },
+      );
+    } else {
+      context.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _threadBloc,
       child: SwipeBackWrapper(
-        onSwipeBack: () => context.pop(),
+        onSwipeBack: _navigateToChannel,
         child: Scaffold(
           appBar: AppBar(
             title: const Text('Thread'),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.pop(),
+              onPressed: _navigateToChannel,
             ),
-            actions: [
-              BlocBuilder<ThreadBloc, ThreadState>(
-                buildWhen: (prev, curr) =>
-                    prev.channelId != curr.channelId,
-                builder: (context, state) {
-                  if (state.channelId.isEmpty) {
-                    return const SizedBox.shrink();
-                  }
-                  return IconButton(
-                    icon: const Icon(Icons.open_in_new),
-                    tooltip: 'Show in channel',
-                    onPressed: () {
-                      context.push(
-                        RouteNames.chatPath(state.channelId),
-                        extra: <String, dynamic>{
-                          'scrollToPostId': widget.postId,
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
           ),
           body: BlocListener<ThreadBloc, ThreadState>(
             listenWhen: (prev, curr) =>

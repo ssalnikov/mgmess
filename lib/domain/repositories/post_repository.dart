@@ -34,6 +34,8 @@ abstract class PostRepository {
   Future<Either<Failure, List<Post>>> getPinnedPosts(String channelId);
   Future<Either<Failure, Post>> pinPost(String postId);
   Future<Either<Failure, Post>> unpinPost(String postId);
+  Future<Either<Failure, void>> addReaction(String postId, String userId, String emojiName);
+  Future<Either<Failure, void>> removeReaction(String postId, String userId, String emojiName);
   Future<Either<Failure, void>> flagPost(String userId, String postId);
   Future<Either<Failure, void>> unflagPost(String userId, String postId);
   Future<Either<Failure, List<UserThread>>> getUserThreads(

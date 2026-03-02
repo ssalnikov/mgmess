@@ -97,6 +97,22 @@ class UnpinMessage extends ChatEvent {
   List<Object?> get props => [postId];
 }
 
+class AddReaction extends ChatEvent {
+  final String postId;
+  final String emojiName;
+  const AddReaction({required this.postId, required this.emojiName});
+  @override
+  List<Object?> get props => [postId, emojiName];
+}
+
+class RemoveReaction extends ChatEvent {
+  final String postId;
+  final String emojiName;
+  const RemoveReaction({required this.postId, required this.emojiName});
+  @override
+  List<Object?> get props => [postId, emojiName];
+}
+
 class ScrollToMessage extends ChatEvent {
   final String postId;
   const ScrollToMessage({required this.postId});
@@ -204,12 +220,14 @@ class ChatState extends Equatable {
 class ChatBloc extends Bloc<ChatEvent, ChatState> {
   final PostRepository _postRepository;
   final WsPostParser _wsPostParser;
+  final String userId;
   StreamSubscription<WsEvent>? _wsSub;
   Timer? _typingTimer;
 
   ChatBloc({
     required PostRepository postRepository,
     required WsPostParser wsPostParser,
+    required this.userId,
   })  : _postRepository = postRepository,
         _wsPostParser = wsPostParser,
         super(const ChatState()) {
@@ -225,6 +243,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<IncrementNewMessages>(_onIncrementNewMessages);
     on<PinMessage>(_onPinMessage);
     on<UnpinMessage>(_onUnpinMessage);
+    on<AddReaction>(_onAddReaction);
+    on<RemoveReaction>(_onRemoveReaction);
     on<ScrollToMessage>(_onScrollToMessage);
     on<ClearHighlight>(_onClearHighlight);
     on<ChatWsEvent>(_onWsEvent);
@@ -238,7 +258,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
             (e.event == WsEventType.posted ||
                 e.event == WsEventType.postEdited ||
                 e.event == WsEventType.postDeleted ||
-                e.event == WsEventType.typing))
+                e.event == WsEventType.typing ||
+                e.event == WsEventType.reactionAdded ||
+                e.event == WsEventType.reactionRemoved))
         .listen((event) => add(ChatWsEvent(wsEvent: event)));
   }
 
@@ -451,6 +473,64 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     );
   }
 
+  Future<void> _onAddReaction(
+    AddReaction event,
+    Emitter<ChatState> emit,
+  ) async {
+    // Optimistic update
+    final posts = state.posts.map((p) {
+      if (p.id == event.postId) {
+        final reactions = Map<String, List<String>>.from(
+          p.reactions.map((k, v) => MapEntry(k, List<String>.from(v))),
+        );
+        reactions.putIfAbsent(event.emojiName, () => []);
+        if (!reactions[event.emojiName]!.contains(userId)) {
+          reactions[event.emojiName]!.add(userId);
+        }
+        return p.copyWith(reactions: reactions);
+      }
+      return p;
+    }).toList();
+    emit(state.copyWith(posts: posts));
+
+    final result = await _postRepository.addReaction(
+      event.postId, userId, event.emojiName,
+    );
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (_) {},
+    );
+  }
+
+  Future<void> _onRemoveReaction(
+    RemoveReaction event,
+    Emitter<ChatState> emit,
+  ) async {
+    // Optimistic update
+    final posts = state.posts.map((p) {
+      if (p.id == event.postId) {
+        final reactions = Map<String, List<String>>.from(
+          p.reactions.map((k, v) => MapEntry(k, List<String>.from(v))),
+        );
+        reactions[event.emojiName]?.remove(userId);
+        if (reactions[event.emojiName]?.isEmpty ?? false) {
+          reactions.remove(event.emojiName);
+        }
+        return p.copyWith(reactions: reactions);
+      }
+      return p;
+    }).toList();
+    emit(state.copyWith(posts: posts));
+
+    final result = await _postRepository.removeReaction(
+      event.postId, userId, event.emojiName,
+    );
+    result.fold(
+      (failure) => emit(state.copyWith(error: failure.message)),
+      (_) {},
+    );
+  }
+
   Future<void> _onScrollToMessage(
     ScrollToMessage event,
     Emitter<ChatState> emit,
@@ -525,6 +605,10 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         _handlePostEdited(wsEvent, emit);
       case WsEventType.postDeleted:
         _handlePostDeleted(wsEvent, emit);
+      case WsEventType.reactionAdded:
+        _handleReactionAdded(wsEvent, emit);
+      case WsEventType.reactionRemoved:
+        _handleReactionRemoved(wsEvent, emit);
       case WsEventType.typing:
       case '_clear_typing':
         _handleTyping(wsEvent, emit);
@@ -593,6 +677,60 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         }
       } catch (_) {}
     }
+  }
+
+  void _handleReactionAdded(WsEvent wsEvent, Emitter<ChatState> emit) {
+    final reactionJson = wsEvent.data['reaction'];
+    if (reactionJson is! String) return;
+    try {
+      final reaction = jsonDecode(reactionJson) as Map<String, dynamic>;
+      final postId = reaction['post_id'] as String? ?? '';
+      final emojiName = reaction['emoji_name'] as String? ?? '';
+      final reactUserId = reaction['user_id'] as String? ?? '';
+      if (postId.isEmpty || emojiName.isEmpty) return;
+
+      final posts = state.posts.map((p) {
+        if (p.id == postId) {
+          final reactions = Map<String, List<String>>.from(
+            p.reactions.map((k, v) => MapEntry(k, List<String>.from(v))),
+          );
+          reactions.putIfAbsent(emojiName, () => []);
+          if (!reactions[emojiName]!.contains(reactUserId)) {
+            reactions[emojiName]!.add(reactUserId);
+          }
+          return p.copyWith(reactions: reactions);
+        }
+        return p;
+      }).toList();
+      emit(state.copyWith(posts: posts));
+    } catch (_) {}
+  }
+
+  void _handleReactionRemoved(WsEvent wsEvent, Emitter<ChatState> emit) {
+    final reactionJson = wsEvent.data['reaction'];
+    if (reactionJson is! String) return;
+    try {
+      final reaction = jsonDecode(reactionJson) as Map<String, dynamic>;
+      final postId = reaction['post_id'] as String? ?? '';
+      final emojiName = reaction['emoji_name'] as String? ?? '';
+      final reactUserId = reaction['user_id'] as String? ?? '';
+      if (postId.isEmpty || emojiName.isEmpty) return;
+
+      final posts = state.posts.map((p) {
+        if (p.id == postId) {
+          final reactions = Map<String, List<String>>.from(
+            p.reactions.map((k, v) => MapEntry(k, List<String>.from(v))),
+          );
+          reactions[emojiName]?.remove(reactUserId);
+          if (reactions[emojiName]?.isEmpty ?? false) {
+            reactions.remove(emojiName);
+          }
+          return p.copyWith(reactions: reactions);
+        }
+        return p;
+      }).toList();
+      emit(state.copyWith(posts: posts));
+    } catch (_) {}
   }
 
   void _handleTyping(WsEvent wsEvent, Emitter<ChatState> emit) {

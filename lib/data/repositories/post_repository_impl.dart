@@ -229,6 +229,42 @@ class PostRepositoryImpl implements PostRepository {
   }
 
   @override
+  Future<Either<Failure, void>> addReaction(
+    String postId,
+    String userId,
+    String emojiName,
+  ) async {
+    try {
+      await _remoteDataSource.addReaction(
+        userId: userId,
+        postId: postId,
+        emojiName: emojiName,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> removeReaction(
+    String postId,
+    String userId,
+    String emojiName,
+  ) async {
+    try {
+      await _remoteDataSource.removeReaction(
+        userId: userId,
+        postId: postId,
+        emojiName: emojiName,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> flagPost(
     String userId,
     String postId,

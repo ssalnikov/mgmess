@@ -32,7 +32,7 @@ void main() {
       build: () {
         when(() => mockRepo.getChannelPosts(any()))
             .thenAnswer((_) async => const Right(posts));
-        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
       act: (bloc) => bloc.add(const LoadPosts(channelId: 'ch1')),
       expect: () => [
@@ -51,7 +51,7 @@ void main() {
         when(() => mockRepo.getChannelPosts(any()))
             .thenAnswer((_) async =>
                 const Left(ServerFailure(message: 'Failed')));
-        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
       act: (bloc) => bloc.add(const LoadPosts(channelId: 'ch1')),
       expect: () => [
@@ -73,7 +73,7 @@ void main() {
             )).thenAnswer((_) async => const Right(
               Post(id: 'p3', channelId: 'ch1', userId: 'u1', message: 'New'),
             ));
-        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
       seed: () => ChatState(channelId: 'ch1', posts: posts),
       act: (bloc) => bloc.add(const SendMessage(message: 'New')),
@@ -91,7 +91,7 @@ void main() {
       build: () {
         when(() => mockRepo.deletePost(any()))
             .thenAnswer((_) async => const Right(null));
-        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser);
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
       seed: () => ChatState(channelId: 'ch1', posts: posts),
       act: (bloc) => bloc.add(const DeleteMessage(postId: 'p1')),
@@ -103,8 +103,60 @@ void main() {
     );
 
     blocTest<ChatBloc, ChatState>(
+      'AddReaction optimistically adds reaction and calls API',
+      build: () {
+        when(() => mockRepo.addReaction(any(), any(), any()))
+            .thenAnswer((_) async => const Right(null));
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
+      },
+      seed: () => ChatState(channelId: 'ch1', posts: posts),
+      act: (bloc) => bloc.add(const AddReaction(postId: 'p1', emojiName: 'heart')),
+      expect: () => [
+        isA<ChatState>().having(
+          (s) => s.posts.first.reactions['heart'],
+          'reaction added',
+          ['u1'],
+        ),
+      ],
+      verify: (_) {
+        verify(() => mockRepo.addReaction('p1', 'u1', 'heart')).called(1);
+      },
+    );
+
+    blocTest<ChatBloc, ChatState>(
+      'RemoveReaction optimistically removes reaction and calls API',
+      build: () {
+        when(() => mockRepo.removeReaction(any(), any(), any()))
+            .thenAnswer((_) async => const Right(null));
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
+      },
+      seed: () => ChatState(channelId: 'ch1', posts: [
+        Post(
+          id: 'p1',
+          channelId: 'ch1',
+          userId: 'u1',
+          message: 'Hello',
+          createAt: 3000,
+          reactions: {'heart': ['u1', 'u2']},
+        ),
+        posts[1],
+      ]),
+      act: (bloc) => bloc.add(const RemoveReaction(postId: 'p1', emojiName: 'heart')),
+      expect: () => [
+        isA<ChatState>().having(
+          (s) => s.posts.first.reactions['heart'],
+          'user removed',
+          ['u2'],
+        ),
+      ],
+      verify: (_) {
+        verify(() => mockRepo.removeReaction('p1', 'u1', 'heart')).called(1);
+      },
+    );
+
+    blocTest<ChatBloc, ChatState>(
       'LoadMorePosts does nothing when already loading more',
-      build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser),
+      build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1'),
       seed: () => ChatState(
         channelId: 'ch1',
         posts: posts,
@@ -116,7 +168,7 @@ void main() {
 
     blocTest<ChatBloc, ChatState>(
       'LoadMorePosts does nothing when no more posts',
-      build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser),
+      build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1'),
       seed: () => ChatState(
         channelId: 'ch1',
         posts: posts,

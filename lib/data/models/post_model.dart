@@ -33,11 +33,12 @@ class PostModel extends Post {
     final priorityData = meta['priority'] as Map<String, dynamic>?;
     final priority = priorityData?['priority'] as String? ?? '';
 
-    final Map<String, int> reactionMap = {};
+    final Map<String, List<String>> reactionMap = {};
     if (reactionsJson != null) {
       for (final r in reactionsJson) {
         final emoji = r['emoji_name'] as String? ?? '';
-        reactionMap[emoji] = (reactionMap[emoji] ?? 0) + 1;
+        final uid = r['user_id'] as String? ?? '';
+        reactionMap.putIfAbsent(emoji, () => []).add(uid);
       }
     }
 

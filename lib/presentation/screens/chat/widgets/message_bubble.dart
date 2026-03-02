@@ -13,6 +13,41 @@ import 'file_attachment_widget.dart';
 import 'message_actions_sheet.dart';
 import 'swipe_to_reply.dart';
 
+const _emojiMap = {
+  '+1': '\u{1F44D}',
+  'heart': '\u{2764}\u{FE0F}',
+  'grinning': '\u{1F600}',
+  'white_check_mark': '\u{2705}',
+  'eyes': '\u{1F440}',
+  'raised_hands': '\u{1F64C}',
+  'thumbsup': '\u{1F44D}',
+  'thumbsdown': '\u{1F44E}',
+  'smile': '\u{1F604}',
+  'laughing': '\u{1F606}',
+  'blush': '\u{1F60A}',
+  'slightly_smiling_face': '\u{1F642}',
+  'wink': '\u{1F609}',
+  'joy': '\u{1F602}',
+  'tada': '\u{1F389}',
+  'clap': '\u{1F44F}',
+  'fire': '\u{1F525}',
+  'rocket': '\u{1F680}',
+  'thinking': '\u{1F914}',
+  'pray': '\u{1F64F}',
+  'sob': '\u{1F62D}',
+  'angry': '\u{1F620}',
+  'confused': '\u{1F615}',
+  'ok_hand': '\u{1F44C}',
+  'wave': '\u{1F44B}',
+  'muscle': '\u{1F4AA}',
+  '100': '\u{1F4AF}',
+  'star': '\u{2B50}',
+  'warning': '\u{26A0}\u{FE0F}',
+  'x': '\u{274C}',
+  'heavy_check_mark': '\u{2714}\u{FE0F}',
+  '-1': '\u{1F44E}',
+};
+
 class MessageBubble extends StatelessWidget {
   final Post post;
   final bool isOwn;
@@ -24,6 +59,9 @@ class MessageBubble extends StatelessWidget {
   final void Function(Post post)? onDelete;
   final void Function(Post post)? onPin;
   final void Function(Post post)? onUnpin;
+  final void Function(Post post, String emojiName)? onAddReaction;
+  final void Function(Post post, String emojiName)? onRemoveReaction;
+  final String? currentUserId;
   final bool isHighlighted;
 
   const MessageBubble({
@@ -38,6 +76,9 @@ class MessageBubble extends StatelessWidget {
     this.onDelete,
     this.onPin,
     this.onUnpin,
+    this.onAddReaction,
+    this.onRemoveReaction,
+    this.currentUserId,
     this.isHighlighted = false,
   });
 
@@ -84,169 +125,231 @@ class MessageBubble extends StatelessWidget {
                   child: child,
                 );
               },
-              child: GestureDetector(
-              onTap: onThreadTap != null ? () => onThreadTap!(post.id) : null,
-              onLongPress: () => _showActions(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isOwn
-                      ? AppColors.messageBubbleOwn
-                      : AppColors.messageBubbleOther,
-                  borderRadius: BorderRadius.circular(16).copyWith(
-                    bottomRight:
-                        isOwn ? const Radius.circular(4) : null,
-                    bottomLeft:
-                        !isOwn ? const Radius.circular(4) : null,
-                  ),
-                  border: post.hasPriority
-                      ? Border(
-                          left: BorderSide(
-                            color: post.isUrgent
-                                ? AppColors.priorityUrgent
-                                : AppColors.priorityImportant,
-                            width: 3,
-                          ),
-                        )
-                      : null,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (post.hasPriority) ...[
-                      _buildPriorityBadge(),
-                      const SizedBox(height: 4),
-                    ],
-                    if (post.isPinned) ...[
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.push_pin,
-                              size: 12, color: AppColors.accent),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Pinned',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
+              child: Column(
+                crossAxisAlignment: isOwn
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                  onTap: onThreadTap != null ? () => onThreadTap!(post.id) : null,
+                  onLongPress: () => _showActions(context),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isOwn
+                          ? AppColors.messageBubbleOwn
+                          : AppColors.messageBubbleOther,
+                      borderRadius: BorderRadius.circular(16).copyWith(
+                        bottomRight:
+                            isOwn ? const Radius.circular(4) : null,
+                        bottomLeft:
+                            !isOwn ? const Radius.circular(4) : null,
                       ),
-                      const SizedBox(height: 4),
-                    ],
-                    if (post.isForwarded) ...[
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.shortcut,
-                              size: 14, color: AppColors.textSecondary),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              post.forwardedChannelName.isNotEmpty
-                                  ? 'Forwarded from #${post.forwardedChannelName}'
-                                  : 'Forwarded',
-                              style: AppTextStyles.caption.copyWith(
-                                fontStyle: FontStyle.italic,
+                      border: post.hasPriority
+                          ? Border(
+                              left: BorderSide(
+                                color: post.isUrgent
+                                    ? AppColors.priorityUrgent
+                                    : AppColors.priorityImportant,
+                                width: 3,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                            )
+                          : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (post.hasPriority) ...[
+                          _buildPriorityBadge(),
+                          const SizedBox(height: 4),
+                        ],
+                        if (post.isPinned) ...[
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.push_pin,
+                                  size: 12, color: AppColors.accent),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Pinned',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.accent,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                        if (post.isForwarded) ...[
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.shortcut,
+                                  size: 14, color: AppColors.textSecondary),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  post.forwardedChannelName.isNotEmpty
+                                      ? 'Forwarded from #${post.forwardedChannelName}'
+                                      : 'Forwarded',
+                                  style: AppTextStyles.caption.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              border: const Border(
+                                left: BorderSide(
+                                  color: AppColors.accent,
+                                  width: 2,
+                                ),
+                              ),
+                              color: Colors.black.withValues(alpha: 0.03),
+                            ),
+                            child: MarkdownBody(
+                              data: post.forwardedPostMessage,
+                              styleSheet: MarkdownStyleSheet(
+                                p: AppTextStyles.body,
+                              ),
+                            ),
+                          ),
+                          if (post.message.isNotEmpty)
+                            const SizedBox(height: 4),
+                        ],
+                        if (post.message.isNotEmpty)
+                          MarkdownBody(
+                            data: post.message,
+                            styleSheet: MarkdownStyleSheet(
+                              p: AppTextStyles.body,
+                            ),
+                          ),
+                        if (post.hasFiles) ...[
+                          const SizedBox(height: 4),
+                          ...post.files.map(
+                            (f) => FileAttachmentWidget(
+                              fileInfo: f,
+                              allMediaFiles: post.files
+                                  .where((fi) => fi.isImage || fi.isVideo)
+                                  .toList(),
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          border: const Border(
-                            left: BorderSide(
-                              color: AppColors.accent,
-                              width: 2,
-                            ),
-                          ),
-                          color: Colors.black.withValues(alpha: 0.03),
-                        ),
-                        child: MarkdownBody(
-                          data: post.forwardedPostMessage,
-                          styleSheet: MarkdownStyleSheet(
-                            p: AppTextStyles.body,
-                          ),
-                        ),
-                      ),
-                      if (post.message.isNotEmpty)
                         const SizedBox(height: 4),
-                    ],
-                    if (post.message.isNotEmpty)
-                      MarkdownBody(
-                        data: post.message,
-                        styleSheet: MarkdownStyleSheet(
-                          p: AppTextStyles.body,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              DateFormatter.formatMessageTime(
+                                  post.createAt),
+                              style: AppTextStyles.timestamp,
+                            ),
+                            if (post.isEdited) ...[
+                              const SizedBox(width: 4),
+                              const Text('(edited)',
+                                  style: AppTextStyles.timestamp),
+                            ],
+                          ],
                         ),
-                      ),
-                    if (post.hasFiles) ...[
-                      const SizedBox(height: 4),
-                      ...post.files.map(
-                        (f) => FileAttachmentWidget(
-                          fileInfo: f,
-                          allMediaFiles: post.files
-                              .where((fi) => fi.isImage || fi.isVideo)
-                              .toList(),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          DateFormatter.formatMessageTime(
-                              post.createAt),
-                          style: AppTextStyles.timestamp,
-                        ),
-                        if (post.isEdited) ...[
-                          const SizedBox(width: 4),
-                          const Text('(edited)',
-                              style: AppTextStyles.timestamp),
+                        if (post.replyCount > 0 && onThreadTap != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.reply,
+                                  size: 14, color: AppColors.accent),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${post.replyCount} ${post.replyCount == 1 ? 'reply' : 'replies'}',
+                                style: AppTextStyles.caption.copyWith(
+                                  color: AppColors.accent,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       ],
                     ),
-                    if (post.replyCount > 0 && onThreadTap != null) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.reply,
-                              size: 14, color: AppColors.accent),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${post.replyCount} ${post.replyCount == 1 ? 'reply' : 'replies'}',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.accent,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
+                if (post.reactions.isNotEmpty) _buildReactions(),
+                ],
               ),
             ),
-          ),
           ),
           if (isOwn) const SizedBox(width: 8),
         ],
       ),
+      ),
+    );
+  }
+
+  Widget _buildReactions() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Wrap(
+        spacing: 4,
+        runSpacing: 4,
+        children: post.reactions.entries.map((entry) {
+          final emoji = entry.key;
+          final userIds = entry.value;
+          final count = userIds.length;
+          final isMine = currentUserId != null && userIds.contains(currentUserId);
+          final emojiChar = _emojiMap[emoji] ?? ':$emoji:';
+
+          return GestureDetector(
+            onTap: () {
+              if (isMine) {
+                onRemoveReaction?.call(post, emoji);
+              } else {
+                onAddReaction?.call(post, emoji);
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isMine
+                    ? AppColors.accent.withValues(alpha: 0.15)
+                    : AppColors.backgroundLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isMine ? AppColors.accent : AppColors.divider,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(emojiChar, style: const TextStyle(fontSize: 14)),
+                  const SizedBox(width: 3),
+                  Text(
+                    '$count',
+                    style: AppTextStyles.caption.copyWith(
+                      color: isMine ? AppColors.accent : AppColors.textSecondary,
+                      fontWeight: isMine ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -264,6 +367,9 @@ class MessageBubble extends StatelessWidget {
         onDelete: onDelete != null ? () => onDelete!(post) : null,
         onPin: onPin != null ? () => onPin!(post) : null,
         onUnpin: onUnpin != null ? () => onUnpin!(post) : null,
+        onReaction: onAddReaction != null
+            ? (emojiName) => onAddReaction!(post, emojiName)
+            : null,
       ),
     );
   }

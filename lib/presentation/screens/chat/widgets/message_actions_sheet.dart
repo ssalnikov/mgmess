@@ -3,6 +3,15 @@ import 'package:flutter/services.dart';
 
 import '../../../../domain/entities/post.dart';
 
+const _quickReactions = [
+  ('+1', '\u{1F44D}'),
+  ('heart', '\u{2764}\u{FE0F}'),
+  ('grinning', '\u{1F600}'),
+  ('white_check_mark', '\u{2705}'),
+  ('eyes', '\u{1F440}'),
+  ('raised_hands', '\u{1F64C}'),
+];
+
 class MessageActionsSheet extends StatelessWidget {
   final Post post;
   final bool isOwn;
@@ -12,6 +21,7 @@ class MessageActionsSheet extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onPin;
   final VoidCallback? onUnpin;
+  final void Function(String emojiName)? onReaction;
 
   const MessageActionsSheet({
     super.key,
@@ -23,13 +33,16 @@ class MessageActionsSheet extends StatelessWidget {
     this.onDelete,
     this.onPin,
     this.onUnpin,
+    this.onReaction,
   });
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Wrap(
+      child: SingleChildScrollView(
+        child: Wrap(
         children: [
+          if (onReaction != null) _buildQuickReactions(context),
           if (post.message.isNotEmpty)
             ListTile(
               leading: const Icon(Icons.copy),
@@ -107,6 +120,29 @@ class MessageActionsSheet extends StatelessWidget {
               },
             ),
         ],
+      ),
+      ),
+    );
+  }
+
+  Widget _buildQuickReactions(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: _quickReactions.map((r) {
+          return GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              Navigator.pop(context);
+              onReaction!(r.$1);
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Text(r.$2, style: const TextStyle(fontSize: 28)),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

@@ -21,9 +21,9 @@ void main() {
       'pending_post_id': '',
       'metadata': {
         'reactions': [
-          {'emoji_name': 'thumbsup'},
-          {'emoji_name': 'thumbsup'},
-          {'emoji_name': 'heart'},
+          {'emoji_name': 'thumbsup', 'user_id': 'u1'},
+          {'emoji_name': 'thumbsup', 'user_id': 'u2'},
+          {'emoji_name': 'heart', 'user_id': 'u1'},
         ],
       },
     };
@@ -45,8 +45,8 @@ void main() {
 
     test('fromJson parses reactions from metadata', () {
       final post = PostModel.fromJson(json);
-      expect(post.reactions['thumbsup'], 2);
-      expect(post.reactions['heart'], 1);
+      expect(post.reactions['thumbsup'], ['u1', 'u2']);
+      expect(post.reactions['heart'], ['u1']);
     });
 
     test('isDeleted works', () {

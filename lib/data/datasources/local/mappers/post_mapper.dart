@@ -91,10 +91,16 @@ class PostMapper {
     }
   }
 
-  static Map<String, int> _decodeReactions(String json) {
+  static Map<String, List<String>> _decodeReactions(String json) {
     try {
       final map = jsonDecode(json) as Map;
-      return map.map((k, v) => MapEntry(k as String, v as int));
+      return map.map((k, v) {
+        if (v is List) {
+          return MapEntry(k as String, v.cast<String>());
+        }
+        // Backward compatibility: old format Map<String, int>
+        return MapEntry(k as String, <String>[]);
+      });
     } catch (_) {
       return {};
     }

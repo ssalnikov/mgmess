@@ -37,6 +37,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
     _threadBloc = ThreadBloc(
       postRepository: sl<PostRepository>(),
       wsPostParser: sl<WsPostParser>(),
+      userId: _currentUserId,
     );
     _threadBloc.add(LoadThread(postId: widget.postId));
 
@@ -197,6 +198,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
               post: post,
               isOwn: isOwn,
               showAvatar: showAvatar,
+              currentUserId: _currentUserId,
               onQuote: (post) {
                 _messageInputKey.currentState?.insertQuote(post.message);
               },
@@ -217,6 +219,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
                 _threadBloc.add(StartEditThreadPost(post: post));
               },
               onDelete: (post) => _confirmDelete(context, post),
+              onAddReaction: (post, emoji) =>
+                  _threadBloc.add(AddThreadReaction(postId: post.id, emojiName: emoji)),
+              onRemoveReaction: (post, emoji) =>
+                  _threadBloc.add(RemoveThreadReaction(postId: post.id, emojiName: emoji)),
             ),
             if (isRoot && state.posts.length > 1)
               Padding(

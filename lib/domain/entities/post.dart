@@ -19,7 +19,7 @@ class Post extends Equatable {
   final bool isPinned;
   final bool isFlagged;
   final int replyCount;
-  final Map<String, int> reactions;
+  final Map<String, List<String>> reactions;
   final String pendingId;
   final String forwardedPostMessage;
   final String forwardedChannelName;
@@ -66,7 +66,7 @@ class Post extends Equatable {
     bool? isPinned,
     bool? isFlagged,
     List<FileInfo>? files,
-    Map<String, int>? reactions,
+    Map<String, List<String>>? reactions,
     int? replyCount,
     String? priority,
   }) {

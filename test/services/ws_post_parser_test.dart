@@ -29,9 +29,9 @@ void main() {
         'props': {'key': 'value'},
         'metadata': {
           'reactions': [
-            {'emoji_name': 'thumbsup'},
-            {'emoji_name': 'thumbsup'},
-            {'emoji_name': 'heart'},
+            {'emoji_name': 'thumbsup', 'user_id': 'u1'},
+            {'emoji_name': 'thumbsup', 'user_id': 'u2'},
+            {'emoji_name': 'heart', 'user_id': 'u1'},
           ],
         },
       });
@@ -48,7 +48,7 @@ void main() {
       expect(post.isPinned, true);
       expect(post.replyCount, 3);
       expect(post.fileIds, ['file1', 'file2']);
-      expect(post.reactions, {'thumbsup': 2, 'heart': 1});
+      expect(post.reactions, {'thumbsup': ['u1', 'u2'], 'heart': ['u1']});
       expect(post.metadata, {'key': 'value'});
     });
 

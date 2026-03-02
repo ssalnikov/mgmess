@@ -57,6 +57,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _chatBloc = ChatBloc(
       postRepository: sl<PostRepository>(),
       wsPostParser: sl<WsPostParser>(),
+      userId: _currentUserId,
     );
     if (widget.lastViewedAt > 0) {
       _chatBloc.add(SetLastViewedAt(lastViewedAt: widget.lastViewedAt));
@@ -306,6 +307,7 @@ class _ChatScreenState extends State<ChatScreen> {
               isOwn: isOwn,
               showAvatar: showAvatar,
               isHighlighted: post.id == state.highlightedPostId,
+              currentUserId: _currentUserId,
               onThreadTap: (postId) =>
                   context.push(RouteNames.threadPath(postId)),
               onQuote: (post) {
@@ -332,6 +334,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   _chatBloc.add(PinMessage(postId: post.id)),
               onUnpin: (post) =>
                   _chatBloc.add(UnpinMessage(postId: post.id)),
+              onAddReaction: (post, emoji) =>
+                  _chatBloc.add(AddReaction(postId: post.id, emojiName: emoji)),
+              onRemoveReaction: (post, emoji) =>
+                  _chatBloc.add(RemoveReaction(postId: post.id, emojiName: emoji)),
             ),
             if (showUnreadSeparator) _buildUnreadSeparator(),
             if (showDateSeparator)

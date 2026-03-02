@@ -75,7 +75,10 @@ void main() {
       // LongPress → Delete
       await tester.longPress(find.text('Delete me'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Delete'));
+      final deleteFinder = find.text('Delete');
+      await tester.ensureVisible(deleteFinder.last);
+      await tester.pumpAndSettle();
+      await tester.tap(deleteFinder.last);
       await tester.pumpAndSettle();
 
       // Появляется диалог подтверждения

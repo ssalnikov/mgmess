@@ -275,6 +275,39 @@ class PostRemoteDataSource {
     }
   }
 
+  Future<void> addReaction({
+    required String userId,
+    required String postId,
+    required String emojiName,
+  }) async {
+    try {
+      await _apiClient.dio.post(
+        ApiEndpoints.reactions,
+        data: {
+          'user_id': userId,
+          'post_id': postId,
+          'emoji_name': emojiName,
+        },
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to add reaction: $e');
+    }
+  }
+
+  Future<void> removeReaction({
+    required String userId,
+    required String postId,
+    required String emojiName,
+  }) async {
+    try {
+      await _apiClient.dio.delete(
+        '/users/$userId/posts/$postId/reactions/$emojiName',
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to remove reaction: $e');
+    }
+  }
+
   Future<void> unflagPost(String userId, String postId) async {
     try {
       await _apiClient.dio.post(

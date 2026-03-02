@@ -176,6 +176,57 @@ void main() {
       });
     });
 
+    group('updateStatus', () {
+      blocTest<UserStatusCubit, UserStatusState>(
+        'optimistically updates status on success',
+        seed: () => const UserStatusState(statuses: {'user1': 'online'}),
+        build: () {
+          when(() => mockUserRepository.updateUserStatus(any(), any()))
+              .thenAnswer((_) async => const Right(null));
+          return UserStatusCubit(userRepository: mockUserRepository);
+        },
+        act: (cubit) => cubit.updateStatus('user1', 'dnd'),
+        expect: () => [
+          const UserStatusState(statuses: {'user1': 'dnd'}),
+        ],
+        verify: (_) {
+          verify(() => mockUserRepository.updateUserStatus('user1', 'dnd'))
+              .called(1);
+        },
+      );
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'rolls back status on error',
+        seed: () => const UserStatusState(statuses: {'user1': 'online'}),
+        build: () {
+          when(() => mockUserRepository.updateUserStatus(any(), any()))
+              .thenAnswer((_) async =>
+                  const Left(ServerFailure(message: 'Error')));
+          return UserStatusCubit(userRepository: mockUserRepository);
+        },
+        act: (cubit) => cubit.updateStatus('user1', 'dnd'),
+        expect: () => [
+          const UserStatusState(statuses: {'user1': 'dnd'}),
+          const UserStatusState(statuses: {'user1': 'online'}),
+        ],
+      );
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'removes status on rollback when no previous value',
+        build: () {
+          when(() => mockUserRepository.updateUserStatus(any(), any()))
+              .thenAnswer((_) async =>
+                  const Left(ServerFailure(message: 'Error')));
+          return UserStatusCubit(userRepository: mockUserRepository);
+        },
+        act: (cubit) => cubit.updateStatus('user1', 'away'),
+        expect: () => [
+          const UserStatusState(statuses: {'user1': 'away'}),
+          const UserStatusState(statuses: {}),
+        ],
+      );
+    });
+
     group('requestStatus', () {
       test('batches requests and fetches after delay', () async {
         when(() => mockUserRepository.getUserStatuses(any()))

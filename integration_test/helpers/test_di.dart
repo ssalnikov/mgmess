@@ -96,6 +96,8 @@ Future<TestMocks> initTestDependencies() async {
       ));
   when(() => userRepo.autocompleteUsers(any(), channelId: any(named: 'channelId')))
       .thenAnswer((_) async => const Right([]));
+  when(() => userRepo.updateUserStatus(any(), any()))
+      .thenAnswer((_) async => const Right(null));
 
   // Дефолтные стабы для NotificationRepository
   when(() => notificationRepo.registerDeviceToken(any()))

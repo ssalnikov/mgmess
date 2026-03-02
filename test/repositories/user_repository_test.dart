@@ -270,6 +270,34 @@ void main() {
       });
     });
 
+    group('updateUserStatus', () {
+      test('returns Right(null) on success', () async {
+        when(() => mockRemote.updateUserStatus(any(), any()))
+            .thenAnswer((_) async {});
+
+        final result =
+            await repository.updateUserStatus('user1', 'dnd');
+
+        expect(result.isRight(), true);
+        verify(() => mockRemote.updateUserStatus('user1', 'dnd'))
+            .called(1);
+      });
+
+      test('returns ServerFailure on exception', () async {
+        when(() => mockRemote.updateUserStatus(any(), any()))
+            .thenThrow(const ServerException(message: 'Error'));
+
+        final result =
+            await repository.updateUserStatus('user1', 'online');
+
+        expect(result.isLeft(), true);
+        result.fold(
+          (failure) => expect(failure, isA<ServerFailure>()),
+          (_) => fail('Expected Left'),
+        );
+      });
+    });
+
     group('getUserImageUrl', () {
       test('returns correct URL format', () {
         final url = repository.getUserImageUrl('user1');

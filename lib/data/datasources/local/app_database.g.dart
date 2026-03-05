@@ -1211,6 +1211,53 @@ class $ChannelsTable extends Channels with TableInfo<$ChannelsTable, Channel> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _totalMsgCountRootMeta = const VerificationMeta(
+    'totalMsgCountRoot',
+  );
+  @override
+  late final GeneratedColumn<int> totalMsgCountRoot = GeneratedColumn<int>(
+    'total_msg_count_root',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _msgCountRootMeta = const VerificationMeta(
+    'msgCountRoot',
+  );
+  @override
+  late final GeneratedColumn<int> msgCountRoot = GeneratedColumn<int>(
+    'msg_count_root',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _mentionCountRootMeta = const VerificationMeta(
+    'mentionCountRoot',
+  );
+  @override
+  late final GeneratedColumn<int> mentionCountRoot = GeneratedColumn<int>(
+    'mention_count_root',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _urgentMentionCountMeta =
+      const VerificationMeta('urgentMentionCount');
+  @override
+  late final GeneratedColumn<int> urgentMentionCount = GeneratedColumn<int>(
+    'urgent_mention_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _msgCountMeta = const VerificationMeta(
     'msgCount',
   );
@@ -1276,6 +1323,10 @@ class $ChannelsTable extends Channels with TableInfo<$ChannelsTable, Channel> {
     deleteAt,
     totalMsgCount,
     lastPostAt,
+    totalMsgCountRoot,
+    msgCountRoot,
+    mentionCountRoot,
+    urgentMentionCount,
     msgCount,
     mentionCount,
     lastViewedAt,
@@ -1373,6 +1424,42 @@ class $ChannelsTable extends Channels with TableInfo<$ChannelsTable, Channel> {
         ),
       );
     }
+    if (data.containsKey('total_msg_count_root')) {
+      context.handle(
+        _totalMsgCountRootMeta,
+        totalMsgCountRoot.isAcceptableOrUnknown(
+          data['total_msg_count_root']!,
+          _totalMsgCountRootMeta,
+        ),
+      );
+    }
+    if (data.containsKey('msg_count_root')) {
+      context.handle(
+        _msgCountRootMeta,
+        msgCountRoot.isAcceptableOrUnknown(
+          data['msg_count_root']!,
+          _msgCountRootMeta,
+        ),
+      );
+    }
+    if (data.containsKey('mention_count_root')) {
+      context.handle(
+        _mentionCountRootMeta,
+        mentionCountRoot.isAcceptableOrUnknown(
+          data['mention_count_root']!,
+          _mentionCountRootMeta,
+        ),
+      );
+    }
+    if (data.containsKey('urgent_mention_count')) {
+      context.handle(
+        _urgentMentionCountMeta,
+        urgentMentionCount.isAcceptableOrUnknown(
+          data['urgent_mention_count']!,
+          _urgentMentionCountMeta,
+        ),
+      );
+    }
     if (data.containsKey('msg_count')) {
       context.handle(
         _msgCountMeta,
@@ -1460,6 +1547,22 @@ class $ChannelsTable extends Channels with TableInfo<$ChannelsTable, Channel> {
         DriftSqlType.int,
         data['${effectivePrefix}last_post_at'],
       )!,
+      totalMsgCountRoot: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_msg_count_root'],
+      )!,
+      msgCountRoot: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}msg_count_root'],
+      )!,
+      mentionCountRoot: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}mention_count_root'],
+      )!,
+      urgentMentionCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}urgent_mention_count'],
+      )!,
       msgCount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}msg_count'],
@@ -1498,6 +1601,10 @@ class Channel extends DataClass implements Insertable<Channel> {
   final int deleteAt;
   final int totalMsgCount;
   final int lastPostAt;
+  final int totalMsgCountRoot;
+  final int msgCountRoot;
+  final int mentionCountRoot;
+  final int urgentMentionCount;
   final int msgCount;
   final int mentionCount;
   final int lastViewedAt;
@@ -1515,6 +1622,10 @@ class Channel extends DataClass implements Insertable<Channel> {
     required this.deleteAt,
     required this.totalMsgCount,
     required this.lastPostAt,
+    required this.totalMsgCountRoot,
+    required this.msgCountRoot,
+    required this.mentionCountRoot,
+    required this.urgentMentionCount,
     required this.msgCount,
     required this.mentionCount,
     required this.lastViewedAt,
@@ -1535,6 +1646,10 @@ class Channel extends DataClass implements Insertable<Channel> {
     map['delete_at'] = Variable<int>(deleteAt);
     map['total_msg_count'] = Variable<int>(totalMsgCount);
     map['last_post_at'] = Variable<int>(lastPostAt);
+    map['total_msg_count_root'] = Variable<int>(totalMsgCountRoot);
+    map['msg_count_root'] = Variable<int>(msgCountRoot);
+    map['mention_count_root'] = Variable<int>(mentionCountRoot);
+    map['urgent_mention_count'] = Variable<int>(urgentMentionCount);
     map['msg_count'] = Variable<int>(msgCount);
     map['mention_count'] = Variable<int>(mentionCount);
     map['last_viewed_at'] = Variable<int>(lastViewedAt);
@@ -1556,6 +1671,10 @@ class Channel extends DataClass implements Insertable<Channel> {
       deleteAt: Value(deleteAt),
       totalMsgCount: Value(totalMsgCount),
       lastPostAt: Value(lastPostAt),
+      totalMsgCountRoot: Value(totalMsgCountRoot),
+      msgCountRoot: Value(msgCountRoot),
+      mentionCountRoot: Value(mentionCountRoot),
+      urgentMentionCount: Value(urgentMentionCount),
       msgCount: Value(msgCount),
       mentionCount: Value(mentionCount),
       lastViewedAt: Value(lastViewedAt),
@@ -1581,6 +1700,10 @@ class Channel extends DataClass implements Insertable<Channel> {
       deleteAt: serializer.fromJson<int>(json['deleteAt']),
       totalMsgCount: serializer.fromJson<int>(json['totalMsgCount']),
       lastPostAt: serializer.fromJson<int>(json['lastPostAt']),
+      totalMsgCountRoot: serializer.fromJson<int>(json['totalMsgCountRoot']),
+      msgCountRoot: serializer.fromJson<int>(json['msgCountRoot']),
+      mentionCountRoot: serializer.fromJson<int>(json['mentionCountRoot']),
+      urgentMentionCount: serializer.fromJson<int>(json['urgentMentionCount']),
       msgCount: serializer.fromJson<int>(json['msgCount']),
       mentionCount: serializer.fromJson<int>(json['mentionCount']),
       lastViewedAt: serializer.fromJson<int>(json['lastViewedAt']),
@@ -1603,6 +1726,10 @@ class Channel extends DataClass implements Insertable<Channel> {
       'deleteAt': serializer.toJson<int>(deleteAt),
       'totalMsgCount': serializer.toJson<int>(totalMsgCount),
       'lastPostAt': serializer.toJson<int>(lastPostAt),
+      'totalMsgCountRoot': serializer.toJson<int>(totalMsgCountRoot),
+      'msgCountRoot': serializer.toJson<int>(msgCountRoot),
+      'mentionCountRoot': serializer.toJson<int>(mentionCountRoot),
+      'urgentMentionCount': serializer.toJson<int>(urgentMentionCount),
       'msgCount': serializer.toJson<int>(msgCount),
       'mentionCount': serializer.toJson<int>(mentionCount),
       'lastViewedAt': serializer.toJson<int>(lastViewedAt),
@@ -1623,6 +1750,10 @@ class Channel extends DataClass implements Insertable<Channel> {
     int? deleteAt,
     int? totalMsgCount,
     int? lastPostAt,
+    int? totalMsgCountRoot,
+    int? msgCountRoot,
+    int? mentionCountRoot,
+    int? urgentMentionCount,
     int? msgCount,
     int? mentionCount,
     int? lastViewedAt,
@@ -1640,6 +1771,10 @@ class Channel extends DataClass implements Insertable<Channel> {
     deleteAt: deleteAt ?? this.deleteAt,
     totalMsgCount: totalMsgCount ?? this.totalMsgCount,
     lastPostAt: lastPostAt ?? this.lastPostAt,
+    totalMsgCountRoot: totalMsgCountRoot ?? this.totalMsgCountRoot,
+    msgCountRoot: msgCountRoot ?? this.msgCountRoot,
+    mentionCountRoot: mentionCountRoot ?? this.mentionCountRoot,
+    urgentMentionCount: urgentMentionCount ?? this.urgentMentionCount,
     msgCount: msgCount ?? this.msgCount,
     mentionCount: mentionCount ?? this.mentionCount,
     lastViewedAt: lastViewedAt ?? this.lastViewedAt,
@@ -1665,6 +1800,18 @@ class Channel extends DataClass implements Insertable<Channel> {
       lastPostAt: data.lastPostAt.present
           ? data.lastPostAt.value
           : this.lastPostAt,
+      totalMsgCountRoot: data.totalMsgCountRoot.present
+          ? data.totalMsgCountRoot.value
+          : this.totalMsgCountRoot,
+      msgCountRoot: data.msgCountRoot.present
+          ? data.msgCountRoot.value
+          : this.msgCountRoot,
+      mentionCountRoot: data.mentionCountRoot.present
+          ? data.mentionCountRoot.value
+          : this.mentionCountRoot,
+      urgentMentionCount: data.urgentMentionCount.present
+          ? data.urgentMentionCount.value
+          : this.urgentMentionCount,
       msgCount: data.msgCount.present ? data.msgCount.value : this.msgCount,
       mentionCount: data.mentionCount.present
           ? data.mentionCount.value
@@ -1691,6 +1838,10 @@ class Channel extends DataClass implements Insertable<Channel> {
           ..write('deleteAt: $deleteAt, ')
           ..write('totalMsgCount: $totalMsgCount, ')
           ..write('lastPostAt: $lastPostAt, ')
+          ..write('totalMsgCountRoot: $totalMsgCountRoot, ')
+          ..write('msgCountRoot: $msgCountRoot, ')
+          ..write('mentionCountRoot: $mentionCountRoot, ')
+          ..write('urgentMentionCount: $urgentMentionCount, ')
           ..write('msgCount: $msgCount, ')
           ..write('mentionCount: $mentionCount, ')
           ..write('lastViewedAt: $lastViewedAt, ')
@@ -1713,6 +1864,10 @@ class Channel extends DataClass implements Insertable<Channel> {
     deleteAt,
     totalMsgCount,
     lastPostAt,
+    totalMsgCountRoot,
+    msgCountRoot,
+    mentionCountRoot,
+    urgentMentionCount,
     msgCount,
     mentionCount,
     lastViewedAt,
@@ -1734,6 +1889,10 @@ class Channel extends DataClass implements Insertable<Channel> {
           other.deleteAt == this.deleteAt &&
           other.totalMsgCount == this.totalMsgCount &&
           other.lastPostAt == this.lastPostAt &&
+          other.totalMsgCountRoot == this.totalMsgCountRoot &&
+          other.msgCountRoot == this.msgCountRoot &&
+          other.mentionCountRoot == this.mentionCountRoot &&
+          other.urgentMentionCount == this.urgentMentionCount &&
           other.msgCount == this.msgCount &&
           other.mentionCount == this.mentionCount &&
           other.lastViewedAt == this.lastViewedAt &&
@@ -1753,6 +1912,10 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
   final Value<int> deleteAt;
   final Value<int> totalMsgCount;
   final Value<int> lastPostAt;
+  final Value<int> totalMsgCountRoot;
+  final Value<int> msgCountRoot;
+  final Value<int> mentionCountRoot;
+  final Value<int> urgentMentionCount;
   final Value<int> msgCount;
   final Value<int> mentionCount;
   final Value<int> lastViewedAt;
@@ -1771,6 +1934,10 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
     this.deleteAt = const Value.absent(),
     this.totalMsgCount = const Value.absent(),
     this.lastPostAt = const Value.absent(),
+    this.totalMsgCountRoot = const Value.absent(),
+    this.msgCountRoot = const Value.absent(),
+    this.mentionCountRoot = const Value.absent(),
+    this.urgentMentionCount = const Value.absent(),
     this.msgCount = const Value.absent(),
     this.mentionCount = const Value.absent(),
     this.lastViewedAt = const Value.absent(),
@@ -1790,6 +1957,10 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
     this.deleteAt = const Value.absent(),
     this.totalMsgCount = const Value.absent(),
     this.lastPostAt = const Value.absent(),
+    this.totalMsgCountRoot = const Value.absent(),
+    this.msgCountRoot = const Value.absent(),
+    this.mentionCountRoot = const Value.absent(),
+    this.urgentMentionCount = const Value.absent(),
     this.msgCount = const Value.absent(),
     this.mentionCount = const Value.absent(),
     this.lastViewedAt = const Value.absent(),
@@ -1809,6 +1980,10 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
     Expression<int>? deleteAt,
     Expression<int>? totalMsgCount,
     Expression<int>? lastPostAt,
+    Expression<int>? totalMsgCountRoot,
+    Expression<int>? msgCountRoot,
+    Expression<int>? mentionCountRoot,
+    Expression<int>? urgentMentionCount,
     Expression<int>? msgCount,
     Expression<int>? mentionCount,
     Expression<int>? lastViewedAt,
@@ -1828,6 +2003,11 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
       if (deleteAt != null) 'delete_at': deleteAt,
       if (totalMsgCount != null) 'total_msg_count': totalMsgCount,
       if (lastPostAt != null) 'last_post_at': lastPostAt,
+      if (totalMsgCountRoot != null) 'total_msg_count_root': totalMsgCountRoot,
+      if (msgCountRoot != null) 'msg_count_root': msgCountRoot,
+      if (mentionCountRoot != null) 'mention_count_root': mentionCountRoot,
+      if (urgentMentionCount != null)
+        'urgent_mention_count': urgentMentionCount,
       if (msgCount != null) 'msg_count': msgCount,
       if (mentionCount != null) 'mention_count': mentionCount,
       if (lastViewedAt != null) 'last_viewed_at': lastViewedAt,
@@ -1849,6 +2029,10 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
     Value<int>? deleteAt,
     Value<int>? totalMsgCount,
     Value<int>? lastPostAt,
+    Value<int>? totalMsgCountRoot,
+    Value<int>? msgCountRoot,
+    Value<int>? mentionCountRoot,
+    Value<int>? urgentMentionCount,
     Value<int>? msgCount,
     Value<int>? mentionCount,
     Value<int>? lastViewedAt,
@@ -1868,6 +2052,10 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
       deleteAt: deleteAt ?? this.deleteAt,
       totalMsgCount: totalMsgCount ?? this.totalMsgCount,
       lastPostAt: lastPostAt ?? this.lastPostAt,
+      totalMsgCountRoot: totalMsgCountRoot ?? this.totalMsgCountRoot,
+      msgCountRoot: msgCountRoot ?? this.msgCountRoot,
+      mentionCountRoot: mentionCountRoot ?? this.mentionCountRoot,
+      urgentMentionCount: urgentMentionCount ?? this.urgentMentionCount,
       msgCount: msgCount ?? this.msgCount,
       mentionCount: mentionCount ?? this.mentionCount,
       lastViewedAt: lastViewedAt ?? this.lastViewedAt,
@@ -1915,6 +2103,18 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
     if (lastPostAt.present) {
       map['last_post_at'] = Variable<int>(lastPostAt.value);
     }
+    if (totalMsgCountRoot.present) {
+      map['total_msg_count_root'] = Variable<int>(totalMsgCountRoot.value);
+    }
+    if (msgCountRoot.present) {
+      map['msg_count_root'] = Variable<int>(msgCountRoot.value);
+    }
+    if (mentionCountRoot.present) {
+      map['mention_count_root'] = Variable<int>(mentionCountRoot.value);
+    }
+    if (urgentMentionCount.present) {
+      map['urgent_mention_count'] = Variable<int>(urgentMentionCount.value);
+    }
     if (msgCount.present) {
       map['msg_count'] = Variable<int>(msgCount.value);
     }
@@ -1948,6 +2148,10 @@ class ChannelsCompanion extends UpdateCompanion<Channel> {
           ..write('deleteAt: $deleteAt, ')
           ..write('totalMsgCount: $totalMsgCount, ')
           ..write('lastPostAt: $lastPostAt, ')
+          ..write('totalMsgCountRoot: $totalMsgCountRoot, ')
+          ..write('msgCountRoot: $msgCountRoot, ')
+          ..write('mentionCountRoot: $mentionCountRoot, ')
+          ..write('urgentMentionCount: $urgentMentionCount, ')
           ..write('msgCount: $msgCount, ')
           ..write('mentionCount: $mentionCount, ')
           ..write('lastViewedAt: $lastViewedAt, ')
@@ -3148,6 +3352,10 @@ typedef $$ChannelsTableCreateCompanionBuilder =
       Value<int> deleteAt,
       Value<int> totalMsgCount,
       Value<int> lastPostAt,
+      Value<int> totalMsgCountRoot,
+      Value<int> msgCountRoot,
+      Value<int> mentionCountRoot,
+      Value<int> urgentMentionCount,
       Value<int> msgCount,
       Value<int> mentionCount,
       Value<int> lastViewedAt,
@@ -3168,6 +3376,10 @@ typedef $$ChannelsTableUpdateCompanionBuilder =
       Value<int> deleteAt,
       Value<int> totalMsgCount,
       Value<int> lastPostAt,
+      Value<int> totalMsgCountRoot,
+      Value<int> msgCountRoot,
+      Value<int> mentionCountRoot,
+      Value<int> urgentMentionCount,
       Value<int> msgCount,
       Value<int> mentionCount,
       Value<int> lastViewedAt,
@@ -3241,6 +3453,26 @@ class $$ChannelsTableFilterComposer
 
   ColumnFilters<int> get lastPostAt => $composableBuilder(
     column: $table.lastPostAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalMsgCountRoot => $composableBuilder(
+    column: $table.totalMsgCountRoot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get msgCountRoot => $composableBuilder(
+    column: $table.msgCountRoot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get mentionCountRoot => $composableBuilder(
+    column: $table.mentionCountRoot,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get urgentMentionCount => $composableBuilder(
+    column: $table.urgentMentionCount,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3334,6 +3566,26 @@ class $$ChannelsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get totalMsgCountRoot => $composableBuilder(
+    column: $table.totalMsgCountRoot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get msgCountRoot => $composableBuilder(
+    column: $table.msgCountRoot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get mentionCountRoot => $composableBuilder(
+    column: $table.mentionCountRoot,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get urgentMentionCount => $composableBuilder(
+    column: $table.urgentMentionCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get msgCount => $composableBuilder(
     column: $table.msgCount,
     builder: (column) => ColumnOrderings(column),
@@ -3406,6 +3658,26 @@ class $$ChannelsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get totalMsgCountRoot => $composableBuilder(
+    column: $table.totalMsgCountRoot,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get msgCountRoot => $composableBuilder(
+    column: $table.msgCountRoot,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get mentionCountRoot => $composableBuilder(
+    column: $table.mentionCountRoot,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get urgentMentionCount => $composableBuilder(
+    column: $table.urgentMentionCount,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get msgCount =>
       $composableBuilder(column: $table.msgCount, builder: (column) => column);
 
@@ -3463,6 +3735,10 @@ class $$ChannelsTableTableManager
                 Value<int> deleteAt = const Value.absent(),
                 Value<int> totalMsgCount = const Value.absent(),
                 Value<int> lastPostAt = const Value.absent(),
+                Value<int> totalMsgCountRoot = const Value.absent(),
+                Value<int> msgCountRoot = const Value.absent(),
+                Value<int> mentionCountRoot = const Value.absent(),
+                Value<int> urgentMentionCount = const Value.absent(),
                 Value<int> msgCount = const Value.absent(),
                 Value<int> mentionCount = const Value.absent(),
                 Value<int> lastViewedAt = const Value.absent(),
@@ -3481,6 +3757,10 @@ class $$ChannelsTableTableManager
                 deleteAt: deleteAt,
                 totalMsgCount: totalMsgCount,
                 lastPostAt: lastPostAt,
+                totalMsgCountRoot: totalMsgCountRoot,
+                msgCountRoot: msgCountRoot,
+                mentionCountRoot: mentionCountRoot,
+                urgentMentionCount: urgentMentionCount,
                 msgCount: msgCount,
                 mentionCount: mentionCount,
                 lastViewedAt: lastViewedAt,
@@ -3501,6 +3781,10 @@ class $$ChannelsTableTableManager
                 Value<int> deleteAt = const Value.absent(),
                 Value<int> totalMsgCount = const Value.absent(),
                 Value<int> lastPostAt = const Value.absent(),
+                Value<int> totalMsgCountRoot = const Value.absent(),
+                Value<int> msgCountRoot = const Value.absent(),
+                Value<int> mentionCountRoot = const Value.absent(),
+                Value<int> urgentMentionCount = const Value.absent(),
                 Value<int> msgCount = const Value.absent(),
                 Value<int> mentionCount = const Value.absent(),
                 Value<int> lastViewedAt = const Value.absent(),
@@ -3519,6 +3803,10 @@ class $$ChannelsTableTableManager
                 deleteAt: deleteAt,
                 totalMsgCount: totalMsgCount,
                 lastPostAt: lastPostAt,
+                totalMsgCountRoot: totalMsgCountRoot,
+                msgCountRoot: msgCountRoot,
+                mentionCountRoot: mentionCountRoot,
+                urgentMentionCount: urgentMentionCount,
                 msgCount: msgCount,
                 mentionCount: mentionCount,
                 lastViewedAt: lastViewedAt,

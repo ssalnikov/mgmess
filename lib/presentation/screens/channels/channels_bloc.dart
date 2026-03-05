@@ -185,11 +185,26 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     MarkChannelAsRead event,
     Emitter<ChannelsState> emit,
   ) async {
+    // Save old values for rollback
+    final oldChannel = state.channels.firstWhere(
+      (c) => c.id == event.channelId,
+      orElse: () => Channel(id: event.channelId),
+    );
+    final oldMsgCount = oldChannel.msgCount;
+    final oldMsgCountRoot = oldChannel.msgCountRoot;
+    final oldMentionCount = oldChannel.mentionCount;
+    final oldMentionCountRoot = oldChannel.mentionCountRoot;
+    final oldUrgentMentionCount = oldChannel.urgentMentionCount;
+    final oldLastViewedAt = oldChannel.lastViewedAt;
+
     final channels = state.channels.map((c) {
       if (c.id == event.channelId) {
         return c.copyWith(
           msgCount: c.totalMsgCount,
+          msgCountRoot: c.totalMsgCountRoot,
           mentionCount: 0,
+          mentionCountRoot: 0,
+          urgentMentionCount: 0,
           lastViewedAt: DateTime.now().millisecondsSinceEpoch,
         );
       }
@@ -204,7 +219,34 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     _updateAppBadge(channels);
 
     if (_userId.isNotEmpty) {
-      await _channelRepository.viewChannel(_userId, event.channelId);
+      final result =
+          await _channelRepository.viewChannel(_userId, event.channelId);
+      result.fold(
+        (_) {
+          // Rollback on error
+          final rolledBack = state.channels.map((c) {
+            if (c.id == event.channelId) {
+              return c.copyWith(
+                msgCount: oldMsgCount,
+                msgCountRoot: oldMsgCountRoot,
+                mentionCount: oldMentionCount,
+                mentionCountRoot: oldMentionCountRoot,
+                urgentMentionCount: oldUrgentMentionCount,
+                lastViewedAt: oldLastViewedAt,
+              );
+            }
+            return c;
+          }).toList();
+          emit(state.copyWith(
+            channels: rolledBack,
+            filteredChannels: state.searchQuery.isEmpty
+                ? rolledBack
+                : state.filteredChannels,
+          ));
+          _updateAppBadge(rolledBack);
+        },
+        (_) {}, // Success — keep optimistic state
+      );
     }
   }
 
@@ -269,6 +311,12 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
         _handleNewPost(wsEvent, emit);
       case WsEventType.channelViewed:
         _handleChannelViewed(wsEvent, emit);
+      case WsEventType.multipleChannelsViewed:
+        _handleMultipleChannelsViewed(wsEvent, emit);
+      case WsEventType.hello:
+        _handleHello();
+      case WsEventType.channelMemberUpdated:
+        _handleChannelMemberUpdated(wsEvent, emit);
       default:
         break;
     }
@@ -282,15 +330,22 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
       if (c.id == channelId) {
         final postJson = wsEvent.data['post'];
 
-        // Parse post author and create_at from JSON
+        // Parse post author, create_at, and root_id from JSON
         String? postUserId;
+        String rootId = '';
         int createAt = c.lastPostAt;
         if (postJson is String) {
           try {
             final post = jsonDecode(postJson) as Map<String, dynamic>;
             createAt = post['create_at'] as int? ?? c.lastPostAt;
             postUserId = post['user_id'] as String?;
+            rootId = post['root_id'] as String? ?? '';
           } catch (_) {}
+        }
+
+        // Thread replies don't affect channel-level unread count (CRT mode)
+        if (rootId.isNotEmpty) {
+          return c.copyWith(lastPostAt: createAt);
         }
 
         final isOwnPost = postUserId != null && postUserId == _userId;
@@ -299,19 +354,22 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
         if (isOwnPost) {
           return c.copyWith(
             totalMsgCount: c.totalMsgCount + 1,
+            totalMsgCountRoot: c.totalMsgCountRoot + 1,
             msgCount: c.msgCount + 1,
+            msgCountRoot: c.msgCountRoot + 1,
             lastPostAt: createAt,
           );
         }
 
         final mentions = wsEvent.data['mentions'] as String?;
-        final mentionIncrement =
-            mentions != null && mentions.contains(_userId) ? 1 : 0;
+        final isMentioned = mentions != null && mentions.contains(_userId);
 
         return c.copyWith(
           totalMsgCount: c.totalMsgCount + 1,
+          totalMsgCountRoot: c.totalMsgCountRoot + 1,
           lastPostAt: createAt,
-          mentionCount: c.mentionCount + mentionIncrement,
+          mentionCount: c.mentionCount + (isMentioned ? 1 : 0),
+          mentionCountRoot: c.mentionCountRoot + (isMentioned ? 1 : 0),
         );
       }
       return c;
@@ -335,8 +393,107 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
       if (c.id == channelId) {
         return c.copyWith(
           msgCount: c.totalMsgCount,
+          msgCountRoot: c.totalMsgCountRoot,
           mentionCount: 0,
+          mentionCountRoot: 0,
+          urgentMentionCount: 0,
         );
+      }
+      return c;
+    }).toList();
+
+    emit(state.copyWith(
+      channels: channels,
+      filteredChannels:
+          state.searchQuery.isEmpty ? channels : state.filteredChannels,
+    ));
+    _updateAppBadge(channels);
+  }
+
+  void _handleMultipleChannelsViewed(
+      WsEvent wsEvent, Emitter<ChannelsState> emit) {
+    // data.channel_times is a JSON-encoded map of channelId -> viewedAt timestamp
+    final channelTimesRaw = wsEvent.data['channel_times'];
+    if (channelTimesRaw == null) return;
+
+    Map<String, dynamic> channelTimes;
+    if (channelTimesRaw is String) {
+      try {
+        channelTimes = jsonDecode(channelTimesRaw) as Map<String, dynamic>;
+      } catch (_) {
+        return;
+      }
+    } else if (channelTimesRaw is Map<String, dynamic>) {
+      channelTimes = channelTimesRaw;
+    } else {
+      return;
+    }
+
+    if (channelTimes.isEmpty) return;
+
+    final viewedIds = channelTimes.keys.toSet();
+    final channels = state.channels.map((c) {
+      if (viewedIds.contains(c.id)) {
+        return c.copyWith(
+          msgCount: c.totalMsgCount,
+          msgCountRoot: c.totalMsgCountRoot,
+          mentionCount: 0,
+          mentionCountRoot: 0,
+          urgentMentionCount: 0,
+        );
+      }
+      return c;
+    }).toList();
+
+    emit(state.copyWith(
+      channels: channels,
+      filteredChannels:
+          state.searchQuery.isEmpty ? channels : state.filteredChannels,
+    ));
+    _updateAppBadge(channels);
+  }
+
+  /// WS reconnect: reload all channels to resync counters
+  void _handleHello() {
+    if (_userId.isNotEmpty && _teamId.isNotEmpty) {
+      add(const RefreshChannels());
+    }
+  }
+
+  /// WS channel_member_updated: update mute status from server
+  void _handleChannelMemberUpdated(
+      WsEvent wsEvent, Emitter<ChannelsState> emit) {
+    final memberJson = wsEvent.data['channelMember'];
+    if (memberJson == null) return;
+
+    Map<String, dynamic> member;
+    if (memberJson is String) {
+      try {
+        member = jsonDecode(memberJson) as Map<String, dynamic>;
+      } catch (_) {
+        return;
+      }
+    } else if (memberJson is Map<String, dynamic>) {
+      member = memberJson;
+    } else {
+      return;
+    }
+
+    final channelId = member['channel_id'] as String?;
+    final memberUserId = member['user_id'] as String?;
+    if (channelId == null || memberUserId != _userId) return;
+
+    bool? isMuted;
+    final notifyProps = member['notify_props'] as Map<String, dynamic>?;
+    if (notifyProps != null) {
+      isMuted = notifyProps['mark_unread'] == 'mention';
+    }
+
+    if (isMuted == null) return;
+
+    final channels = state.channels.map((c) {
+      if (c.id == channelId) {
+        return c.copyWith(isMuted: isMuted);
       }
       return c;
     }).toList();

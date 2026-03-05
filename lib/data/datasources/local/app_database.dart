@@ -48,6 +48,10 @@ class Channels extends Table {
   IntColumn get deleteAt => integer().withDefault(const Constant(0))();
   IntColumn get totalMsgCount => integer().withDefault(const Constant(0))();
   IntColumn get lastPostAt => integer().withDefault(const Constant(0))();
+  IntColumn get totalMsgCountRoot => integer().withDefault(const Constant(0))();
+  IntColumn get msgCountRoot => integer().withDefault(const Constant(0))();
+  IntColumn get mentionCountRoot => integer().withDefault(const Constant(0))();
+  IntColumn get urgentMentionCount => integer().withDefault(const Constant(0))();
   IntColumn get msgCount => integer().withDefault(const Constant(0))();
   IntColumn get mentionCount => integer().withDefault(const Constant(0))();
   IntColumn get lastViewedAt => integer().withDefault(const Constant(0))();
@@ -84,7 +88,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onUpgrade: (migrator, from, to) async {
+          if (from < 2) {
+            await migrator.addColumn(channels, channels.totalMsgCountRoot);
+            await migrator.addColumn(channels, channels.msgCountRoot);
+            await migrator.addColumn(channels, channels.mentionCountRoot);
+            await migrator.addColumn(channels, channels.urgentMentionCount);
+          }
+        },
+      );
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {

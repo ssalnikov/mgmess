@@ -14,6 +14,10 @@ class ChannelModel extends Channel {
     super.deleteAt,
     super.totalMsgCount,
     super.lastPostAt,
+    super.totalMsgCountRoot,
+    super.msgCountRoot,
+    super.mentionCountRoot,
+    super.urgentMentionCount,
     super.msgCount,
     super.mentionCount,
     super.lastViewedAt,
@@ -34,6 +38,7 @@ class ChannelModel extends Channel {
       deleteAt: json['delete_at'] as int? ?? 0,
       totalMsgCount: json['total_msg_count'] as int? ?? 0,
       lastPostAt: json['last_post_at'] as int? ?? 0,
+      totalMsgCountRoot: json['total_msg_count_root'] as int? ?? 0,
     );
   }
 
@@ -63,6 +68,10 @@ class ChannelModel extends Channel {
       deleteAt: channel.deleteAt,
       totalMsgCount: channel.totalMsgCount,
       lastPostAt: channel.lastPostAt,
+      totalMsgCountRoot: channel.totalMsgCountRoot,
+      msgCountRoot: memberJson['msg_count_root'] as int? ?? 0,
+      mentionCountRoot: memberJson['mention_count_root'] as int? ?? 0,
+      urgentMentionCount: memberJson['urgent_mention_count'] as int? ?? 0,
       msgCount: memberJson['msg_count'] as int? ?? 0,
       mentionCount: memberJson['mention_count'] as int? ?? 0,
       lastViewedAt: memberJson['last_viewed_at'] as int? ?? 0,
@@ -83,6 +92,7 @@ class ChannelModel extends Channel {
         'delete_at': deleteAt,
         'total_msg_count': totalMsgCount,
         'last_post_at': lastPostAt,
+        'total_msg_count_root': totalMsgCountRoot,
       };
 
   static String _typeToString(ChannelType type) {

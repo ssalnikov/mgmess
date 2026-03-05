@@ -87,6 +87,12 @@ class _ChatScreenState extends State<ChatScreen> {
       );
     } catch (_) {}
 
+    // Notify server immediately so push notifications stop arriving
+    final userId = _currentUserId;
+    if (userId.isNotEmpty) {
+      sl<ChannelRepository>().viewChannel(userId, widget.channelId);
+    }
+
     _scrollController.addListener(_onScroll);
   }
 

@@ -284,7 +284,7 @@ class _ChannelListTileState extends State<_ChannelListTile> {
             );
         final extra = <String, dynamic>{
           'channelName': _title,
-          'lastViewedAt': DateTime.now().millisecondsSinceEpoch,
+          'lastViewedAt': channel.lastViewedAt,
         };
         if (channel.isDirect) {
           final parts = channel.name.split('__');
@@ -371,20 +371,34 @@ class _ChannelListTileState extends State<_ChannelListTile> {
       );
     }
     if (channel.hasMention) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(
-          color: AppColors.unreadBadge,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          channel.mentionCount.toString(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (channel.hasUrgent)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Icon(
+                Icons.priority_high,
+                size: 16,
+                color: Colors.red.shade700,
+              ),
+            ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.unreadBadge,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              channel.mentionCount.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
-        ),
+        ],
       );
     }
     if (channel.hasUnread) {

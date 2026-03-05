@@ -16,6 +16,12 @@ class Channel extends Equatable {
   final int totalMsgCount;
   final int lastPostAt;
 
+  // CRT (Collapsed Reply Threads) counters
+  final int totalMsgCountRoot;
+  final int msgCountRoot;
+  final int mentionCountRoot;
+  final int urgentMentionCount;
+
   // Membership info
   final int msgCount;
   final int mentionCount;
@@ -35,15 +41,21 @@ class Channel extends Equatable {
     this.deleteAt = 0,
     this.totalMsgCount = 0,
     this.lastPostAt = 0,
+    this.totalMsgCountRoot = 0,
+    this.msgCountRoot = 0,
+    this.mentionCountRoot = 0,
+    this.urgentMentionCount = 0,
     this.msgCount = 0,
     this.mentionCount = 0,
     this.lastViewedAt = 0,
     this.isMuted = false,
   });
 
-  int get unreadCount => totalMsgCount - msgCount;
-  bool get hasUnread => unreadCount > 0;
+  int get unreadCount => isMuted ? 0 : totalMsgCount - msgCount;
+  int get unreadCountRoot => totalMsgCountRoot - msgCountRoot;
+  bool get hasUnread => !isMuted && (totalMsgCount - msgCount) > 0;
   bool get hasMention => mentionCount > 0;
+  bool get hasUrgent => urgentMentionCount > 0;
   bool get isDirect => type == ChannelType.direct;
   bool get isGroup => type == ChannelType.group;
   bool get isPrivate => type == ChannelType.private_;
@@ -51,6 +63,10 @@ class Channel extends Equatable {
   Channel copyWith({
     int? totalMsgCount,
     int? lastPostAt,
+    int? totalMsgCountRoot,
+    int? msgCountRoot,
+    int? mentionCountRoot,
+    int? urgentMentionCount,
     int? msgCount,
     int? mentionCount,
     int? lastViewedAt,
@@ -70,6 +86,10 @@ class Channel extends Equatable {
       deleteAt: deleteAt,
       totalMsgCount: totalMsgCount ?? this.totalMsgCount,
       lastPostAt: lastPostAt ?? this.lastPostAt,
+      totalMsgCountRoot: totalMsgCountRoot ?? this.totalMsgCountRoot,
+      msgCountRoot: msgCountRoot ?? this.msgCountRoot,
+      mentionCountRoot: mentionCountRoot ?? this.mentionCountRoot,
+      urgentMentionCount: urgentMentionCount ?? this.urgentMentionCount,
       msgCount: msgCount ?? this.msgCount,
       mentionCount: mentionCount ?? this.mentionCount,
       lastViewedAt: lastViewedAt ?? this.lastViewedAt,
@@ -97,6 +117,10 @@ class Channel extends Equatable {
         id,
         totalMsgCount,
         lastPostAt,
+        totalMsgCountRoot,
+        msgCountRoot,
+        mentionCountRoot,
+        urgentMentionCount,
         msgCount,
         mentionCount,
         isMuted,

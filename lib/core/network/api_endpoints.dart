@@ -29,6 +29,7 @@ class ApiEndpoints {
   static String channelMemberNotifyProps(String channelId, String userId) =>
       '/channels/$channelId/members/$userId/notify_props';
   static String channelStats(String id) => '/channels/$id/stats';
+  static const String channelsAutocomplete = '/channels/autocomplete';
 
   // Posts
   static String channelPosts(String channelId) =>

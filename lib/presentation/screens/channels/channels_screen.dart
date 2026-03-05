@@ -9,6 +9,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/channel.dart';
+import '../../../domain/entities/user.dart';
 import '../../../domain/repositories/channel_repository.dart';
 import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
@@ -37,6 +38,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     super.initState();
     _channelsBloc = ChannelsBloc(
       channelRepository: sl<ChannelRepository>(),
+      userRepository: sl<UserRepository>(),
     );
     _loadChannels();
     _subscribeToWs();
@@ -91,8 +93,6 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
         body: Column(
           children: [
             _buildSearchBar(),
-            _buildThreadsRow(),
-            _buildDraftsRow(),
             Expanded(
               child: BlocConsumer<ChannelsBloc, ChannelsState>(
                 listener: (context, state) {
@@ -117,21 +117,10 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                           _channelsBloc.add(const RefreshChannels()),
                     );
                   }
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      HapticFeedback.selectionClick();
-                      _channelsBloc.add(const RefreshChannels());
-                    },
-                    child: ListView.builder(
-                      itemCount: state.filteredChannels.length,
-                      itemBuilder: (context, index) =>
-                          _ChannelListTile(
-                        key: ValueKey(state.filteredChannels[index].id),
-                        channel: state.filteredChannels[index],
-                        currentUserId: _currentUserId,
-                      ),
-                    ),
-                  );
+                  if (state.hasSearchQuery) {
+                    return _buildSearchResults(state);
+                  }
+                  return _buildChannelList(state);
                 },
               ),
             ),
@@ -162,6 +151,110 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
       title: const Text('Drafts'),
       dense: true,
       onTap: () => context.push(RouteNames.drafts),
+    );
+  }
+
+  Widget _buildChannelList(ChannelsState state) {
+    return RefreshIndicator(
+      onRefresh: () async {
+        HapticFeedback.selectionClick();
+        _channelsBloc.add(const RefreshChannels());
+      },
+      child: ListView.builder(
+        itemCount: state.filteredChannels.length + 2, // +2 for Threads and Drafts
+        itemBuilder: (context, index) {
+          if (index == 0) return _buildThreadsRow();
+          if (index == 1) return _buildDraftsRow();
+          final channelIndex = index - 2;
+          return _ChannelListTile(
+            key: ValueKey(state.filteredChannels[channelIndex].id),
+            channel: state.filteredChannels[channelIndex],
+            currentUserId: _currentUserId,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(ChannelsState state) {
+    final sections = <Widget>[];
+
+    // Section: Joined channels
+    if (state.filteredChannels.isNotEmpty) {
+      sections.add(_buildSectionHeader('Channels'));
+      for (final channel in state.filteredChannels) {
+        sections.add(_ChannelListTile(
+          key: ValueKey(channel.id),
+          channel: channel,
+          currentUserId: _currentUserId,
+        ));
+      }
+    }
+
+    // Section: Other public channels (from server autocomplete)
+    if (state.serverChannels.isNotEmpty) {
+      sections.add(_buildSectionHeader('Other channels'));
+      for (final channel in state.serverChannels) {
+        sections.add(_ChannelListTile(
+          key: ValueKey('server_${channel.id}'),
+          channel: channel,
+          currentUserId: _currentUserId,
+        ));
+      }
+    }
+
+    // Section: Users (for starting DM)
+    if (state.userResults.isNotEmpty) {
+      sections.add(_buildSectionHeader('Users'));
+      for (final user in state.userResults) {
+        sections.add(_UserSearchTile(
+          key: ValueKey('user_${user.id}'),
+          user: user,
+          currentUserId: _currentUserId,
+        ));
+      }
+    }
+
+    if (sections.isEmpty && !state.isSearching) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'No results found',
+            style: AppTextStyles.bodySmall,
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      children: [
+        ...sections,
+        if (state.isSearching)
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Text(
+        title,
+        style: AppTextStyles.caption.copyWith(
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 
@@ -412,5 +505,57 @@ class _ChannelListTileState extends State<_ChannelListTile> {
       );
     }
     return null;
+  }
+}
+
+class _UserSearchTile extends StatelessWidget {
+  final User user;
+  final String currentUserId;
+
+  const _UserSearchTile({
+    super.key,
+    required this.user,
+    required this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: UserAvatar(userId: user.id),
+      title: Text(
+        user.displayName,
+        style: AppTextStyles.channelName,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        '@${user.username}',
+        style: AppTextStyles.caption,
+      ),
+      onTap: () async {
+        final channelRepo = sl<ChannelRepository>();
+        final result = await channelRepo.createDirectChannel(
+          currentUserId,
+          user.id,
+        );
+        if (!context.mounted) return;
+        result.fold(
+          (failure) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(failure.message)),
+            );
+          },
+          (channel) {
+            context.push(
+              RouteNames.chatPath(channel.id),
+              extra: <String, dynamic>{
+                'channelName': user.displayName,
+                'dmUserId': user.id,
+              },
+            );
+          },
+        );
+      },
+    );
   }
 }

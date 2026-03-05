@@ -153,4 +153,22 @@ class ChannelRemoteDataSource {
       throw ServerException(message: 'Failed to leave channel: $e');
     }
   }
+
+  Future<List<ChannelModel>> autocompleteChannels(
+    String teamId,
+    String term,
+  ) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.channelsAutocomplete,
+        queryParameters: {'team_id': teamId, 'name': term},
+      );
+      return (response.data as List<dynamic>)
+          .map((c) => ChannelModel.fromJson(c as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ServerException(
+          message: 'Failed to autocomplete channels: $e');
+    }
+  }
 }

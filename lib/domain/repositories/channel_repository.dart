@@ -37,4 +37,8 @@ abstract class ChannelRepository {
     String channelId,
     String userId,
   );
+  Future<Either<Failure, List<Channel>>> autocompleteChannels(
+    String teamId,
+    String term,
+  );
 }

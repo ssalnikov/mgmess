@@ -8,15 +8,20 @@ import 'package:mgmess/core/error/failures.dart';
 import 'package:mgmess/core/network/websocket_events.dart';
 import 'package:mgmess/domain/entities/channel.dart';
 import 'package:mgmess/domain/repositories/channel_repository.dart';
+import 'package:mgmess/domain/repositories/user_repository.dart';
 import 'package:mgmess/presentation/screens/channels/channels_bloc.dart';
 
 class MockChannelRepository extends Mock implements ChannelRepository {}
 
+class MockUserRepository extends Mock implements UserRepository {}
+
 void main() {
   late MockChannelRepository mockRepo;
+  late MockUserRepository mockUserRepo;
 
   setUp(() {
     mockRepo = MockChannelRepository();
+    mockUserRepo = MockUserRepository();
   });
 
   const channels = [
@@ -46,7 +51,7 @@ void main() {
       build: () {
         when(() => mockRepo.getChannelsForUser(any(), any()))
             .thenAnswer((_) async => const Right(channels));
-        return ChannelsBloc(channelRepository: mockRepo);
+        return ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo);
       },
       act: (bloc) => bloc.add(const LoadChannels(
         userId: 'user1',
@@ -71,7 +76,7 @@ void main() {
         when(() => mockRepo.getChannelsForUser(any(), any()))
             .thenAnswer((_) async =>
                 const Left(ServerFailure(message: 'Network error')));
-        return ChannelsBloc(channelRepository: mockRepo);
+        return ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo);
       },
       act: (bloc) => bloc.add(const LoadChannels(
         userId: 'user1',
@@ -87,7 +92,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'SearchChannels filters channels by name',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => ChannelsState(
         channels: channels,
         filteredChannels: channels,
@@ -111,7 +116,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'SearchChannels with empty query returns all channels',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => ChannelsState(
         channels: channels,
         filteredChannels: [channels[1]],
@@ -144,7 +149,7 @@ void main() {
                     msgCount: 10,
                   ),
                 ]));
-        return ChannelsBloc(channelRepository: mockRepo);
+        return ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo);
       },
       act: (bloc) async {
         // Set _userId via LoadChannels
@@ -181,7 +186,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'WS posted from other user increases unread count',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => const ChannelsState(
         channels: [
           Channel(
@@ -241,7 +246,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'WS thread reply does not increase channel unread count',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => const ChannelsState(
         channels: [
           Channel(
@@ -310,7 +315,7 @@ void main() {
       build: () {
         when(() => mockRepo.viewChannel(any(), any()))
             .thenAnswer((_) async => const Right(null));
-        return ChannelsBloc(channelRepository: mockRepo);
+        return ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo);
       },
       seed: () => const ChannelsState(
         channels: channels,
@@ -342,7 +347,7 @@ void main() {
                 const Left(ServerFailure(message: 'Server error')));
         when(() => mockRepo.getChannelsForUser(any(), any()))
             .thenAnswer((_) async => const Right(channels));
-        return ChannelsBloc(channelRepository: mockRepo);
+        return ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo);
       },
       act: (bloc) async {
         // Set _userId via LoadChannels
@@ -379,7 +384,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'WS multiple_channels_viewed marks multiple channels as read',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => const ChannelsState(
         channels: [
           Channel(
@@ -463,7 +468,7 @@ void main() {
       build: () {
         when(() => mockRepo.getChannelsForUser(any(), any()))
             .thenAnswer((_) async => const Right(channels));
-        return ChannelsBloc(channelRepository: mockRepo);
+        return ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo);
       },
       act: (bloc) async {
         bloc.add(const LoadChannels(userId: 'user1', teamId: 'team1'));
@@ -483,7 +488,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'WS channel_member_updated updates mute status',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => const ChannelsState(
         channels: [
           Channel(
@@ -553,7 +558,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'Muted channel hasUnread returns false',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => const ChannelsState(
         channels: [
           Channel(
@@ -588,7 +593,7 @@ void main() {
 
     blocTest<ChannelsBloc, ChannelsState>(
       'WS posted root post increments CRT root counters',
-      build: () => ChannelsBloc(channelRepository: mockRepo),
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
       seed: () => const ChannelsState(
         channels: [
           Channel(

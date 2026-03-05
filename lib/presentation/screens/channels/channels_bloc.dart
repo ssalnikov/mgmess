@@ -7,7 +7,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/websocket_events.dart';
 import '../../../domain/entities/channel.dart';
+import '../../../domain/entities/user.dart';
 import '../../../domain/repositories/channel_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 
 // Events
 abstract class ChannelsEvent extends Equatable {
@@ -33,6 +35,19 @@ class SearchChannels extends ChannelsEvent {
   const SearchChannels({required this.query});
   @override
   List<Object?> get props => [query];
+}
+
+class _ServerSearchResults extends ChannelsEvent {
+  final String query;
+  final List<Channel> serverChannels;
+  final List<User> users;
+  const _ServerSearchResults({
+    required this.query,
+    required this.serverChannels,
+    required this.users,
+  });
+  @override
+  List<Object?> get props => [query, serverChannels, users];
 }
 
 class MarkChannelAsRead extends ChannelsEvent {
@@ -61,53 +76,80 @@ class ChannelWsEvent extends ChannelsEvent {
 class ChannelsState extends Equatable {
   final List<Channel> channels;
   final List<Channel> filteredChannels;
+  final List<Channel> serverChannels;
+  final List<User> userResults;
   final bool isLoading;
+  final bool isSearching;
   final String? error;
   final String searchQuery;
 
   const ChannelsState({
     this.channels = const [],
     this.filteredChannels = const [],
+    this.serverChannels = const [],
+    this.userResults = const [],
     this.isLoading = false,
+    this.isSearching = false,
     this.error,
     this.searchQuery = '',
   });
 
+  bool get hasSearchQuery => searchQuery.isNotEmpty;
+
   ChannelsState copyWith({
     List<Channel>? channels,
     List<Channel>? filteredChannels,
+    List<Channel>? serverChannels,
+    List<User>? userResults,
     bool? isLoading,
+    bool? isSearching,
     String? error,
     String? searchQuery,
   }) {
     return ChannelsState(
       channels: channels ?? this.channels,
       filteredChannels: filteredChannels ?? this.filteredChannels,
+      serverChannels: serverChannels ?? this.serverChannels,
+      userResults: userResults ?? this.userResults,
       isLoading: isLoading ?? this.isLoading,
+      isSearching: isSearching ?? this.isSearching,
       error: error,
       searchQuery: searchQuery ?? this.searchQuery,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [channels, filteredChannels, isLoading, error, searchQuery];
+  List<Object?> get props => [
+        channels,
+        filteredChannels,
+        serverChannels,
+        userResults,
+        isLoading,
+        isSearching,
+        error,
+        searchQuery,
+      ];
 }
 
 // BLoC
 class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
   final ChannelRepository _channelRepository;
+  final UserRepository _userRepository;
   String _userId = '';
   String _teamId = '';
   StreamSubscription<WsEvent>? _wsSub;
+  Timer? _searchDebounce;
 
   ChannelsBloc({
     required ChannelRepository channelRepository,
+    required UserRepository userRepository,
   })  : _channelRepository = channelRepository,
+        _userRepository = userRepository,
         super(const ChannelsState()) {
     on<LoadChannels>(_onLoadChannels);
     on<RefreshChannels>(_onRefreshChannels);
     on<SearchChannels>(_onSearchChannels);
+    on<_ServerSearchResults>(_onServerSearchResults);
     on<MarkChannelAsRead>(_onMarkChannelAsRead);
     on<ToggleMuteChannel>(_onToggleMuteChannel);
     on<ChannelWsEvent>(_onWsEvent);
@@ -162,22 +204,84 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     SearchChannels event,
     Emitter<ChannelsState> emit,
   ) {
-    final query = event.query.toLowerCase();
+    _searchDebounce?.cancel();
+    final query = event.query.toLowerCase().trim();
+
     if (query.isEmpty) {
       emit(state.copyWith(
         filteredChannels: state.channels,
+        serverChannels: const [],
+        userResults: const [],
         searchQuery: '',
+        isSearching: false,
       ));
       return;
     }
+
+    // Immediate local filter
     final filtered = state.channels
         .where((c) =>
             c.displayName.toLowerCase().contains(query) ||
             c.name.toLowerCase().contains(query))
         .toList();
+
     emit(state.copyWith(
       filteredChannels: filtered,
       searchQuery: query,
+      isSearching: true,
+    ));
+
+    // Debounced server search
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      _performServerSearch(query);
+    });
+  }
+
+  Future<void> _performServerSearch(String query) async {
+    if (_teamId.isEmpty) return;
+
+    final joinedIds = state.channels.map((c) => c.id).toSet();
+
+    final results = await Future.wait([
+      _channelRepository.autocompleteChannels(_teamId, query),
+      _userRepository.autocompleteUsers(query),
+    ]);
+
+    final channelsResult = results[0];
+    final usersResult = results[1];
+
+    final serverChannels = channelsResult.fold(
+      (_) => <Channel>[],
+      (channels) => (channels as List<Channel>)
+          .where((c) => !joinedIds.contains(c.id))
+          .toList(),
+    );
+
+    final users = usersResult.fold(
+      (_) => <User>[],
+      (users) => (users as List<User>)
+          .where((u) => u.id != _userId)
+          .toList(),
+    );
+
+    add(_ServerSearchResults(
+      query: query,
+      serverChannels: serverChannels,
+      users: users,
+    ));
+  }
+
+  void _onServerSearchResults(
+    _ServerSearchResults event,
+    Emitter<ChannelsState> emit,
+  ) {
+    // Only apply if the query still matches
+    if (state.searchQuery != event.query) return;
+
+    emit(state.copyWith(
+      serverChannels: event.serverChannels,
+      userResults: event.users,
+      isSearching: false,
     ));
   }
 
@@ -515,6 +619,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
   @override
   Future<void> close() {
     _wsSub?.cancel();
+    _searchDebounce?.cancel();
     return super.close();
   }
 }

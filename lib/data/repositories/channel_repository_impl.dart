@@ -213,4 +213,18 @@ class ChannelRepositoryImpl implements ChannelRepository {
       return Left(ServerFailure(message: e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, List<Channel>>> autocompleteChannels(
+    String teamId,
+    String term,
+  ) async {
+    try {
+      final channels =
+          await _remoteDataSource.autocompleteChannels(teamId, term);
+      return Right(channels);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
 }

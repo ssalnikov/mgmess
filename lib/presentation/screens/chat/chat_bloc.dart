@@ -260,7 +260,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
                 e.event == WsEventType.postDeleted ||
                 e.event == WsEventType.typing ||
                 e.event == WsEventType.reactionAdded ||
-                e.event == WsEventType.reactionRemoved))
+                e.event == WsEventType.reactionRemoved ||
+                e.event == WsEventType.channelViewed))
         .listen((event) => add(ChatWsEvent(wsEvent: event)));
   }
 
@@ -609,6 +610,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         _handleReactionAdded(wsEvent, emit);
       case WsEventType.reactionRemoved:
         _handleReactionRemoved(wsEvent, emit);
+      case WsEventType.channelViewed:
+        _handleChannelViewed(wsEvent, emit);
       case WsEventType.typing:
       case '_clear_typing':
         _handleTyping(wsEvent, emit);
@@ -637,7 +640,21 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     }
     // Avoid duplicates (from optimistic send)
     if (state.posts.any((p) => p.id == post.id)) return;
-    emit(state.copyWith(posts: [post, ...state.posts]));
+
+    final isOwnPost = post.userId == userId;
+    emit(state.copyWith(
+      posts: [post, ...state.posts],
+      newMessagesCount: isOwnPost
+          ? state.newMessagesCount
+          : state.newMessagesCount + 1,
+    ));
+  }
+
+  void _handleChannelViewed(WsEvent wsEvent, Emitter<ChatState> emit) {
+    emit(state.copyWith(
+      newMessagesCount: 0,
+      clearFirstUnreadId: true,
+    ));
   }
 
   void _handlePostEdited(WsEvent wsEvent, Emitter<ChatState> emit) {

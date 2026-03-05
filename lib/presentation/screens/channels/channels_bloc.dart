@@ -190,6 +190,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
         return c.copyWith(
           msgCount: c.totalMsgCount,
           mentionCount: 0,
+          lastViewedAt: DateTime.now().millisecondsSinceEpoch,
         );
       }
       return c;
@@ -280,17 +281,32 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     final channels = state.channels.map((c) {
       if (c.id == channelId) {
         final postJson = wsEvent.data['post'];
-        final mentions = wsEvent.data['mentions'] as String?;
-        final mentionIncrement =
-            mentions != null && mentions.contains(_userId) ? 1 : 0;
 
+        // Parse post author and create_at from JSON
+        String? postUserId;
         int createAt = c.lastPostAt;
         if (postJson is String) {
           try {
             final post = jsonDecode(postJson) as Map<String, dynamic>;
             createAt = post['create_at'] as int? ?? c.lastPostAt;
+            postUserId = post['user_id'] as String?;
           } catch (_) {}
         }
+
+        final isOwnPost = postUserId != null && postUserId == _userId;
+
+        // Own posts: increment both totalMsgCount and msgCount so unreadCount stays the same
+        if (isOwnPost) {
+          return c.copyWith(
+            totalMsgCount: c.totalMsgCount + 1,
+            msgCount: c.msgCount + 1,
+            lastPostAt: createAt,
+          );
+        }
+
+        final mentions = wsEvent.data['mentions'] as String?;
+        final mentionIncrement =
+            mentions != null && mentions.contains(_userId) ? 1 : 0;
 
         return c.copyWith(
           totalMsgCount: c.totalMsgCount + 1,

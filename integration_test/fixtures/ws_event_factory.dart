@@ -105,6 +105,21 @@ WsEvent createPostDeletedEvent({
   );
 }
 
+/// Создаёт WsEvent для channel_viewed.
+WsEvent createChannelViewedEvent({
+  required String channelId,
+}) {
+  return WsEvent(
+    event: WsEventType.channelViewed,
+    data: {
+      'channel_id': channelId,
+    },
+    broadcast: {
+      'channel_id': channelId,
+    },
+  );
+}
+
 /// Создаёт WsEvent для индикатора набора текста.
 WsEvent createTypingEvent({
   required String channelId,

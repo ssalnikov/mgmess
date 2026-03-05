@@ -8,10 +8,13 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/post.dart';
+import '../../../domain/repositories/channel_repository.dart';
 import '../../../domain/repositories/post_repository.dart';
 import '../../../domain/services/ws_post_parser.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../blocs/notification/notification_bloc.dart';
+import '../../blocs/notification/notification_event.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
 import '../../utils/forward_helper.dart';
 import 'widgets/message_skeleton.dart';
@@ -47,6 +50,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   late final ChatBloc _chatBloc;
+  NotificationBloc? _notificationBloc;
   final _scrollController = ScrollController();
   final _messageInputKey = GlobalKey<MessageInputState>();
   bool _isUserScrolledUp = false;
@@ -74,6 +78,13 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final wsBloc = context.read<WebSocketBloc>();
       _chatBloc.subscribeToWs(wsBloc.wsEvents);
+    } catch (_) {}
+
+    try {
+      _notificationBloc = context.read<NotificationBloc>();
+      _notificationBloc!.add(
+        NotificationSetActiveChannel(channelId: widget.channelId),
+      );
     } catch (_) {}
 
     _scrollController.addListener(_onScroll);
@@ -123,6 +134,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _notificationBloc?.add(const NotificationClearActiveChannel());
+
+    final userId = _chatBloc.userId;
+    final channelId = widget.channelId;
+    if (userId.isNotEmpty) {
+      sl<ChannelRepository>().viewChannel(userId, channelId);
+    }
+
     _chatBloc.close();
     _scrollController.dispose();
     super.dispose();

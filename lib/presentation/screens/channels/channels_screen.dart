@@ -284,7 +284,7 @@ class _ChannelListTileState extends State<_ChannelListTile> {
             );
         final extra = <String, dynamic>{
           'channelName': _title,
-          'lastViewedAt': channel.lastViewedAt,
+          'lastViewedAt': DateTime.now().millisecondsSinceEpoch,
         };
         if (channel.isDirect) {
           final parts = channel.name.split('__');

@@ -16,6 +16,8 @@ import '../integration_test/scenarios/thread_navigation_test.dart'
     as thread_nav;
 import '../integration_test/scenarios/edit_delete_message_test.dart'
     as edit_delete;
+import '../integration_test/scenarios/unread_counter_test.dart'
+    as unread_counter;
 
 void main() {
   auth_flow.main();
@@ -26,4 +28,5 @@ void main() {
   search_channels.main();
   thread_nav.main();
   edit_delete.main();
+  unread_counter.main();
 }

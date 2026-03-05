@@ -3,6 +3,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:mgmess/core/error/failures.dart';
+import 'package:mgmess/core/network/websocket_events.dart';
 import 'package:mgmess/domain/entities/post.dart';
 import 'package:mgmess/domain/repositories/post_repository.dart';
 import 'package:mgmess/domain/services/ws_post_parser.dart';
@@ -176,6 +177,75 @@ void main() {
       ),
       act: (bloc) => bloc.add(const LoadMorePosts()),
       expect: () => [],
+    );
+
+    blocTest<ChatBloc, ChatState>(
+      'WS posted increments newMessagesCount for other users posts',
+      build: () {
+        when(() => mockParser.parsePost(any())).thenReturn(
+          const Post(id: 'ws1', channelId: 'ch1', userId: 'u2', message: 'Hi', createAt: 5000),
+        );
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
+      },
+      seed: () => const ChatState(channelId: 'ch1', posts: posts),
+      act: (bloc) => bloc.add(ChatWsEvent(
+        wsEvent: WsEvent(
+          event: WsEventType.posted,
+          data: {'post': '{"id":"ws1","channel_id":"ch1","user_id":"u2","message":"Hi","create_at":5000}'},
+          broadcast: {'channel_id': 'ch1'},
+        ),
+      )),
+      expect: () => [
+        isA<ChatState>()
+            .having((s) => s.posts.length, 'posts.length', 3)
+            .having((s) => s.newMessagesCount, 'newMessagesCount', 1),
+      ],
+    );
+
+    blocTest<ChatBloc, ChatState>(
+      'WS posted does not increment newMessagesCount for own posts',
+      build: () {
+        when(() => mockParser.parsePost(any())).thenReturn(
+          const Post(id: 'ws2', channelId: 'ch1', userId: 'u1', message: 'My msg', createAt: 5000),
+        );
+        return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
+      },
+      seed: () => const ChatState(channelId: 'ch1', posts: posts),
+      act: (bloc) => bloc.add(ChatWsEvent(
+        wsEvent: WsEvent(
+          event: WsEventType.posted,
+          data: {'post': '{"id":"ws2","channel_id":"ch1","user_id":"u1","message":"My msg","create_at":5000}'},
+          broadcast: {'channel_id': 'ch1'},
+        ),
+      )),
+      expect: () => [
+        isA<ChatState>()
+            .having((s) => s.posts.length, 'posts.length', 3)
+            .having((s) => s.newMessagesCount, 'newMessagesCount', 0),
+      ],
+    );
+
+    blocTest<ChatBloc, ChatState>(
+      'channel_viewed WS event clears firstUnreadId and newMessagesCount',
+      build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1'),
+      seed: () => const ChatState(
+        channelId: 'ch1',
+        posts: posts,
+        newMessagesCount: 5,
+        firstUnreadId: 'p1',
+      ),
+      act: (bloc) => bloc.add(ChatWsEvent(
+        wsEvent: WsEvent(
+          event: WsEventType.channelViewed,
+          data: {'channel_id': 'ch1'},
+          broadcast: {'channel_id': 'ch1'},
+        ),
+      )),
+      expect: () => [
+        isA<ChatState>()
+            .having((s) => s.newMessagesCount, 'newMessagesCount', 0)
+            .having((s) => s.firstUnreadId, 'firstUnreadId', isNull),
+      ],
     );
   });
 }

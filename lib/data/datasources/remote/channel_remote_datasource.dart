@@ -2,6 +2,7 @@ import '../../../core/error/exceptions.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../models/channel_model.dart';
+import '../../models/channel_stats_model.dart';
 
 class ChannelRemoteDataSource {
   final ApiClient _apiClient;
@@ -109,6 +110,47 @@ class ChannelRemoteDataSource {
     } catch (e) {
       throw ServerException(
           message: 'Failed to create direct channel: $e');
+    }
+  }
+
+  Future<ChannelStatsModel> getChannelStats(String channelId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.channelStats(channelId),
+      );
+      return ChannelStatsModel.fromJson(
+          response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw ServerException(message: 'Failed to get channel stats: $e');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getChannelMembers(
+    String channelId, {
+    int page = 0,
+    int perPage = 60,
+  }) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.channelMembers(channelId),
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
+      return (response.data as List<dynamic>)
+          .map((e) => e as Map<String, dynamic>)
+          .toList();
+    } catch (e) {
+      throw ServerException(
+          message: 'Failed to get channel members: $e');
+    }
+  }
+
+  Future<void> leaveChannel(String channelId, String userId) async {
+    try {
+      await _apiClient.dio.delete(
+        ApiEndpoints.channelMember(channelId, userId),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to leave channel: $e');
     }
   }
 }

@@ -54,6 +54,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollController = ScrollController();
   final _messageInputKey = GlobalKey<MessageInputState>();
   bool _isUserScrolledUp = false;
+  int? _memberCount;
 
   @override
   void initState() {
@@ -94,6 +95,21 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     _scrollController.addListener(_onScroll);
+
+    // Load member count for non-DM channels
+    if (widget.dmUserId == null) {
+      _loadMemberCount();
+    }
+  }
+
+  Future<void> _loadMemberCount() async {
+    final result = await sl<ChannelRepository>().getChannelStats(widget.channelId);
+    result.fold(
+      (_) {},
+      (stats) {
+        if (mounted) setState(() => _memberCount = stats.memberCount);
+      },
+    );
   }
 
   void _onScroll() {
@@ -109,6 +125,13 @@ class _ChatScreenState extends State<ChatScreen> {
         _chatBloc.add(const ClearNewMessages());
       }
     }
+  }
+
+  void _openChannelInfo() {
+    context.push(
+      RouteNames.channelInfoPath(widget.channelId),
+      extra: {'channelName': widget.channelName},
+    );
   }
 
   void _showPinnedMessages() {
@@ -167,24 +190,45 @@ class _ChatScreenState extends State<ChatScreen> {
         onSwipeBack: () => context.go(RouteNames.channels),
         child: Scaffold(
           appBar: AppBar(
-            title: widget.dmUserId != null
-                ? Row(
-                    children: [
-                      UserAvatar(
-                        userId: widget.dmUserId!,
-                        radius: 16,
-                        heroTag: 'channel_avatar_${widget.channelId}',
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
+            titleSpacing: 0,
+            title: GestureDetector(
+              onTap: _openChannelInfo,
+              behavior: HitTestBehavior.opaque,
+              child: widget.dmUserId != null
+                  ? Row(
+                      children: [
+                        UserAvatar(
+                          userId: widget.dmUserId!,
+                          radius: 16,
+                          heroTag: 'channel_avatar_${widget.channelId}',
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            widget.channelName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
                           widget.channelName,
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  )
-                : Text(widget.channelName),
+                        if (_memberCount != null)
+                          Text(
+                            '$_memberCount members',
+                            style: AppTextStyles.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                      ],
+                    ),
+            ),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: () => context.go(RouteNames.channels),

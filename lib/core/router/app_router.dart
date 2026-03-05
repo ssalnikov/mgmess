@@ -10,6 +10,8 @@ import '../../presentation/screens/mentions/mentions_screen.dart';
 import '../../presentation/screens/profile/edit_profile_screen.dart';
 import '../../presentation/screens/profile/notification_settings_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
+import '../../presentation/screens/channel_info/channel_info_screen.dart';
+import '../../presentation/screens/channel_info/channel_members_screen.dart';
 import '../../presentation/screens/profile/user_profile_screen.dart';
 import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
 import '../../presentation/screens/drafts/drafts_screen.dart';
@@ -122,6 +124,24 @@ class AppRouter {
         builder: (context, state) {
           final userId = state.pathParameters['userId']!;
           return UserProfileScreen(userId: userId);
+        },
+      ),
+      GoRoute(
+        path: RouteNames.channelInfo,
+        builder: (context, state) {
+          final channelId = state.pathParameters['channelId']!;
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return ChannelInfoScreen(
+            channelId: channelId,
+            channelName: extra['channelName'] as String? ?? '',
+          );
+        },
+      ),
+      GoRoute(
+        path: RouteNames.channelMembers,
+        builder: (context, state) {
+          final channelId = state.pathParameters['channelId']!;
+          return ChannelMembersScreen(channelId: channelId);
         },
       ),
       GoRoute(

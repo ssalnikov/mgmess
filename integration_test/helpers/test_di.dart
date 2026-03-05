@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:mgmess/core/config/app_config.dart';
 import 'package:mgmess/core/di/injection.dart';
+import 'package:mgmess/domain/entities/channel_stats.dart';
 import 'package:mgmess/domain/entities/user.dart';
 import 'package:mgmess/core/network/network_info.dart';
 import 'package:mgmess/core/network/websocket_client.dart';
@@ -97,6 +98,15 @@ Future<TestMocks> initTestDependencies() async {
   when(() => userRepo.autocompleteUsers(any(), channelId: any(named: 'channelId')))
       .thenAnswer((_) async => const Right([]));
   when(() => userRepo.updateUserStatus(any(), any()))
+      .thenAnswer((_) async => const Right(null));
+
+  // Дефолтные стабы для ChannelRepository
+  when(() => channelRepo.getChannelStats(any()))
+      .thenAnswer((_) async => const Right(ChannelStats(channelId: 'ch1', memberCount: 5)));
+  when(() => channelRepo.getChannelMembers(any(),
+          page: any(named: 'page'), perPage: any(named: 'perPage')))
+      .thenAnswer((_) async => const Right(<User>[]));
+  when(() => channelRepo.leaveChannel(any(), any()))
       .thenAnswer((_) async => const Right(null));
 
   // Дефолтные стабы для NotificationRepository

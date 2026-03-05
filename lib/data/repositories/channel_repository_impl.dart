@@ -5,22 +5,28 @@ import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/channel.dart';
+import '../../domain/entities/channel_stats.dart';
+import '../../domain/entities/user.dart';
 import '../../domain/repositories/channel_repository.dart';
 import '../datasources/local/channel_local_datasource.dart';
 import '../datasources/remote/channel_remote_datasource.dart';
+import '../datasources/remote/user_remote_datasource.dart';
 
 class ChannelRepositoryImpl implements ChannelRepository {
   final ChannelRemoteDataSource _remoteDataSource;
   final ChannelLocalDataSource _localDataSource;
   final NetworkInfo _networkInfo;
+  final UserRemoteDataSource _userRemoteDataSource;
 
   ChannelRepositoryImpl({
     required ChannelRemoteDataSource remoteDataSource,
     required ChannelLocalDataSource localDataSource,
     required NetworkInfo networkInfo,
+    required UserRemoteDataSource userRemoteDataSource,
   })  : _remoteDataSource = remoteDataSource,
         _localDataSource = localDataSource,
-        _networkInfo = networkInfo;
+        _networkInfo = networkInfo,
+        _userRemoteDataSource = userRemoteDataSource;
 
   @override
   Future<Either<Failure, List<Channel>>> getChannelsForUser(
@@ -155,6 +161,53 @@ class ChannelRepositoryImpl implements ChannelRepository {
         userId,
         {'mark_unread': 'all'},
       );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, ChannelStats>> getChannelStats(
+    String channelId,
+  ) async {
+    try {
+      final stats = await _remoteDataSource.getChannelStats(channelId);
+      return Right(stats);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<User>>> getChannelMembers(
+    String channelId, {
+    int page = 0,
+    int perPage = 60,
+  }) async {
+    try {
+      final members = await _remoteDataSource.getChannelMembers(
+        channelId,
+        page: page,
+        perPage: perPage,
+      );
+      final userIds =
+          members.map((m) => m['user_id'] as String).toList();
+      if (userIds.isEmpty) return const Right([]);
+      final users = await _userRemoteDataSource.getUsersByIds(userIds);
+      return Right(users);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> leaveChannel(
+    String channelId,
+    String userId,
+  ) async {
+    try {
+      await _remoteDataSource.leaveChannel(channelId, userId);
       return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));

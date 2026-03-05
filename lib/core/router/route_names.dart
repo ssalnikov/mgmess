@@ -12,8 +12,14 @@ class RouteNames {
   static const String drafts = '/drafts';
   static const String search = '/search';
   static const String thread = '/thread/:postId';
+  static const String channelInfo = '/channel/:channelId/info';
+  static const String channelMembers = '/channel/:channelId/members';
 
   static String chatPath(String channelId) => '/chat/$channelId';
   static String userProfilePath(String userId) => '/user/$userId';
   static String threadPath(String postId) => '/thread/$postId';
+  static String channelInfoPath(String channelId) =>
+      '/channel/$channelId/info';
+  static String channelMembersPath(String channelId) =>
+      '/channel/$channelId/members';
 }

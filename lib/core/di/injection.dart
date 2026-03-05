@@ -115,6 +115,7 @@ Future<void> initDependencies() async {
       remoteDataSource: sl(),
       localDataSource: sl(),
       networkInfo: sl(),
+      userRemoteDataSource: sl(),
     ),
   );
   sl.registerLazySingleton<PostRepository>(

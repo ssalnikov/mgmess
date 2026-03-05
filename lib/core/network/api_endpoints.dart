@@ -28,6 +28,7 @@ class ApiEndpoints {
   static String directChannel = '/channels/direct';
   static String channelMemberNotifyProps(String channelId, String userId) =>
       '/channels/$channelId/members/$userId/notify_props';
+  static String channelStats(String id) => '/channels/$id/stats';
 
   // Posts
   static String channelPosts(String channelId) =>

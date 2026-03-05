@@ -5,7 +5,9 @@ import 'package:mgmess/core/error/failures.dart';
 import 'package:mgmess/core/network/network_info.dart';
 import 'package:mgmess/data/datasources/local/channel_local_datasource.dart';
 import 'package:mgmess/data/datasources/remote/channel_remote_datasource.dart';
+import 'package:mgmess/data/datasources/remote/user_remote_datasource.dart';
 import 'package:mgmess/data/models/channel_model.dart';
+import 'package:mgmess/data/models/channel_stats_model.dart';
 import 'package:mgmess/data/repositories/channel_repository_impl.dart';
 import 'package:mgmess/domain/entities/channel.dart';
 
@@ -17,20 +19,26 @@ class MockChannelLocalDataSource extends Mock
 
 class MockNetworkInfo extends Mock implements NetworkInfo {}
 
+class MockUserRemoteDataSource extends Mock
+    implements UserRemoteDataSource {}
+
 void main() {
   late MockChannelRemoteDataSource mockRemote;
   late MockChannelLocalDataSource mockLocal;
   late MockNetworkInfo mockNetworkInfo;
+  late MockUserRemoteDataSource mockUserRemote;
   late ChannelRepositoryImpl repository;
 
   setUp(() {
     mockRemote = MockChannelRemoteDataSource();
     mockLocal = MockChannelLocalDataSource();
     mockNetworkInfo = MockNetworkInfo();
+    mockUserRemote = MockUserRemoteDataSource();
     repository = ChannelRepositoryImpl(
       remoteDataSource: mockRemote,
       localDataSource: mockLocal,
       networkInfo: mockNetworkInfo,
+      userRemoteDataSource: mockUserRemote,
     );
   });
 
@@ -362,6 +370,113 @@ void main() {
 
         final result =
             await repository.unmuteChannel('ch1', 'user1');
+
+        expect(result.isLeft(), true);
+      });
+    });
+
+    group('getChannelStats', () {
+      test('returns ChannelStats on success', () async {
+        when(() => mockRemote.getChannelStats(any()))
+            .thenAnswer((_) async => const ChannelStatsModel(
+                  channelId: 'ch1',
+                  memberCount: 42,
+                  guestCount: 2,
+                  pinnedPostCount: 5,
+                ));
+
+        final result = await repository.getChannelStats('ch1');
+
+        expect(result.isRight(), true);
+        result.fold(
+          (_) => fail('Expected Right'),
+          (stats) {
+            expect(stats.channelId, 'ch1');
+            expect(stats.memberCount, 42);
+            expect(stats.guestCount, 2);
+            expect(stats.pinnedPostCount, 5);
+          },
+        );
+      });
+
+      test('returns ServerFailure on ServerException', () async {
+        when(() => mockRemote.getChannelStats(any()))
+            .thenThrow(const ServerException(message: 'Error'));
+
+        final result = await repository.getChannelStats('ch1');
+
+        expect(result.isLeft(), true);
+        result.fold(
+          (failure) => expect(failure, isA<ServerFailure>()),
+          (_) => fail('Expected Left'),
+        );
+      });
+    });
+
+    group('getChannelMembers', () {
+      test('returns list of users on success', () async {
+        when(() => mockRemote.getChannelMembers(any(),
+                page: any(named: 'page'),
+                perPage: any(named: 'perPage')))
+            .thenAnswer((_) async => [
+                  {'user_id': 'u1', 'channel_id': 'ch1'},
+                  {'user_id': 'u2', 'channel_id': 'ch1'},
+                ]);
+        when(() => mockUserRemote.getUsersByIds(any()))
+            .thenAnswer((_) async => []);
+
+        final result = await repository.getChannelMembers('ch1');
+
+        expect(result.isRight(), true);
+        verify(() => mockUserRemote.getUsersByIds(['u1', 'u2'])).called(1);
+      });
+
+      test('returns empty list when no members', () async {
+        when(() => mockRemote.getChannelMembers(any(),
+                page: any(named: 'page'),
+                perPage: any(named: 'perPage')))
+            .thenAnswer((_) async => []);
+
+        final result = await repository.getChannelMembers('ch1');
+
+        expect(result.isRight(), true);
+        result.fold(
+          (_) => fail('Expected Right'),
+          (users) => expect(users, isEmpty),
+        );
+        verifyNever(() => mockUserRemote.getUsersByIds(any()));
+      });
+
+      test('returns ServerFailure on ServerException', () async {
+        when(() => mockRemote.getChannelMembers(any(),
+                page: any(named: 'page'),
+                perPage: any(named: 'perPage')))
+            .thenThrow(const ServerException(message: 'Error'));
+
+        final result = await repository.getChannelMembers('ch1');
+
+        expect(result.isLeft(), true);
+      });
+    });
+
+    group('leaveChannel', () {
+      test('returns Right(null) on success', () async {
+        when(() => mockRemote.leaveChannel(any(), any()))
+            .thenAnswer((_) async {});
+
+        final result =
+            await repository.leaveChannel('ch1', 'user1');
+
+        expect(result.isRight(), true);
+        verify(() => mockRemote.leaveChannel('ch1', 'user1')).called(1);
+      });
+
+      test('returns ServerFailure on ServerException', () async {
+        when(() => mockRemote.leaveChannel(any(), any()))
+            .thenThrow(const ServerException(message: 'Error'));
+
+        final result =
+            await repository.leaveChannel('ch1', 'user1');
 
         expect(result.isLeft(), true);
       });

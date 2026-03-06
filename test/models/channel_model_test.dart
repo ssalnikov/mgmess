@@ -53,6 +53,8 @@ void main() {
         id: 'ch1',
         totalMsgCount: 50,
         msgCount: 30,
+        totalMsgCountRoot: 40,
+        msgCountRoot: 20,
       );
       expect(channel.unreadCount, 20);
       expect(channel.hasUnread, true);
@@ -63,12 +65,14 @@ void main() {
         id: 'ch1',
         totalMsgCount: 50,
         msgCount: 50,
+        totalMsgCountRoot: 40,
+        msgCountRoot: 40,
       );
       expect(channel.hasUnread, false);
     });
 
     test('hasMention returns true with mention count', () {
-      final channel = ChannelModel(id: 'ch1', mentionCount: 3);
+      final channel = ChannelModel(id: 'ch1', mentionCount: 3, mentionCountRoot: 2);
       expect(channel.hasMention, true);
     });
 

@@ -519,7 +519,7 @@ class _ChannelListTileState extends State<_ChannelListTile> {
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
-              channel.mentionCount.toString(),
+              channel.mentionCountRoot.toString(),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 12,

@@ -371,6 +371,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
         return Column(
           children: [
+            if (showDateSeparator)
+              _buildDateSeparator(post.createAt),
+            if (showUnreadSeparator) _buildUnreadSeparator(),
             MessageBubble(
               post: post,
               isOwn: isOwn,
@@ -408,9 +411,6 @@ class _ChatScreenState extends State<ChatScreen> {
               onRemoveReaction: (post, emoji) =>
                   _chatBloc.add(RemoveReaction(postId: post.id, emojiName: emoji)),
             ),
-            if (showUnreadSeparator) _buildUnreadSeparator(),
-            if (showDateSeparator)
-              _buildDateSeparator(post.createAt),
           ],
         );
       },

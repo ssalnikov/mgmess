@@ -51,10 +51,10 @@ class Channel extends Equatable {
     this.isMuted = false,
   });
 
-  int get unreadCount => isMuted ? 0 : totalMsgCount - msgCount;
+  int get unreadCount => isMuted ? 0 : totalMsgCountRoot - msgCountRoot;
   int get unreadCountRoot => totalMsgCountRoot - msgCountRoot;
-  bool get hasUnread => !isMuted && (totalMsgCount - msgCount) > 0;
-  bool get hasMention => mentionCount > 0;
+  bool get hasUnread => !isMuted && (totalMsgCountRoot - msgCountRoot) > 0;
+  bool get hasMention => mentionCountRoot > 0;
   bool get hasUrgent => urgentMentionCount > 0;
   bool get isDirect => type == ChannelType.direct;
   bool get isGroup => type == ChannelType.group;

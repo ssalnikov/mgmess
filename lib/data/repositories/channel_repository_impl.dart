@@ -71,7 +71,12 @@ class ChannelRepositoryImpl implements ChannelRepository {
 
           return channel.copyWith(
             msgCount: (member['msg_count'] as num?)?.toInt() ?? 0,
+            msgCountRoot: (member['msg_count_root'] as num?)?.toInt() ?? 0,
             mentionCount: (member['mention_count'] as num?)?.toInt() ?? 0,
+            mentionCountRoot:
+                (member['mention_count_root'] as num?)?.toInt() ?? 0,
+            urgentMentionCount:
+                (member['urgent_mention_count'] as num?)?.toInt() ?? 0,
             lastViewedAt: (member['last_viewed_at'] as num?)?.toInt() ?? 0,
             isMuted: isMuted,
           );

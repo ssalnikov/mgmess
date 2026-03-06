@@ -473,7 +473,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     int totalMentions = 0;
     for (final c in channels) {
       if (!c.isMuted) {
-        totalMentions += c.mentionCount;
+        totalMentions += c.mentionCountRoot;
       }
     }
     try {

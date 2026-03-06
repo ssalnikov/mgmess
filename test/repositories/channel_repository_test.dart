@@ -60,6 +60,7 @@ void main() {
     displayName: 'General',
     type: ChannelType.open,
     totalMsgCount: 100,
+    totalMsgCountRoot: 80,
     lastPostAt: 1700000000000,
   );
 
@@ -70,6 +71,7 @@ void main() {
     displayName: 'Random',
     type: ChannelType.open,
     totalMsgCount: 50,
+    totalMsgCountRoot: 40,
   );
 
   const directChannel = ChannelModel(
@@ -91,14 +93,20 @@ void main() {
                   {
                     'channel_id': 'ch1',
                     'msg_count': 95,
+                    'msg_count_root': 75,
                     'mention_count': 2,
+                    'mention_count_root': 1,
+                    'urgent_mention_count': 0,
                     'last_viewed_at': 1699999990000,
                     'notify_props': {'mark_unread': 'all'},
                   },
                   {
                     'channel_id': 'ch2',
                     'msg_count': 50,
+                    'msg_count_root': 40,
                     'mention_count': 0,
+                    'mention_count_root': 0,
+                    'urgent_mention_count': 0,
                     'last_viewed_at': 1700000000000,
                     'notify_props': {'mark_unread': 'mention'},
                   },

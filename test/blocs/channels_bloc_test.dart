@@ -36,7 +36,9 @@ void main() {
       type: ChannelType.open,
       lastPostAt: 3000,
       totalMsgCount: 10,
+      totalMsgCountRoot: 10,
       msgCount: 5,
+      msgCountRoot: 5,
     ),
     Channel(
       id: 'ch2',
@@ -45,7 +47,9 @@ void main() {
       type: ChannelType.private_,
       lastPostAt: 2000,
       totalMsgCount: 20,
+      totalMsgCountRoot: 20,
       msgCount: 20,
+      msgCountRoot: 20,
     ),
   ];
 

@@ -1,7 +1,9 @@
 import 'package:get_it/get_it.dart';
 
 import '../../data/datasources/local/app_database.dart';
+import '../../data/datasources/local/channel_category_local_datasource.dart';
 import '../../data/datasources/local/channel_local_datasource.dart';
+import '../../data/datasources/local/daos/channel_category_dao.dart';
 import '../../data/datasources/local/daos/channel_dao.dart';
 import '../../data/datasources/local/daos/post_dao.dart';
 import '../../data/datasources/local/daos/user_dao.dart';
@@ -62,6 +64,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => PostDao(sl<AppDatabase>()));
   sl.registerLazySingleton(() => ChannelDao(sl<AppDatabase>()));
   sl.registerLazySingleton(() => UserDao(sl<AppDatabase>()));
+  sl.registerLazySingleton(() => ChannelCategoryDao(sl<AppDatabase>()));
 
   // Local Data Sources
   sl.registerLazySingleton(
@@ -70,6 +73,8 @@ Future<void> initDependencies() async {
       () => ChannelLocalDataSource(dao: sl()));
   sl.registerLazySingleton(
       () => UserLocalDataSource(dao: sl()));
+  sl.registerLazySingleton(
+      () => ChannelCategoryLocalDataSource(dao: sl()));
 
   // Remote Data Sources
   sl.registerLazySingleton(
@@ -114,6 +119,7 @@ Future<void> initDependencies() async {
     () => ChannelRepositoryImpl(
       remoteDataSource: sl(),
       localDataSource: sl(),
+      categoryLocalDataSource: sl(),
       networkInfo: sl(),
       userRemoteDataSource: sl(),
     ),

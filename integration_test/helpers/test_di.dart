@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:mgmess/core/config/app_config.dart';
 import 'package:mgmess/core/di/injection.dart';
 import 'package:mgmess/domain/entities/channel.dart';
+import 'package:mgmess/domain/entities/channel_category.dart';
 import 'package:mgmess/domain/entities/channel_stats.dart';
 import 'package:mgmess/domain/entities/user.dart';
 import 'package:mgmess/core/network/network_info.dart';
@@ -111,6 +112,10 @@ Future<TestMocks> initTestDependencies() async {
       .thenAnswer((_) async => const Right(null));
   when(() => channelRepo.autocompleteChannels(any(), any()))
       .thenAnswer((_) async => const Right(<Channel>[]));
+  when(() => channelRepo.getChannelCategories(any(), any()))
+      .thenAnswer((_) async => const Right(<ChannelCategory>[]));
+  when(() => channelRepo.updateChannelCategory(any(), any(), any(), any()))
+      .thenAnswer((_) async => const Right(null));
 
   // Дефолтные стабы для NotificationRepository
   when(() => notificationRepo.registerDeviceToken(any()))

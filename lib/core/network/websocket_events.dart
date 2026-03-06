@@ -24,6 +24,8 @@ class WsEventType {
   static const String leaveTeam = 'leave_team';
   static const String updateTeam = 'update_team';
   static const String sidebarCategoryUpdated = 'sidebar_category_updated';
+  static const String sidebarCategoryCreated = 'sidebar_category_created';
+  static const String sidebarCategoryDeleted = 'sidebar_category_deleted';
 }
 
 class WsEvent {

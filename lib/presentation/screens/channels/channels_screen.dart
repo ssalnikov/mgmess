@@ -17,6 +17,7 @@ import '../../blocs/auth/auth_state.dart';
 import '../../blocs/notification/notification_bloc.dart';
 import '../../blocs/notification/notification_event.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
+import 'widgets/category_header.dart';
 import 'widgets/channel_skeleton.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/user_avatar.dart';
@@ -120,7 +121,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                   if (state.hasSearchQuery) {
                     return _buildSearchResults(state);
                   }
-                  return _buildChannelList(state);
+                  return _buildGroupedChannelList(state);
                 },
               ),
             ),
@@ -154,24 +155,59 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     );
   }
 
-  Widget _buildChannelList(ChannelsState state) {
+  Widget _buildGroupedChannelList(ChannelsState state) {
     return RefreshIndicator(
       onRefresh: () async {
         HapticFeedback.selectionClick();
         _channelsBloc.add(const RefreshChannels());
       },
-      child: ListView.builder(
-        itemCount: state.filteredChannels.length + 2, // +2 for Threads and Drafts
-        itemBuilder: (context, index) {
-          if (index == 0) return _buildThreadsRow();
-          if (index == 1) return _buildDraftsRow();
-          final channelIndex = index - 2;
-          return _ChannelListTile(
-            key: ValueKey(state.filteredChannels[channelIndex].id),
-            channel: state.filteredChannels[channelIndex],
-            currentUserId: _currentUserId,
-          );
-        },
+      child: CustomScrollView(
+        slivers: [
+          // Fixed items at top
+          SliverToBoxAdapter(child: _buildThreadsRow()),
+          SliverToBoxAdapter(child: _buildDraftsRow()),
+
+          // Grouped sections
+          for (final section in state.sections) ...[
+            // Section header
+            if (section.title.isNotEmpty)
+              SliverToBoxAdapter(
+                child: CategoryHeader(
+                  title: section.title,
+                  collapsed: section.collapsed,
+                  onToggle: section.isUnreads
+                      ? null
+                      : () => _channelsBloc.add(
+                            ToggleCategoryCollapsed(
+                              categoryId: section.id,
+                            ),
+                          ),
+                  unreadCount: section.isUnreads
+                      ? section.channels
+                          .where((c) => c.hasUnread || c.hasMention)
+                          .length
+                      : null,
+                ),
+              ),
+            // Section channels
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final channel = section.channels[index];
+                  return _ChannelListTile(
+                    key: ValueKey(channel.id),
+                    channel: channel,
+                    currentUserId: _currentUserId,
+                  );
+                },
+                childCount: section.channels.length,
+              ),
+            ),
+          ],
+
+          // Bottom padding
+          const SliverPadding(padding: EdgeInsets.only(bottom: 80)),
+        ],
       ),
     );
   }
@@ -216,9 +252,9 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     }
 
     if (sections.isEmpty && !state.isSearching) {
-      return Center(
+      return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(32),
           child: Text(
             'No results found',
             style: AppTextStyles.bodySmall,

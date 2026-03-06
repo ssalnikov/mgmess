@@ -2837,17 +2837,622 @@ class UsersCompanion extends UpdateCompanion<User> {
   }
 }
 
+class $ChannelCategoriesTable extends ChannelCategories
+    with TableInfo<$ChannelCategoriesTable, ChannelCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChannelCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _teamIdMeta = const VerificationMeta('teamId');
+  @override
+  late final GeneratedColumn<String> teamId = GeneratedColumn<String>(
+    'team_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+    'user_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('channels'),
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _collapsedMeta = const VerificationMeta(
+    'collapsed',
+  );
+  @override
+  late final GeneratedColumn<bool> collapsed = GeneratedColumn<bool>(
+    'collapsed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("collapsed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _channelIdsJsonMeta = const VerificationMeta(
+    'channelIdsJson',
+  );
+  @override
+  late final GeneratedColumn<String> channelIdsJson = GeneratedColumn<String>(
+    'channel_ids_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('[]'),
+  );
+  static const VerificationMeta _sortingMeta = const VerificationMeta(
+    'sorting',
+  );
+  @override
+  late final GeneratedColumn<String> sorting = GeneratedColumn<String>(
+    'sorting',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('default'),
+  );
+  static const VerificationMeta _mutedMeta = const VerificationMeta('muted');
+  @override
+  late final GeneratedColumn<bool> muted = GeneratedColumn<bool>(
+    'muted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("muted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    teamId,
+    userId,
+    type,
+    displayName,
+    collapsed,
+    channelIdsJson,
+    sorting,
+    muted,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'channel_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ChannelCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('team_id')) {
+      context.handle(
+        _teamIdMeta,
+        teamId.isAcceptableOrUnknown(data['team_id']!, _teamIdMeta),
+      );
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(
+        _userIdMeta,
+        userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta),
+      );
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('collapsed')) {
+      context.handle(
+        _collapsedMeta,
+        collapsed.isAcceptableOrUnknown(data['collapsed']!, _collapsedMeta),
+      );
+    }
+    if (data.containsKey('channel_ids_json')) {
+      context.handle(
+        _channelIdsJsonMeta,
+        channelIdsJson.isAcceptableOrUnknown(
+          data['channel_ids_json']!,
+          _channelIdsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sorting')) {
+      context.handle(
+        _sortingMeta,
+        sorting.isAcceptableOrUnknown(data['sorting']!, _sortingMeta),
+      );
+    }
+    if (data.containsKey('muted')) {
+      context.handle(
+        _mutedMeta,
+        muted.isAcceptableOrUnknown(data['muted']!, _mutedMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ChannelCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ChannelCategory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      teamId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}team_id'],
+      )!,
+      userId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}user_id'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      collapsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}collapsed'],
+      )!,
+      channelIdsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}channel_ids_json'],
+      )!,
+      sorting: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sorting'],
+      )!,
+      muted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}muted'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $ChannelCategoriesTable createAlias(String alias) {
+    return $ChannelCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class ChannelCategory extends DataClass implements Insertable<ChannelCategory> {
+  final String id;
+  final String teamId;
+  final String userId;
+  final String type;
+  final String displayName;
+  final bool collapsed;
+  final String channelIdsJson;
+  final String sorting;
+  final bool muted;
+  final int sortOrder;
+  const ChannelCategory({
+    required this.id,
+    required this.teamId,
+    required this.userId,
+    required this.type,
+    required this.displayName,
+    required this.collapsed,
+    required this.channelIdsJson,
+    required this.sorting,
+    required this.muted,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['team_id'] = Variable<String>(teamId);
+    map['user_id'] = Variable<String>(userId);
+    map['type'] = Variable<String>(type);
+    map['display_name'] = Variable<String>(displayName);
+    map['collapsed'] = Variable<bool>(collapsed);
+    map['channel_ids_json'] = Variable<String>(channelIdsJson);
+    map['sorting'] = Variable<String>(sorting);
+    map['muted'] = Variable<bool>(muted);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  ChannelCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return ChannelCategoriesCompanion(
+      id: Value(id),
+      teamId: Value(teamId),
+      userId: Value(userId),
+      type: Value(type),
+      displayName: Value(displayName),
+      collapsed: Value(collapsed),
+      channelIdsJson: Value(channelIdsJson),
+      sorting: Value(sorting),
+      muted: Value(muted),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory ChannelCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ChannelCategory(
+      id: serializer.fromJson<String>(json['id']),
+      teamId: serializer.fromJson<String>(json['teamId']),
+      userId: serializer.fromJson<String>(json['userId']),
+      type: serializer.fromJson<String>(json['type']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      collapsed: serializer.fromJson<bool>(json['collapsed']),
+      channelIdsJson: serializer.fromJson<String>(json['channelIdsJson']),
+      sorting: serializer.fromJson<String>(json['sorting']),
+      muted: serializer.fromJson<bool>(json['muted']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'teamId': serializer.toJson<String>(teamId),
+      'userId': serializer.toJson<String>(userId),
+      'type': serializer.toJson<String>(type),
+      'displayName': serializer.toJson<String>(displayName),
+      'collapsed': serializer.toJson<bool>(collapsed),
+      'channelIdsJson': serializer.toJson<String>(channelIdsJson),
+      'sorting': serializer.toJson<String>(sorting),
+      'muted': serializer.toJson<bool>(muted),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  ChannelCategory copyWith({
+    String? id,
+    String? teamId,
+    String? userId,
+    String? type,
+    String? displayName,
+    bool? collapsed,
+    String? channelIdsJson,
+    String? sorting,
+    bool? muted,
+    int? sortOrder,
+  }) => ChannelCategory(
+    id: id ?? this.id,
+    teamId: teamId ?? this.teamId,
+    userId: userId ?? this.userId,
+    type: type ?? this.type,
+    displayName: displayName ?? this.displayName,
+    collapsed: collapsed ?? this.collapsed,
+    channelIdsJson: channelIdsJson ?? this.channelIdsJson,
+    sorting: sorting ?? this.sorting,
+    muted: muted ?? this.muted,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  ChannelCategory copyWithCompanion(ChannelCategoriesCompanion data) {
+    return ChannelCategory(
+      id: data.id.present ? data.id.value : this.id,
+      teamId: data.teamId.present ? data.teamId.value : this.teamId,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      type: data.type.present ? data.type.value : this.type,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      collapsed: data.collapsed.present ? data.collapsed.value : this.collapsed,
+      channelIdsJson: data.channelIdsJson.present
+          ? data.channelIdsJson.value
+          : this.channelIdsJson,
+      sorting: data.sorting.present ? data.sorting.value : this.sorting,
+      muted: data.muted.present ? data.muted.value : this.muted,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChannelCategory(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('userId: $userId, ')
+          ..write('type: $type, ')
+          ..write('displayName: $displayName, ')
+          ..write('collapsed: $collapsed, ')
+          ..write('channelIdsJson: $channelIdsJson, ')
+          ..write('sorting: $sorting, ')
+          ..write('muted: $muted, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    teamId,
+    userId,
+    type,
+    displayName,
+    collapsed,
+    channelIdsJson,
+    sorting,
+    muted,
+    sortOrder,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ChannelCategory &&
+          other.id == this.id &&
+          other.teamId == this.teamId &&
+          other.userId == this.userId &&
+          other.type == this.type &&
+          other.displayName == this.displayName &&
+          other.collapsed == this.collapsed &&
+          other.channelIdsJson == this.channelIdsJson &&
+          other.sorting == this.sorting &&
+          other.muted == this.muted &&
+          other.sortOrder == this.sortOrder);
+}
+
+class ChannelCategoriesCompanion extends UpdateCompanion<ChannelCategory> {
+  final Value<String> id;
+  final Value<String> teamId;
+  final Value<String> userId;
+  final Value<String> type;
+  final Value<String> displayName;
+  final Value<bool> collapsed;
+  final Value<String> channelIdsJson;
+  final Value<String> sorting;
+  final Value<bool> muted;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const ChannelCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.teamId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.collapsed = const Value.absent(),
+    this.channelIdsJson = const Value.absent(),
+    this.sorting = const Value.absent(),
+    this.muted = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChannelCategoriesCompanion.insert({
+    required String id,
+    this.teamId = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.type = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.collapsed = const Value.absent(),
+    this.channelIdsJson = const Value.absent(),
+    this.sorting = const Value.absent(),
+    this.muted = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<ChannelCategory> custom({
+    Expression<String>? id,
+    Expression<String>? teamId,
+    Expression<String>? userId,
+    Expression<String>? type,
+    Expression<String>? displayName,
+    Expression<bool>? collapsed,
+    Expression<String>? channelIdsJson,
+    Expression<String>? sorting,
+    Expression<bool>? muted,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (teamId != null) 'team_id': teamId,
+      if (userId != null) 'user_id': userId,
+      if (type != null) 'type': type,
+      if (displayName != null) 'display_name': displayName,
+      if (collapsed != null) 'collapsed': collapsed,
+      if (channelIdsJson != null) 'channel_ids_json': channelIdsJson,
+      if (sorting != null) 'sorting': sorting,
+      if (muted != null) 'muted': muted,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChannelCategoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? teamId,
+    Value<String>? userId,
+    Value<String>? type,
+    Value<String>? displayName,
+    Value<bool>? collapsed,
+    Value<String>? channelIdsJson,
+    Value<String>? sorting,
+    Value<bool>? muted,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return ChannelCategoriesCompanion(
+      id: id ?? this.id,
+      teamId: teamId ?? this.teamId,
+      userId: userId ?? this.userId,
+      type: type ?? this.type,
+      displayName: displayName ?? this.displayName,
+      collapsed: collapsed ?? this.collapsed,
+      channelIdsJson: channelIdsJson ?? this.channelIdsJson,
+      sorting: sorting ?? this.sorting,
+      muted: muted ?? this.muted,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (teamId.present) {
+      map['team_id'] = Variable<String>(teamId.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (collapsed.present) {
+      map['collapsed'] = Variable<bool>(collapsed.value);
+    }
+    if (channelIdsJson.present) {
+      map['channel_ids_json'] = Variable<String>(channelIdsJson.value);
+    }
+    if (sorting.present) {
+      map['sorting'] = Variable<String>(sorting.value);
+    }
+    if (muted.present) {
+      map['muted'] = Variable<bool>(muted.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChannelCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('teamId: $teamId, ')
+          ..write('userId: $userId, ')
+          ..write('type: $type, ')
+          ..write('displayName: $displayName, ')
+          ..write('collapsed: $collapsed, ')
+          ..write('channelIdsJson: $channelIdsJson, ')
+          ..write('sorting: $sorting, ')
+          ..write('muted: $muted, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $PostsTable posts = $PostsTable(this);
   late final $ChannelsTable channels = $ChannelsTable(this);
   late final $UsersTable users = $UsersTable(this);
+  late final $ChannelCategoriesTable channelCategories =
+      $ChannelCategoriesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [posts, channels, users];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    posts,
+    channels,
+    users,
+    channelCategories,
+  ];
 }
 
 typedef $$PostsTableCreateCompanionBuilder =
@@ -4161,6 +4766,314 @@ typedef $$UsersTableProcessedTableManager =
       User,
       PrefetchHooks Function()
     >;
+typedef $$ChannelCategoriesTableCreateCompanionBuilder =
+    ChannelCategoriesCompanion Function({
+      required String id,
+      Value<String> teamId,
+      Value<String> userId,
+      Value<String> type,
+      Value<String> displayName,
+      Value<bool> collapsed,
+      Value<String> channelIdsJson,
+      Value<String> sorting,
+      Value<bool> muted,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$ChannelCategoriesTableUpdateCompanionBuilder =
+    ChannelCategoriesCompanion Function({
+      Value<String> id,
+      Value<String> teamId,
+      Value<String> userId,
+      Value<String> type,
+      Value<String> displayName,
+      Value<bool> collapsed,
+      Value<String> channelIdsJson,
+      Value<String> sorting,
+      Value<bool> muted,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+class $$ChannelCategoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $ChannelCategoriesTable> {
+  $$ChannelCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get teamId => $composableBuilder(
+    column: $table.teamId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get collapsed => $composableBuilder(
+    column: $table.collapsed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get channelIdsJson => $composableBuilder(
+    column: $table.channelIdsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sorting => $composableBuilder(
+    column: $table.sorting,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get muted => $composableBuilder(
+    column: $table.muted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ChannelCategoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $ChannelCategoriesTable> {
+  $$ChannelCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get teamId => $composableBuilder(
+    column: $table.teamId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+    column: $table.userId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get collapsed => $composableBuilder(
+    column: $table.collapsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get channelIdsJson => $composableBuilder(
+    column: $table.channelIdsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sorting => $composableBuilder(
+    column: $table.sorting,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get muted => $composableBuilder(
+    column: $table.muted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ChannelCategoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ChannelCategoriesTable> {
+  $$ChannelCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get teamId =>
+      $composableBuilder(column: $table.teamId, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get collapsed =>
+      $composableBuilder(column: $table.collapsed, builder: (column) => column);
+
+  GeneratedColumn<String> get channelIdsJson => $composableBuilder(
+    column: $table.channelIdsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sorting =>
+      $composableBuilder(column: $table.sorting, builder: (column) => column);
+
+  GeneratedColumn<bool> get muted =>
+      $composableBuilder(column: $table.muted, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+}
+
+class $$ChannelCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ChannelCategoriesTable,
+          ChannelCategory,
+          $$ChannelCategoriesTableFilterComposer,
+          $$ChannelCategoriesTableOrderingComposer,
+          $$ChannelCategoriesTableAnnotationComposer,
+          $$ChannelCategoriesTableCreateCompanionBuilder,
+          $$ChannelCategoriesTableUpdateCompanionBuilder,
+          (
+            ChannelCategory,
+            BaseReferences<
+              _$AppDatabase,
+              $ChannelCategoriesTable,
+              ChannelCategory
+            >,
+          ),
+          ChannelCategory,
+          PrefetchHooks Function()
+        > {
+  $$ChannelCategoriesTableTableManager(
+    _$AppDatabase db,
+    $ChannelCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChannelCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChannelCategoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChannelCategoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> teamId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<bool> collapsed = const Value.absent(),
+                Value<String> channelIdsJson = const Value.absent(),
+                Value<String> sorting = const Value.absent(),
+                Value<bool> muted = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChannelCategoriesCompanion(
+                id: id,
+                teamId: teamId,
+                userId: userId,
+                type: type,
+                displayName: displayName,
+                collapsed: collapsed,
+                channelIdsJson: channelIdsJson,
+                sorting: sorting,
+                muted: muted,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String> teamId = const Value.absent(),
+                Value<String> userId = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<bool> collapsed = const Value.absent(),
+                Value<String> channelIdsJson = const Value.absent(),
+                Value<String> sorting = const Value.absent(),
+                Value<bool> muted = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChannelCategoriesCompanion.insert(
+                id: id,
+                teamId: teamId,
+                userId: userId,
+                type: type,
+                displayName: displayName,
+                collapsed: collapsed,
+                channelIdsJson: channelIdsJson,
+                sorting: sorting,
+                muted: muted,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ChannelCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ChannelCategoriesTable,
+      ChannelCategory,
+      $$ChannelCategoriesTableFilterComposer,
+      $$ChannelCategoriesTableOrderingComposer,
+      $$ChannelCategoriesTableAnnotationComposer,
+      $$ChannelCategoriesTableCreateCompanionBuilder,
+      $$ChannelCategoriesTableUpdateCompanionBuilder,
+      (
+        ChannelCategory,
+        BaseReferences<_$AppDatabase, $ChannelCategoriesTable, ChannelCategory>,
+      ),
+      ChannelCategory,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4171,4 +5084,6 @@ class $AppDatabaseManager {
       $$ChannelsTableTableManager(_db, _db.channels);
   $$UsersTableTableManager get users =>
       $$UsersTableTableManager(_db, _db.users);
+  $$ChannelCategoriesTableTableManager get channelCategories =>
+      $$ChannelCategoriesTableTableManager(_db, _db.channelCategories);
 }

@@ -3,6 +3,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:mgmess/core/error/exceptions.dart';
 import 'package:mgmess/core/error/failures.dart';
 import 'package:mgmess/core/network/network_info.dart';
+import 'package:mgmess/data/datasources/local/channel_category_local_datasource.dart';
 import 'package:mgmess/data/datasources/local/channel_local_datasource.dart';
 import 'package:mgmess/data/datasources/remote/channel_remote_datasource.dart';
 import 'package:mgmess/data/datasources/remote/user_remote_datasource.dart';
@@ -17,6 +18,9 @@ class MockChannelRemoteDataSource extends Mock
 class MockChannelLocalDataSource extends Mock
     implements ChannelLocalDataSource {}
 
+class MockChannelCategoryLocalDataSource extends Mock
+    implements ChannelCategoryLocalDataSource {}
+
 class MockNetworkInfo extends Mock implements NetworkInfo {}
 
 class MockUserRemoteDataSource extends Mock
@@ -25,6 +29,7 @@ class MockUserRemoteDataSource extends Mock
 void main() {
   late MockChannelRemoteDataSource mockRemote;
   late MockChannelLocalDataSource mockLocal;
+  late MockChannelCategoryLocalDataSource mockCategoryLocal;
   late MockNetworkInfo mockNetworkInfo;
   late MockUserRemoteDataSource mockUserRemote;
   late ChannelRepositoryImpl repository;
@@ -32,11 +37,13 @@ void main() {
   setUp(() {
     mockRemote = MockChannelRemoteDataSource();
     mockLocal = MockChannelLocalDataSource();
+    mockCategoryLocal = MockChannelCategoryLocalDataSource();
     mockNetworkInfo = MockNetworkInfo();
     mockUserRemote = MockUserRemoteDataSource();
     repository = ChannelRepositoryImpl(
       remoteDataSource: mockRemote,
       localDataSource: mockLocal,
+      categoryLocalDataSource: mockCategoryLocal,
       networkInfo: mockNetworkInfo,
       userRemoteDataSource: mockUserRemote,
     );

@@ -1,6 +1,7 @@
 import '../../../core/error/exceptions.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
+import '../../models/channel_category_model.dart';
 import '../../models/channel_model.dart';
 import '../../models/channel_stats_model.dart';
 
@@ -151,6 +152,76 @@ class ChannelRemoteDataSource {
       );
     } catch (e) {
       throw ServerException(message: 'Failed to leave channel: $e');
+    }
+  }
+
+  Future<List<ChannelCategoryModel>> getChannelCategories(
+    String userId,
+    String teamId,
+  ) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.channelCategories(userId, teamId),
+      );
+      final data = response.data as Map<String, dynamic>;
+      final categories = data['categories'] as List<dynamic>? ?? [];
+      final order = (data['order'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [];
+
+      final models = categories
+          .map((c) => ChannelCategoryModel.fromJson(c as Map<String, dynamic>))
+          .toList();
+
+      // Apply server-defined order
+      if (order.isNotEmpty) {
+        final orderMap = <String, int>{};
+        for (var i = 0; i < order.length; i++) {
+          orderMap[order[i]] = i;
+        }
+        models.sort((a, b) {
+          final ai = orderMap[a.id] ?? 999;
+          final bi = orderMap[b.id] ?? 999;
+          return ai.compareTo(bi);
+        });
+        // Set sortOrder based on position
+        return [
+          for (var i = 0; i < models.length; i++)
+            ChannelCategoryModel(
+              id: models[i].id,
+              teamId: models[i].teamId,
+              userId: models[i].userId,
+              type: models[i].type,
+              displayName: models[i].displayName,
+              collapsed: models[i].collapsed,
+              channelIds: models[i].channelIds,
+              sorting: models[i].sorting,
+              muted: models[i].muted,
+              sortOrder: i,
+            ),
+        ];
+      }
+      return models;
+    } catch (e) {
+      throw ServerException(message: 'Failed to get channel categories: $e');
+    }
+  }
+
+  Future<void> updateChannelCategory(
+    String userId,
+    String teamId,
+    String categoryId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      await _apiClient.dio.put(
+        ApiEndpoints.channelCategory(userId, teamId, categoryId),
+        data: data,
+      );
+    } catch (e) {
+      throw ServerException(
+          message: 'Failed to update channel category: $e');
     }
   }
 

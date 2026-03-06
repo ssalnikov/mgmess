@@ -79,16 +79,32 @@ class Users extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class ChannelCategories extends Table {
+  TextColumn get id => text()();
+  TextColumn get teamId => text().withDefault(const Constant(''))();
+  TextColumn get userId => text().withDefault(const Constant(''))();
+  TextColumn get type => text().withDefault(const Constant('channels'))();
+  TextColumn get displayName => text().withDefault(const Constant(''))();
+  BoolColumn get collapsed => boolean().withDefault(const Constant(false))();
+  TextColumn get channelIdsJson => text().withDefault(const Constant('[]'))();
+  TextColumn get sorting => text().withDefault(const Constant('default'))();
+  BoolColumn get muted => boolean().withDefault(const Constant(false))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 // --- Database ---
 
-@DriftDatabase(tables: [Posts, Channels, Users])
+@DriftDatabase(tables: [Posts, Channels, Users, ChannelCategories])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -98,6 +114,9 @@ class AppDatabase extends _$AppDatabase {
             await migrator.addColumn(channels, channels.msgCountRoot);
             await migrator.addColumn(channels, channels.mentionCountRoot);
             await migrator.addColumn(channels, channels.urgentMentionCount);
+          }
+          if (from < 3) {
+            await migrator.createTable(channelCategories);
           }
         },
       );

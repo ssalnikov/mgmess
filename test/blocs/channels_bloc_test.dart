@@ -7,6 +7,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:mgmess/core/error/failures.dart';
 import 'package:mgmess/core/network/websocket_events.dart';
 import 'package:mgmess/domain/entities/channel.dart';
+import 'package:mgmess/domain/entities/channel_category.dart';
 import 'package:mgmess/domain/repositories/channel_repository.dart';
 import 'package:mgmess/domain/repositories/user_repository.dart';
 import 'package:mgmess/presentation/screens/channels/channels_bloc.dart';
@@ -22,6 +23,9 @@ void main() {
   setUp(() {
     mockRepo = MockChannelRepository();
     mockUserRepo = MockUserRepository();
+    // Default stub for categories (always returns empty)
+    when(() => mockRepo.getChannelCategories(any(), any()))
+        .thenAnswer((_) async => const Right(<ChannelCategory>[]));
   });
 
   const channels = [
@@ -66,6 +70,11 @@ void main() {
               (s) => s.channels.first.id,
               'first channel (sorted by lastPostAt)',
               'ch1',
+            )
+            .having(
+              (s) => s.sections.isNotEmpty,
+              'sections populated',
+              true,
             ),
       ],
     );
@@ -645,6 +654,114 @@ void main() {
               'unreadCountRoot is 1',
               1,
             ),
+      ],
+    );
+
+    // --- Channel grouping tests ---
+
+    blocTest<ChannelsBloc, ChannelsState>(
+      'LoadChannels with categories builds grouped sections',
+      build: () {
+        // Create enough channels so some remain in regular categories
+        final testChannels = <Channel>[
+          const Channel(
+            id: 'ch1', name: 'general', displayName: 'General',
+            type: ChannelType.open, lastPostAt: 3000,
+            totalMsgCount: 10, msgCount: 5, // unread
+          ),
+          const Channel(
+            id: 'ch2', name: 'dev', displayName: 'Development',
+            type: ChannelType.open, lastPostAt: 2000,
+            totalMsgCount: 20, msgCount: 20, // read
+          ),
+          const Channel(
+            id: 'dm1', name: 'user1__user2', displayName: '',
+            type: ChannelType.direct, lastPostAt: 4000,
+            totalMsgCount: 5, msgCount: 5, // read
+          ),
+        ];
+        when(() => mockRepo.getChannelsForUser(any(), any()))
+            .thenAnswer((_) async => Right(testChannels));
+        when(() => mockRepo.getChannelCategories(any(), any()))
+            .thenAnswer((_) async => const Right([
+                  ChannelCategory(
+                    id: 'cat_channels',
+                    type: ChannelCategoryType.channels,
+                    channelIds: ['ch1', 'ch2'],
+                  ),
+                  ChannelCategory(
+                    id: 'cat_dms',
+                    type: ChannelCategoryType.directMessages,
+                    channelIds: ['dm1'],
+                  ),
+                ]));
+        return ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo);
+      },
+      act: (bloc) => bloc.add(const LoadChannels(
+        userId: 'user1',
+        teamId: 'team1',
+      )),
+      expect: () => [
+        isA<ChannelsState>().having((s) => s.isLoading, 'isLoading', true),
+        isA<ChannelsState>()
+            .having((s) => s.isLoading, 'isLoading', false)
+            .having((s) => s.sections.isNotEmpty, 'has sections', true)
+            .having(
+              (s) => s.sections.first.isUnreads,
+              'first section is unreads',
+              true,
+            )
+            .having(
+              (s) => s.sections.first.channels.any((c) => c.id == 'ch1'),
+              'unread ch1 in unreads section',
+              true,
+            )
+            .having(
+              (s) => s.categories.length,
+              'categories loaded',
+              2,
+            ),
+      ],
+    );
+
+    blocTest<ChannelsBloc, ChannelsState>(
+      'ToggleCategoryCollapsed toggles collapsed state',
+      build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
+      seed: () => const ChannelsState(
+        channels: [
+          Channel(
+            id: 'ch1', name: 'general', displayName: 'General',
+            type: ChannelType.open, lastPostAt: 2000,
+            totalMsgCount: 5, msgCount: 5,
+          ),
+        ],
+        filteredChannels: [
+          Channel(
+            id: 'ch1', name: 'general', displayName: 'General',
+            type: ChannelType.open, lastPostAt: 2000,
+            totalMsgCount: 5, msgCount: 5,
+          ),
+        ],
+        categories: [
+          ChannelCategory(
+            id: 'cat1',
+            type: ChannelCategoryType.channels,
+            channelIds: ['ch1'],
+            collapsed: false,
+          ),
+        ],
+      ),
+      act: (bloc) {
+        when(() => mockRepo.updateChannelCategory(any(), any(), any(), any()))
+            .thenAnswer((_) async => const Right(null));
+        bloc.add(const ToggleCategoryCollapsed(categoryId: 'cat1'));
+      },
+      expect: () => [
+        isA<ChannelsState>().having(
+          (s) => s.categories.first.collapsed,
+          'collapsed is true',
+          true,
+        ),
       ],
     );
   });

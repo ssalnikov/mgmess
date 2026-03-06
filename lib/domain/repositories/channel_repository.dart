@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../core/error/failures.dart';
 import '../entities/channel.dart';
+import '../entities/channel_category.dart';
 import '../entities/channel_stats.dart';
 import '../entities/user.dart';
 
@@ -40,5 +41,15 @@ abstract class ChannelRepository {
   Future<Either<Failure, List<Channel>>> autocompleteChannels(
     String teamId,
     String term,
+  );
+  Future<Either<Failure, List<ChannelCategory>>> getChannelCategories(
+    String userId,
+    String teamId,
+  );
+  Future<Either<Failure, void>> updateChannelCategory(
+    String userId,
+    String teamId,
+    String categoryId,
+    Map<String, dynamic> data,
   );
 }

@@ -5,9 +5,11 @@ import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/channel.dart';
+import '../../domain/entities/channel_category.dart';
 import '../../domain/entities/channel_stats.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/channel_repository.dart';
+import '../datasources/local/channel_category_local_datasource.dart';
 import '../datasources/local/channel_local_datasource.dart';
 import '../datasources/remote/channel_remote_datasource.dart';
 import '../datasources/remote/user_remote_datasource.dart';
@@ -15,16 +17,19 @@ import '../datasources/remote/user_remote_datasource.dart';
 class ChannelRepositoryImpl implements ChannelRepository {
   final ChannelRemoteDataSource _remoteDataSource;
   final ChannelLocalDataSource _localDataSource;
+  final ChannelCategoryLocalDataSource _categoryLocalDataSource;
   final NetworkInfo _networkInfo;
   final UserRemoteDataSource _userRemoteDataSource;
 
   ChannelRepositoryImpl({
     required ChannelRemoteDataSource remoteDataSource,
     required ChannelLocalDataSource localDataSource,
+    required ChannelCategoryLocalDataSource categoryLocalDataSource,
     required NetworkInfo networkInfo,
     required UserRemoteDataSource userRemoteDataSource,
   })  : _remoteDataSource = remoteDataSource,
         _localDataSource = localDataSource,
+        _categoryLocalDataSource = categoryLocalDataSource,
         _networkInfo = networkInfo,
         _userRemoteDataSource = userRemoteDataSource;
 
@@ -223,6 +228,55 @@ class ChannelRepositoryImpl implements ChannelRepository {
       final channels =
           await _remoteDataSource.autocompleteChannels(teamId, term);
       return Right(channels);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ChannelCategory>>> getChannelCategories(
+    String userId,
+    String teamId,
+  ) async {
+    try {
+      if (await _networkInfo.isConnected) {
+        final categories =
+            await _remoteDataSource.getChannelCategories(userId, teamId);
+        // Cache in background
+        _categoryLocalDataSource
+            .cacheCategories(categories, userId: userId)
+            .catchError((e) {
+          debugPrint('ChannelRepo: category cache error: $e');
+        });
+        return Right(categories);
+      } else {
+        final cached = await _categoryLocalDataSource.getCategories(userId);
+        return Right(cached);
+      }
+    } on ServerException catch (e) {
+      // On server error, try cache as fallback
+      try {
+        final cached = await _categoryLocalDataSource.getCategories(userId);
+        if (cached.isNotEmpty) return Right(cached);
+      } catch (_) {}
+      return Left(ServerFailure(message: e.message));
+    } on CacheException catch (e) {
+      return Left(CacheFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateChannelCategory(
+    String userId,
+    String teamId,
+    String categoryId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      await _remoteDataSource.updateChannelCategory(
+        userId, teamId, categoryId, data,
+      );
+      return const Right(null);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

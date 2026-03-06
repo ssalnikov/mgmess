@@ -18,6 +18,8 @@ import '../integration_test/scenarios/edit_delete_message_test.dart'
     as edit_delete;
 import '../integration_test/scenarios/unread_counter_test.dart'
     as unread_counter;
+import '../integration_test/scenarios/channel_grouping_test.dart'
+    as channel_grouping;
 
 void main() {
   auth_flow.main();
@@ -29,4 +31,5 @@ void main() {
   thread_nav.main();
   edit_delete.main();
   unread_counter.main();
+  channel_grouping.main();
 }

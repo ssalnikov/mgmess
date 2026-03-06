@@ -120,6 +120,22 @@ WsEvent createChannelViewedEvent({
   );
 }
 
+/// Создаёт WsEvent для sidebar_category_updated.
+WsEvent createSidebarCategoryUpdatedEvent({
+  String? userId,
+  String? teamId,
+}) {
+  return WsEvent(
+    event: WsEventType.sidebarCategoryUpdated,
+    data: {
+      if (teamId != null) 'team_id': teamId,
+    },
+    broadcast: {
+      if (userId != null) 'user_id': userId,
+    },
+  );
+}
+
 /// Создаёт WsEvent для индикатора набора текста.
 WsEvent createTypingEvent({
   required String channelId,

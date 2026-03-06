@@ -121,6 +121,30 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<Either<Failure, void>> updateCustomStatus(
+    String userId, {
+    required String emoji,
+    required String text,
+  }) async {
+    try {
+      await _remoteDataSource.updateCustomStatus(userId, emoji: emoji, text: text);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteCustomStatus(String userId) async {
+    try {
+      await _remoteDataSource.deleteCustomStatus(userId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   String getUserImageUrl(String userId) =>
       '${AppConfig.baseUrl}${ApiEndpoints.userImage(userId)}';
 }

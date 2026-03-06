@@ -102,6 +102,20 @@ Future<TestMocks> initTestDependencies() async {
       .thenAnswer((_) async => const Right([]));
   when(() => userRepo.updateUserStatus(any(), any()))
       .thenAnswer((_) async => const Right(null));
+  when(() => userRepo.updateCustomStatus(any(),
+          emoji: any(named: 'emoji'), text: any(named: 'text')))
+      .thenAnswer((_) async => const Right(null));
+  when(() => userRepo.deleteCustomStatus(any()))
+      .thenAnswer((_) async => const Right(null));
+  when(() => userRepo.getUsersByIds(any()))
+      .thenAnswer((_) async => const Right([
+            User(
+              id: 'user-002',
+              username: 'otheruser',
+              firstName: 'Other',
+              lastName: 'User',
+            ),
+          ]));
 
   // Дефолтные стабы для ChannelRepository
   when(() => channelRepo.getChannelStats(any()))

@@ -9,12 +9,14 @@ import '../../../core/config/app_config.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/emoji_map.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
 import '../../widgets/restart_widget.dart';
 import '../../widgets/user_avatar.dart';
+import '../../widgets/user_display_name.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -37,9 +39,11 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Center(
-                child: Text(
-                  user.displayName,
+                child: UserDisplayName(
+                  userId: user.id,
+                  displayName: user.displayName,
                   style: AppTextStyles.heading1,
+                  fallbackEmoji: user.customStatusEmoji,
                 ),
               ),
               const SizedBox(height: 4),
@@ -58,7 +62,9 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _CustomStatusButton(userId: user.id),
+              const SizedBox(height: 12),
               _StatusSelector(userId: user.id),
               const SizedBox(height: 24),
               _ProfileItem(
@@ -154,6 +160,346 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _CustomStatusButton extends StatelessWidget {
+  final String userId;
+
+  const _CustomStatusButton({required this.userId});
+
+  static const _presets = [
+    _CustomStatusPreset('calendar', 'В совещании'),
+    _CustomStatusPreset('car', 'В пути'),
+    _CustomStatusPreset('sick', 'Болею'),
+    _CustomStatusPreset('house', 'Работаю из дома'),
+    _CustomStatusPreset('palm_tree', 'В отпуске'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<UserStatusCubit, UserStatusState>(
+      builder: (context, state) {
+        final cs = state.customStatuses[userId];
+        final hasStatus = cs != null && cs.isNotEmpty;
+
+        String label = 'Установить статус';
+        String? emojiChar;
+        if (hasStatus) {
+          final shortcode = cs.emoji.replaceAll(':', '');
+          emojiChar = emojiMap[shortcode] ?? cs.emoji;
+          label = cs.text.isNotEmpty ? cs.text : 'Статус';
+        }
+
+        return Center(
+          child: InkWell(
+            onTap: () => _showCustomStatusSheet(context, cs),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.divider),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (emojiChar != null) ...[
+                    Text(emojiChar, style: const TextStyle(fontSize: 18)),
+                    const SizedBox(width: 8),
+                  ] else ...[
+                    const Icon(Icons.emoji_emotions_outlined,
+                        size: 18, color: AppColors.textSecondary),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      style: hasStatus
+                          ? AppTextStyles.body
+                          : AppTextStyles.body
+                              .copyWith(color: AppColors.textSecondary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCustomStatusSheet(BuildContext context, CustomStatus? current) {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return _CustomStatusSheet(
+          userId: userId,
+          current: current,
+          presets: _presets,
+          parentContext: context,
+        );
+      },
+    );
+  }
+}
+
+class _CustomStatusPreset {
+  final String emoji;
+  final String text;
+
+  const _CustomStatusPreset(this.emoji, this.text);
+}
+
+class _CustomStatusSheet extends StatefulWidget {
+  final String userId;
+  final CustomStatus? current;
+  final List<_CustomStatusPreset> presets;
+  final BuildContext parentContext;
+
+  const _CustomStatusSheet({
+    required this.userId,
+    required this.current,
+    required this.presets,
+    required this.parentContext,
+  });
+
+  @override
+  State<_CustomStatusSheet> createState() => _CustomStatusSheetState();
+}
+
+class _CustomStatusSheetState extends State<_CustomStatusSheet> {
+  late TextEditingController _textController;
+  late String _selectedEmoji;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController =
+        TextEditingController(text: widget.current?.text ?? '');
+    _selectedEmoji = widget.current?.emoji ?? '';
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.divider,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Center(
+                child: Text('Пользовательский статус',
+                    style: AppTextStyles.heading2),
+              ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _showEmojiPicker,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.divider),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        alignment: Alignment.center,
+                        child: _selectedEmoji.isNotEmpty
+                            ? Text(
+                                _emojiChar(_selectedEmoji),
+                                style: const TextStyle(fontSize: 24),
+                              )
+                            : const Icon(Icons.emoji_emotions_outlined,
+                                color: AppColors.textSecondary),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        decoration: const InputDecoration(
+                          hintText: 'Что у вас нового?',
+                          border: OutlineInputBorder(),
+                          isDense: true,
+                        ),
+                        maxLength: 100,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text('Быстрый выбор',
+                    style: AppTextStyles.caption),
+              ),
+              const SizedBox(height: 4),
+              for (final preset in widget.presets)
+                ListTile(
+                  leading: Text(
+                    _emojiChar(preset.emoji),
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  title: Text(preset.text),
+                  dense: true,
+                  onTap: () {
+                    setState(() {
+                      _selectedEmoji = preset.emoji;
+                      _textController.text = preset.text;
+                    });
+                  },
+                ),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    if (widget.current != null &&
+                        widget.current!.isNotEmpty)
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _clearStatus,
+                          child: const Text('Очистить'),
+                        ),
+                      ),
+                    if (widget.current != null &&
+                        widget.current!.isNotEmpty)
+                      const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _saveStatus,
+                        child: const Text('Сохранить'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _emojiChar(String code) {
+    final shortcode = code.replaceAll(':', '');
+    return emojiMap[shortcode] ?? code;
+  }
+
+  void _showEmojiPicker() {
+    final commonEmojis = [
+      'smile', 'grinning', 'heart_eyes', 'thumbsup', 'thumbsdown',
+      'wave', 'clap', 'fire', 'rocket', 'star',
+      'coffee', 'beer', 'pizza', 'hamburger', 'tada',
+      'calendar', 'car', 'house', 'palm_tree', 'sick',
+      'computer', 'phone', 'books', 'bulb', 'muscle',
+      'eyes', 'brain', 'sleeping', 'thinking', 'sunglasses',
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Выберите эмодзи', style: AppTextStyles.heading2),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: commonEmojis.map((code) {
+                    final char = emojiMap[code] ?? ':$code:';
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        setState(() => _selectedEmoji = code);
+                      },
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: _selectedEmoji == code
+                              ? AppColors.accent.withValues(alpha: 0.15)
+                              : null,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(char,
+                            style: const TextStyle(fontSize: 24)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _saveStatus() {
+    final emoji = _selectedEmoji.isNotEmpty
+        ? _selectedEmoji
+        : 'speech_balloon';
+    final text = _textController.text.trim();
+    if (text.isEmpty && _selectedEmoji.isEmpty) return;
+
+    HapticFeedback.selectionClick();
+    widget.parentContext.read<UserStatusCubit>().updateCustomStatus(
+          widget.userId,
+          emoji: emoji,
+          text: text,
+        );
+    Navigator.pop(context);
+  }
+
+  void _clearStatus() {
+    HapticFeedback.selectionClick();
+    widget.parentContext.read<UserStatusCubit>().clearCustomStatus(widget.userId);
+    Navigator.pop(context);
   }
 }
 

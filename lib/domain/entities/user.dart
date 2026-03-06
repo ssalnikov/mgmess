@@ -13,6 +13,8 @@ class User extends Equatable {
   final int updateAt;
   final int deleteAt;
   final String status;
+  final String customStatusEmoji;
+  final String customStatusText;
 
   const User({
     required this.id,
@@ -27,6 +29,8 @@ class User extends Equatable {
     this.updateAt = 0,
     this.deleteAt = 0,
     this.status = 'offline',
+    this.customStatusEmoji = '',
+    this.customStatusText = '',
   });
 
   String get displayName {

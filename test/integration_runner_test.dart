@@ -20,6 +20,8 @@ import '../integration_test/scenarios/unread_counter_test.dart'
     as unread_counter;
 import '../integration_test/scenarios/channel_grouping_test.dart'
     as channel_grouping;
+import '../integration_test/scenarios/custom_status_test.dart'
+    as custom_status;
 
 void main() {
   auth_flow.main();
@@ -32,4 +34,5 @@ void main() {
   edit_delete.main();
   unread_counter.main();
   channel_grouping.main();
+  custom_status.main();
 }

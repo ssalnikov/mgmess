@@ -10,6 +10,7 @@ import '../../../domain/repositories/channel_repository.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/user_avatar.dart';
+import '../../widgets/user_display_name.dart';
 
 class ChannelMembersScreen extends StatefulWidget {
   final String channelId;
@@ -201,7 +202,12 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     final user = member.user;
     return ListTile(
       leading: UserAvatar(userId: user.id, radius: 20),
-      title: Text(user.displayName, style: AppTextStyles.username),
+      title: UserDisplayName(
+        userId: user.id,
+        displayName: user.displayName,
+        style: AppTextStyles.username,
+        fallbackEmoji: user.customStatusEmoji,
+      ),
       subtitle: Text(
         '@${user.username}',
         style: AppTextStyles.caption,

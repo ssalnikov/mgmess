@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../domain/entities/user.dart';
 
 class UserModel extends User {
@@ -14,9 +16,31 @@ class UserModel extends User {
     super.updateAt,
     super.deleteAt,
     super.status,
+    super.customStatusEmoji,
+    super.customStatusText,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    String customEmoji = '';
+    String customText = '';
+
+    final props = json['props'] as Map<String, dynamic>? ?? {};
+    final rawCustomStatus = props['customStatus'];
+    if (rawCustomStatus != null) {
+      Map<String, dynamic>? csMap;
+      if (rawCustomStatus is Map<String, dynamic>) {
+        csMap = rawCustomStatus;
+      } else if (rawCustomStatus is String && rawCustomStatus.isNotEmpty) {
+        try {
+          csMap = jsonDecode(rawCustomStatus) as Map<String, dynamic>?;
+        } catch (_) {}
+      }
+      if (csMap != null) {
+        customEmoji = csMap['emoji'] as String? ?? '';
+        customText = csMap['text'] as String? ?? '';
+      }
+    }
+
     return UserModel(
       id: json['id'] as String? ?? '',
       username: json['username'] as String? ?? '',
@@ -29,6 +53,8 @@ class UserModel extends User {
       createAt: json['create_at'] as int? ?? 0,
       updateAt: json['update_at'] as int? ?? 0,
       deleteAt: json['delete_at'] as int? ?? 0,
+      customStatusEmoji: customEmoji,
+      customStatusText: customText,
     );
   }
 

@@ -11,5 +11,7 @@ abstract class UserRepository {
   Future<Either<Failure, List<User>>> autocompleteUsers(String name, {String? channelId});
   Future<Either<Failure, Map<String, String>>> getUserStatuses(List<String> userIds);
   Future<Either<Failure, void>> updateUserStatus(String userId, String status);
+  Future<Either<Failure, void>> updateCustomStatus(String userId, {required String emoji, required String text});
+  Future<Either<Failure, void>> deleteCustomStatus(String userId);
   String getUserImageUrl(String userId);
 }

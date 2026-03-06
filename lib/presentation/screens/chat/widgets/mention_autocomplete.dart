@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../domain/entities/user.dart';
 import '../../../widgets/user_avatar.dart';
+import '../../../widgets/user_display_name.dart';
 
 class MentionAutocomplete extends StatelessWidget {
   final List<User> users;
@@ -46,13 +47,13 @@ class MentionAutocomplete extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            user.displayName,
+                          UserDisplayName(
+                            userId: user.id,
+                            displayName: user.displayName,
                             style: AppTextStyles.body.copyWith(
                               fontWeight: FontWeight.w500,
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                            fallbackEmoji: user.customStatusEmoji,
                           ),
                           Text(
                             '@${user.username}',

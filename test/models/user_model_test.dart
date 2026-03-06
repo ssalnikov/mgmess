@@ -82,5 +82,88 @@ void main() {
       expect(user.id, '');
       expect(user.username, '');
     });
+
+    group('custom status', () {
+      test('fromJson parses customStatus from props as Map', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus': {
+              'emoji': 'palm_tree',
+              'text': 'On vacation',
+            },
+          },
+        });
+        expect(user.customStatusEmoji, 'palm_tree');
+        expect(user.customStatusText, 'On vacation');
+      });
+
+      test('fromJson parses customStatus from props as JSON string', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus':
+                '{"emoji":"coffee","text":"Having lunch"}',
+          },
+        });
+        expect(user.customStatusEmoji, 'coffee');
+        expect(user.customStatusText, 'Having lunch');
+      });
+
+      test('fromJson returns empty custom status when props missing', () {
+        final user = UserModel.fromJson(json);
+        expect(user.customStatusEmoji, '');
+        expect(user.customStatusText, '');
+      });
+
+      test('fromJson returns empty custom status when props has no customStatus', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {'some_other_key': 'value'},
+        });
+        expect(user.customStatusEmoji, '');
+        expect(user.customStatusText, '');
+      });
+
+      test('fromJson handles empty customStatus string', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {'customStatus': ''},
+        });
+        expect(user.customStatusEmoji, '');
+        expect(user.customStatusText, '');
+      });
+
+      test('fromJson handles malformed customStatus JSON string', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {'customStatus': 'not-json'},
+        });
+        expect(user.customStatusEmoji, '');
+        expect(user.customStatusText, '');
+      });
+
+      test('fromJson handles customStatus with only emoji', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus': {'emoji': 'rocket'},
+          },
+        });
+        expect(user.customStatusEmoji, 'rocket');
+        expect(user.customStatusText, '');
+      });
+
+      test('fromJson handles customStatus with only text', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus': {'text': 'Busy'},
+          },
+        });
+        expect(user.customStatusEmoji, '');
+        expect(user.customStatusText, 'Busy');
+      });
+    });
   });
 }

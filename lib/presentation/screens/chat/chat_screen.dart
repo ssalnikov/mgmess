@@ -10,16 +10,19 @@ import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/post.dart';
 import '../../../domain/repositories/channel_repository.dart';
 import '../../../domain/repositories/post_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 import '../../../domain/services/ws_post_parser.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/notification/notification_bloc.dart';
 import '../../blocs/notification/notification_event.dart';
+import '../../blocs/user_status/user_status_cubit.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
 import '../../utils/forward_helper.dart';
 import 'widgets/message_skeleton.dart';
 import '../../widgets/swipe_back_wrapper.dart';
 import '../../widgets/user_avatar.dart';
+import '../../widgets/user_display_name.dart';
 import 'chat_bloc.dart';
 import 'widgets/message_bubble.dart';
 import 'widgets/message_input.dart';
@@ -99,7 +102,19 @@ class _ChatScreenState extends State<ChatScreen> {
     // Load member count for non-DM channels
     if (widget.dmUserId == null) {
       _loadMemberCount();
+    } else {
+      _loadDmUserCustomStatus();
     }
+  }
+
+  Future<void> _loadDmUserCustomStatus() async {
+    final result =
+        await sl<UserRepository>().getUsersByIds([widget.dmUserId!]);
+    result.fold((_) {}, (users) {
+      if (users.isNotEmpty && mounted) {
+        context.read<UserStatusCubit>().setCustomStatusFromUser(users.first);
+      }
+    });
   }
 
   Future<void> _loadMemberCount() async {
@@ -204,9 +219,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                            widget.channelName,
-                            overflow: TextOverflow.ellipsis,
+                          child: UserDisplayName(
+                            userId: widget.dmUserId!,
+                            displayName: widget.channelName,
                           ),
                         ),
                       ],

@@ -100,6 +100,31 @@ class UserRemoteDataSource {
     }
   }
 
+  Future<void> updateCustomStatus(
+    String userId, {
+    required String emoji,
+    required String text,
+  }) async {
+    try {
+      await _apiClient.dio.put(
+        ApiEndpoints.userCustomStatus(userId),
+        data: {'emoji': emoji, 'text': text},
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to update custom status: $e');
+    }
+  }
+
+  Future<void> deleteCustomStatus(String userId) async {
+    try {
+      await _apiClient.dio.delete(
+        ApiEndpoints.userCustomStatus(userId),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to delete custom status: $e');
+    }
+  }
+
   Future<Map<String, String>> getUserStatuses(
     List<String> userIds,
   ) async {

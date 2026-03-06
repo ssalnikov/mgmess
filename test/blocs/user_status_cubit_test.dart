@@ -9,6 +9,8 @@ import 'package:mgmess/core/network/websocket_events.dart';
 import 'package:mgmess/domain/repositories/user_repository.dart';
 import 'package:mgmess/presentation/blocs/user_status/user_status_cubit.dart';
 
+import 'package:mgmess/domain/entities/user.dart';
+
 class MockUserRepository extends Mock implements UserRepository {}
 
 void main() {
@@ -225,6 +227,210 @@ void main() {
           const UserStatusState(statuses: {}),
         ],
       );
+    });
+
+    group('custom status', () {
+      test('initial state has empty customStatuses', () {
+        final cubit = UserStatusCubit(userRepository: mockUserRepository);
+        expect(cubit.state.customStatuses, isEmpty);
+        cubit.close();
+      });
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'setCustomStatusFromUser sets custom status',
+        build: () =>
+            UserStatusCubit(userRepository: mockUserRepository),
+        act: (cubit) => cubit.setCustomStatusFromUser(const User(
+          id: 'user1',
+          username: 'test',
+          customStatusEmoji: 'palm_tree',
+          customStatusText: 'On vacation',
+        )),
+        expect: () => [
+          const UserStatusState(customStatuses: {
+            'user1': CustomStatus(emoji: 'palm_tree', text: 'On vacation'),
+          }),
+        ],
+      );
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'setCustomStatusFromUser removes custom status when empty',
+        seed: () => const UserStatusState(customStatuses: {
+          'user1': CustomStatus(emoji: 'palm_tree', text: 'On vacation'),
+        }),
+        build: () =>
+            UserStatusCubit(userRepository: mockUserRepository),
+        act: (cubit) => cubit.setCustomStatusFromUser(const User(
+          id: 'user1',
+          username: 'test',
+        )),
+        expect: () => [
+          const UserStatusState(customStatuses: {}),
+        ],
+      );
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'updateCustomStatus optimistically updates on success',
+        build: () {
+          when(() => mockUserRepository.updateCustomStatus(
+                any(),
+                emoji: any(named: 'emoji'),
+                text: any(named: 'text'),
+              )).thenAnswer((_) async => const Right(null));
+          return UserStatusCubit(userRepository: mockUserRepository);
+        },
+        act: (cubit) => cubit.updateCustomStatus(
+          'user1',
+          emoji: 'rocket',
+          text: 'Launching',
+        ),
+        expect: () => [
+          const UserStatusState(customStatuses: {
+            'user1': CustomStatus(emoji: 'rocket', text: 'Launching'),
+          }),
+        ],
+        verify: (_) {
+          verify(() => mockUserRepository.updateCustomStatus(
+                'user1',
+                emoji: 'rocket',
+                text: 'Launching',
+              )).called(1);
+        },
+      );
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'updateCustomStatus rolls back on error',
+        seed: () => const UserStatusState(customStatuses: {
+          'user1': CustomStatus(emoji: 'palm_tree', text: 'On vacation'),
+        }),
+        build: () {
+          when(() => mockUserRepository.updateCustomStatus(
+                any(),
+                emoji: any(named: 'emoji'),
+                text: any(named: 'text'),
+              )).thenAnswer((_) async =>
+              const Left(ServerFailure(message: 'Error')));
+          return UserStatusCubit(userRepository: mockUserRepository);
+        },
+        act: (cubit) => cubit.updateCustomStatus(
+          'user1',
+          emoji: 'rocket',
+          text: 'Launching',
+        ),
+        expect: () => [
+          const UserStatusState(customStatuses: {
+            'user1': CustomStatus(emoji: 'rocket', text: 'Launching'),
+          }),
+          const UserStatusState(customStatuses: {
+            'user1': CustomStatus(emoji: 'palm_tree', text: 'On vacation'),
+          }),
+        ],
+      );
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'clearCustomStatus removes custom status on success',
+        seed: () => const UserStatusState(customStatuses: {
+          'user1': CustomStatus(emoji: 'rocket', text: 'Launching'),
+        }),
+        build: () {
+          when(() => mockUserRepository.deleteCustomStatus(any()))
+              .thenAnswer((_) async => const Right(null));
+          return UserStatusCubit(userRepository: mockUserRepository);
+        },
+        act: (cubit) => cubit.clearCustomStatus('user1'),
+        expect: () => [
+          const UserStatusState(customStatuses: {}),
+        ],
+        verify: (_) {
+          verify(() => mockUserRepository.deleteCustomStatus('user1'))
+              .called(1);
+        },
+      );
+
+      blocTest<UserStatusCubit, UserStatusState>(
+        'clearCustomStatus rolls back on error',
+        seed: () => const UserStatusState(customStatuses: {
+          'user1': CustomStatus(emoji: 'rocket', text: 'Launching'),
+        }),
+        build: () {
+          when(() => mockUserRepository.deleteCustomStatus(any()))
+              .thenAnswer((_) async =>
+                  const Left(ServerFailure(message: 'Error')));
+          return UserStatusCubit(userRepository: mockUserRepository);
+        },
+        act: (cubit) => cubit.clearCustomStatus('user1'),
+        expect: () => [
+          const UserStatusState(customStatuses: {}),
+          const UserStatusState(customStatuses: {
+            'user1': CustomStatus(emoji: 'rocket', text: 'Launching'),
+          }),
+        ],
+      );
+
+      test('WS user_updated event updates custom status', () async {
+        final wsController = StreamController<WsEvent>.broadcast();
+        final cubit =
+            UserStatusCubit(userRepository: mockUserRepository);
+
+        cubit.subscribeToWs(wsController.stream);
+
+        wsController.add(const WsEvent(
+          event: 'user_updated',
+          data: {
+            'user': {
+              'id': 'user1',
+              'username': 'test',
+              'props': {
+                'customStatus': {
+                  'emoji': 'coffee',
+                  'text': 'Having lunch',
+                },
+              },
+            },
+          },
+        ));
+
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        expect(cubit.state.customStatuses['user1'],
+            const CustomStatus(emoji: 'coffee', text: 'Having lunch'));
+
+        await cubit.close();
+        await wsController.close();
+      });
+
+      test('WS user_updated removes custom status when empty', () async {
+        final wsController = StreamController<WsEvent>.broadcast();
+        final cubit =
+            UserStatusCubit(userRepository: mockUserRepository);
+
+        // Set initial custom status
+        cubit.setCustomStatusFromUser(const User(
+          id: 'user1',
+          username: 'test',
+          customStatusEmoji: 'coffee',
+          customStatusText: 'Having lunch',
+        ));
+
+        cubit.subscribeToWs(wsController.stream);
+
+        wsController.add(const WsEvent(
+          event: 'user_updated',
+          data: {
+            'user': {
+              'id': 'user1',
+              'username': 'test',
+            },
+          },
+        ));
+
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        expect(cubit.state.customStatuses['user1'], isNull);
+
+        await cubit.close();
+        await wsController.close();
+      });
     });
 
     group('requestStatus', () {

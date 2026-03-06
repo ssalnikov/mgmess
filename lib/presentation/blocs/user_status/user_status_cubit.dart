@@ -4,19 +4,44 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../core/network/websocket_events.dart';
+import '../../../data/models/user_model.dart';
+import '../../../domain/entities/user.dart';
 import '../../../domain/repositories/user_repository.dart';
+
+class CustomStatus extends Equatable {
+  final String emoji;
+  final String text;
+
+  const CustomStatus({required this.emoji, required this.text});
+
+  bool get isEmpty => emoji.isEmpty && text.isEmpty;
+  bool get isNotEmpty => !isEmpty;
+
+  @override
+  List<Object?> get props => [emoji, text];
+}
 
 class UserStatusState extends Equatable {
   final Map<String, String> statuses;
+  final Map<String, CustomStatus> customStatuses;
 
-  const UserStatusState({this.statuses = const {}});
+  const UserStatusState({
+    this.statuses = const {},
+    this.customStatuses = const {},
+  });
 
-  UserStatusState copyWith({Map<String, String>? statuses}) {
-    return UserStatusState(statuses: statuses ?? this.statuses);
+  UserStatusState copyWith({
+    Map<String, String>? statuses,
+    Map<String, CustomStatus>? customStatuses,
+  }) {
+    return UserStatusState(
+      statuses: statuses ?? this.statuses,
+      customStatuses: customStatuses ?? this.customStatuses,
+    );
   }
 
   @override
-  List<Object?> get props => [statuses];
+  List<Object?> get props => [statuses, customStatuses];
 }
 
 class UserStatusCubit extends Cubit<UserStatusState> {
@@ -41,8 +66,31 @@ class UserStatusCubit extends Cubit<UserStatusState> {
           updated[userId] = status;
           emit(state.copyWith(statuses: updated));
         }
+      } else if (event.event == WsEventType.userUpdated) {
+        final userJson = event.data['user'] as Map<String, dynamic>?;
+        if (userJson != null) {
+          final user = UserModel.fromJson(userJson);
+          _updateCustomStatusFromUser(user);
+        }
       }
     });
+  }
+
+  void _updateCustomStatusFromUser(User user) {
+    final updated = Map<String, CustomStatus>.from(state.customStatuses);
+    if (user.customStatusEmoji.isEmpty && user.customStatusText.isEmpty) {
+      updated.remove(user.id);
+    } else {
+      updated[user.id] = CustomStatus(
+        emoji: user.customStatusEmoji,
+        text: user.customStatusText,
+      );
+    }
+    emit(state.copyWith(customStatuses: updated));
+  }
+
+  void setCustomStatusFromUser(User user) {
+    _updateCustomStatusFromUser(user);
   }
 
   Future<void> fetchStatuses(List<String> userIds) async {
@@ -75,6 +123,54 @@ class UserStatusCubit extends Cubit<UserStatusState> {
           rollback.remove(userId);
         }
         emit(state.copyWith(statuses: rollback));
+      },
+      (_) {},
+    );
+  }
+
+  Future<void> updateCustomStatus(
+    String userId, {
+    required String emoji,
+    required String text,
+  }) async {
+    final previous = state.customStatuses[userId];
+    final updated = Map<String, CustomStatus>.from(state.customStatuses);
+    updated[userId] = CustomStatus(emoji: emoji, text: text);
+    emit(state.copyWith(customStatuses: updated));
+
+    final result = await _userRepository.updateCustomStatus(
+      userId,
+      emoji: emoji,
+      text: text,
+    );
+    result.fold(
+      (_) {
+        final rollback = Map<String, CustomStatus>.from(state.customStatuses);
+        if (previous != null) {
+          rollback[userId] = previous;
+        } else {
+          rollback.remove(userId);
+        }
+        emit(state.copyWith(customStatuses: rollback));
+      },
+      (_) {},
+    );
+  }
+
+  Future<void> clearCustomStatus(String userId) async {
+    final previous = state.customStatuses[userId];
+    final updated = Map<String, CustomStatus>.from(state.customStatuses);
+    updated.remove(userId);
+    emit(state.copyWith(customStatuses: updated));
+
+    final result = await _userRepository.deleteCustomStatus(userId);
+    result.fold(
+      (_) {
+        if (previous != null) {
+          final rollback = Map<String, CustomStatus>.from(state.customStatuses);
+          rollback[userId] = previous;
+          emit(state.copyWith(customStatuses: rollback));
+        }
       },
       (_) {},
     );

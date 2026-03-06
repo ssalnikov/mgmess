@@ -2302,6 +2302,31 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     requiredDuringInsert: false,
     defaultValue: const Constant('offline'),
   );
+  static const VerificationMeta _customStatusEmojiMeta = const VerificationMeta(
+    'customStatusEmoji',
+  );
+  @override
+  late final GeneratedColumn<String> customStatusEmoji =
+      GeneratedColumn<String>(
+        'custom_status_emoji',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(''),
+      );
+  static const VerificationMeta _customStatusTextMeta = const VerificationMeta(
+    'customStatusText',
+  );
+  @override
+  late final GeneratedColumn<String> customStatusText = GeneratedColumn<String>(
+    'custom_status_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2316,6 +2341,8 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
     updateAt,
     deleteAt,
     status,
+    customStatusEmoji,
+    customStatusText,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2400,6 +2427,24 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         status.isAcceptableOrUnknown(data['status']!, _statusMeta),
       );
     }
+    if (data.containsKey('custom_status_emoji')) {
+      context.handle(
+        _customStatusEmojiMeta,
+        customStatusEmoji.isAcceptableOrUnknown(
+          data['custom_status_emoji']!,
+          _customStatusEmojiMeta,
+        ),
+      );
+    }
+    if (data.containsKey('custom_status_text')) {
+      context.handle(
+        _customStatusTextMeta,
+        customStatusText.isAcceptableOrUnknown(
+          data['custom_status_text']!,
+          _customStatusTextMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2457,6 +2502,14 @@ class $UsersTable extends Users with TableInfo<$UsersTable, User> {
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      customStatusEmoji: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_status_emoji'],
+      )!,
+      customStatusText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_status_text'],
+      )!,
     );
   }
 
@@ -2479,6 +2532,8 @@ class User extends DataClass implements Insertable<User> {
   final int updateAt;
   final int deleteAt;
   final String status;
+  final String customStatusEmoji;
+  final String customStatusText;
   const User({
     required this.id,
     required this.username,
@@ -2492,6 +2547,8 @@ class User extends DataClass implements Insertable<User> {
     required this.updateAt,
     required this.deleteAt,
     required this.status,
+    required this.customStatusEmoji,
+    required this.customStatusText,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2508,6 +2565,8 @@ class User extends DataClass implements Insertable<User> {
     map['update_at'] = Variable<int>(updateAt);
     map['delete_at'] = Variable<int>(deleteAt);
     map['status'] = Variable<String>(status);
+    map['custom_status_emoji'] = Variable<String>(customStatusEmoji);
+    map['custom_status_text'] = Variable<String>(customStatusText);
     return map;
   }
 
@@ -2525,6 +2584,8 @@ class User extends DataClass implements Insertable<User> {
       updateAt: Value(updateAt),
       deleteAt: Value(deleteAt),
       status: Value(status),
+      customStatusEmoji: Value(customStatusEmoji),
+      customStatusText: Value(customStatusText),
     );
   }
 
@@ -2546,6 +2607,8 @@ class User extends DataClass implements Insertable<User> {
       updateAt: serializer.fromJson<int>(json['updateAt']),
       deleteAt: serializer.fromJson<int>(json['deleteAt']),
       status: serializer.fromJson<String>(json['status']),
+      customStatusEmoji: serializer.fromJson<String>(json['customStatusEmoji']),
+      customStatusText: serializer.fromJson<String>(json['customStatusText']),
     );
   }
   @override
@@ -2564,6 +2627,8 @@ class User extends DataClass implements Insertable<User> {
       'updateAt': serializer.toJson<int>(updateAt),
       'deleteAt': serializer.toJson<int>(deleteAt),
       'status': serializer.toJson<String>(status),
+      'customStatusEmoji': serializer.toJson<String>(customStatusEmoji),
+      'customStatusText': serializer.toJson<String>(customStatusText),
     };
   }
 
@@ -2580,6 +2645,8 @@ class User extends DataClass implements Insertable<User> {
     int? updateAt,
     int? deleteAt,
     String? status,
+    String? customStatusEmoji,
+    String? customStatusText,
   }) => User(
     id: id ?? this.id,
     username: username ?? this.username,
@@ -2593,6 +2660,8 @@ class User extends DataClass implements Insertable<User> {
     updateAt: updateAt ?? this.updateAt,
     deleteAt: deleteAt ?? this.deleteAt,
     status: status ?? this.status,
+    customStatusEmoji: customStatusEmoji ?? this.customStatusEmoji,
+    customStatusText: customStatusText ?? this.customStatusText,
   );
   User copyWithCompanion(UsersCompanion data) {
     return User(
@@ -2608,6 +2677,12 @@ class User extends DataClass implements Insertable<User> {
       updateAt: data.updateAt.present ? data.updateAt.value : this.updateAt,
       deleteAt: data.deleteAt.present ? data.deleteAt.value : this.deleteAt,
       status: data.status.present ? data.status.value : this.status,
+      customStatusEmoji: data.customStatusEmoji.present
+          ? data.customStatusEmoji.value
+          : this.customStatusEmoji,
+      customStatusText: data.customStatusText.present
+          ? data.customStatusText.value
+          : this.customStatusText,
     );
   }
 
@@ -2625,7 +2700,9 @@ class User extends DataClass implements Insertable<User> {
           ..write('createAt: $createAt, ')
           ..write('updateAt: $updateAt, ')
           ..write('deleteAt: $deleteAt, ')
-          ..write('status: $status')
+          ..write('status: $status, ')
+          ..write('customStatusEmoji: $customStatusEmoji, ')
+          ..write('customStatusText: $customStatusText')
           ..write(')'))
         .toString();
   }
@@ -2644,6 +2721,8 @@ class User extends DataClass implements Insertable<User> {
     updateAt,
     deleteAt,
     status,
+    customStatusEmoji,
+    customStatusText,
   );
   @override
   bool operator ==(Object other) =>
@@ -2660,7 +2739,9 @@ class User extends DataClass implements Insertable<User> {
           other.createAt == this.createAt &&
           other.updateAt == this.updateAt &&
           other.deleteAt == this.deleteAt &&
-          other.status == this.status);
+          other.status == this.status &&
+          other.customStatusEmoji == this.customStatusEmoji &&
+          other.customStatusText == this.customStatusText);
 }
 
 class UsersCompanion extends UpdateCompanion<User> {
@@ -2676,6 +2757,8 @@ class UsersCompanion extends UpdateCompanion<User> {
   final Value<int> updateAt;
   final Value<int> deleteAt;
   final Value<String> status;
+  final Value<String> customStatusEmoji;
+  final Value<String> customStatusText;
   final Value<int> rowid;
   const UsersCompanion({
     this.id = const Value.absent(),
@@ -2690,6 +2773,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.updateAt = const Value.absent(),
     this.deleteAt = const Value.absent(),
     this.status = const Value.absent(),
+    this.customStatusEmoji = const Value.absent(),
+    this.customStatusText = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   UsersCompanion.insert({
@@ -2705,6 +2790,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     this.updateAt = const Value.absent(),
     this.deleteAt = const Value.absent(),
     this.status = const Value.absent(),
+    this.customStatusEmoji = const Value.absent(),
+    this.customStatusText = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id);
   static Insertable<User> custom({
@@ -2720,6 +2807,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Expression<int>? updateAt,
     Expression<int>? deleteAt,
     Expression<String>? status,
+    Expression<String>? customStatusEmoji,
+    Expression<String>? customStatusText,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2735,6 +2824,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       if (updateAt != null) 'update_at': updateAt,
       if (deleteAt != null) 'delete_at': deleteAt,
       if (status != null) 'status': status,
+      if (customStatusEmoji != null) 'custom_status_emoji': customStatusEmoji,
+      if (customStatusText != null) 'custom_status_text': customStatusText,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2752,6 +2843,8 @@ class UsersCompanion extends UpdateCompanion<User> {
     Value<int>? updateAt,
     Value<int>? deleteAt,
     Value<String>? status,
+    Value<String>? customStatusEmoji,
+    Value<String>? customStatusText,
     Value<int>? rowid,
   }) {
     return UsersCompanion(
@@ -2767,6 +2860,8 @@ class UsersCompanion extends UpdateCompanion<User> {
       updateAt: updateAt ?? this.updateAt,
       deleteAt: deleteAt ?? this.deleteAt,
       status: status ?? this.status,
+      customStatusEmoji: customStatusEmoji ?? this.customStatusEmoji,
+      customStatusText: customStatusText ?? this.customStatusText,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2810,6 +2905,12 @@ class UsersCompanion extends UpdateCompanion<User> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (customStatusEmoji.present) {
+      map['custom_status_emoji'] = Variable<String>(customStatusEmoji.value);
+    }
+    if (customStatusText.present) {
+      map['custom_status_text'] = Variable<String>(customStatusText.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2831,6 +2932,8 @@ class UsersCompanion extends UpdateCompanion<User> {
           ..write('updateAt: $updateAt, ')
           ..write('deleteAt: $deleteAt, ')
           ..write('status: $status, ')
+          ..write('customStatusEmoji: $customStatusEmoji, ')
+          ..write('customStatusText: $customStatusText, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4454,6 +4557,8 @@ typedef $$UsersTableCreateCompanionBuilder =
       Value<int> updateAt,
       Value<int> deleteAt,
       Value<String> status,
+      Value<String> customStatusEmoji,
+      Value<String> customStatusText,
       Value<int> rowid,
     });
 typedef $$UsersTableUpdateCompanionBuilder =
@@ -4470,6 +4575,8 @@ typedef $$UsersTableUpdateCompanionBuilder =
       Value<int> updateAt,
       Value<int> deleteAt,
       Value<String> status,
+      Value<String> customStatusEmoji,
+      Value<String> customStatusText,
       Value<int> rowid,
     });
 
@@ -4538,6 +4645,16 @@ class $$UsersTableFilterComposer extends Composer<_$AppDatabase, $UsersTable> {
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customStatusEmoji => $composableBuilder(
+    column: $table.customStatusEmoji,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customStatusText => $composableBuilder(
+    column: $table.customStatusText,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4610,6 +4727,16 @@ class $$UsersTableOrderingComposer
     column: $table.status,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get customStatusEmoji => $composableBuilder(
+    column: $table.customStatusEmoji,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get customStatusText => $composableBuilder(
+    column: $table.customStatusText,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UsersTableAnnotationComposer
@@ -4656,6 +4783,16 @@ class $$UsersTableAnnotationComposer
 
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get customStatusEmoji => $composableBuilder(
+    column: $table.customStatusEmoji,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get customStatusText => $composableBuilder(
+    column: $table.customStatusText,
+    builder: (column) => column,
+  );
 }
 
 class $$UsersTableTableManager
@@ -4698,6 +4835,8 @@ class $$UsersTableTableManager
                 Value<int> updateAt = const Value.absent(),
                 Value<int> deleteAt = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> customStatusEmoji = const Value.absent(),
+                Value<String> customStatusText = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion(
                 id: id,
@@ -4712,6 +4851,8 @@ class $$UsersTableTableManager
                 updateAt: updateAt,
                 deleteAt: deleteAt,
                 status: status,
+                customStatusEmoji: customStatusEmoji,
+                customStatusText: customStatusText,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4728,6 +4869,8 @@ class $$UsersTableTableManager
                 Value<int> updateAt = const Value.absent(),
                 Value<int> deleteAt = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> customStatusEmoji = const Value.absent(),
+                Value<String> customStatusText = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => UsersCompanion.insert(
                 id: id,
@@ -4742,6 +4885,8 @@ class $$UsersTableTableManager
                 updateAt: updateAt,
                 deleteAt: deleteAt,
                 status: status,
+                customStatusEmoji: customStatusEmoji,
+                customStatusText: customStatusText,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

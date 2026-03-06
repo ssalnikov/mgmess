@@ -102,6 +102,7 @@ class _AppState extends State<App> {
               NotificationInit(userId: state.user.id),
             );
             _userStatusCubit!.subscribeToWs(_wsBloc!.wsEvents);
+            _userStatusCubit!.setCustomStatusFromUser(state.user);
             _wsEventSub?.cancel();
             _wsEventSub = _wsBloc!.wsEvents.listen((wsEvent) {
               _notificationBloc!.add(

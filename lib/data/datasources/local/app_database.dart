@@ -74,6 +74,8 @@ class Users extends Table {
   IntColumn get updateAt => integer().withDefault(const Constant(0))();
   IntColumn get deleteAt => integer().withDefault(const Constant(0))();
   TextColumn get status => text().withDefault(const Constant('offline'))();
+  TextColumn get customStatusEmoji => text().withDefault(const Constant(''))();
+  TextColumn get customStatusText => text().withDefault(const Constant(''))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -104,7 +106,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +119,10 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 3) {
             await migrator.createTable(channelCategories);
+          }
+          if (from < 4) {
+            await migrator.addColumn(users, users.customStatusEmoji);
+            await migrator.addColumn(users, users.customStatusText);
           }
         },
       );

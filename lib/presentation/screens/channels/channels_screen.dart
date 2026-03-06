@@ -16,11 +16,13 @@ import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/notification/notification_bloc.dart';
 import '../../blocs/notification/notification_event.dart';
+import '../../blocs/user_status/user_status_cubit.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
 import 'widgets/category_header.dart';
 import 'widgets/channel_skeleton.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/user_avatar.dart';
+import '../../widgets/user_display_name.dart';
 import 'channels_bloc.dart';
 
 class ChannelsScreen extends StatefulWidget {
@@ -339,6 +341,7 @@ class _ChannelListTile extends StatefulWidget {
 
 class _ChannelListTileState extends State<_ChannelListTile> {
   String? _dmDisplayName;
+  String? _dmUserId;
 
   Channel get channel => widget.channel;
 
@@ -355,6 +358,7 @@ class _ChannelListTileState extends State<_ChannelListTile> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.channel.id != widget.channel.id) {
       _dmDisplayName = null;
+      _dmUserId = null;
       if (channel.isDirect) {
         _fetchDmUserName();
       }
@@ -367,9 +371,11 @@ class _ChannelListTileState extends State<_ChannelListTile> {
     final otherId = parts.first == widget.currentUserId
         ? parts.last
         : parts.first;
+    _dmUserId = otherId;
     sl<UserRepository>().getUser(otherId).then((result) {
       if (!mounted) return;
       result.fold((_) {}, (user) {
+        context.read<UserStatusCubit>().setCustomStatusFromUser(user);
         setState(() => _dmDisplayName = user.displayName);
       });
     });
@@ -389,17 +395,28 @@ class _ChannelListTileState extends State<_ChannelListTile> {
     final isMuted = channel.isMuted;
     return ListTile(
       leading: _buildLeading(),
-      title: Text(
-        _title,
-        style: (channel.hasUnread && !isMuted)
-            ? AppTextStyles.channelName
-                .copyWith(fontWeight: FontWeight.bold)
-            : AppTextStyles.channelName.copyWith(
-                color: isMuted ? AppColors.textSecondary : null,
-              ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
+      title: _dmUserId != null
+          ? UserDisplayName(
+              userId: _dmUserId!,
+              displayName: _title,
+              style: (channel.hasUnread && !isMuted)
+                  ? AppTextStyles.channelName
+                      .copyWith(fontWeight: FontWeight.bold)
+                  : AppTextStyles.channelName.copyWith(
+                      color: isMuted ? AppColors.textSecondary : null,
+                    ),
+            )
+          : Text(
+              _title,
+              style: (channel.hasUnread && !isMuted)
+                  ? AppTextStyles.channelName
+                      .copyWith(fontWeight: FontWeight.bold)
+                  : AppTextStyles.channelName.copyWith(
+                      color: isMuted ? AppColors.textSecondary : null,
+                    ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
       subtitle: channel.lastPostAt > 0
           ? Text(
               DateFormatter.formatChannelTime(channel.lastPostAt),
@@ -558,11 +575,11 @@ class _UserSearchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: UserAvatar(userId: user.id),
-      title: Text(
-        user.displayName,
+      title: UserDisplayName(
+        userId: user.id,
+        displayName: user.displayName,
         style: AppTextStyles.channelName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        fallbackEmoji: user.customStatusEmoji,
       ),
       subtitle: Text(
         '@${user.username}',

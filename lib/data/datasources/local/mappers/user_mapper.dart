@@ -18,6 +18,8 @@ class UserMapper {
       updateAt: Value(user.updateAt),
       deleteAt: Value(user.deleteAt),
       status: Value(user.status),
+      customStatusEmoji: Value(user.customStatusEmoji),
+      customStatusText: Value(user.customStatusText),
     );
   }
 
@@ -35,6 +37,8 @@ class UserMapper {
       updateAt: entry.updateAt,
       deleteAt: entry.deleteAt,
       status: entry.status,
+      customStatusEmoji: entry.customStatusEmoji,
+      customStatusText: entry.customStatusText,
     );
   }
 }

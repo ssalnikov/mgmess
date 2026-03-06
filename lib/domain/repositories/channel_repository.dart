@@ -3,8 +3,8 @@ import 'package:dartz/dartz.dart';
 import '../../core/error/failures.dart';
 import '../entities/channel.dart';
 import '../entities/channel_category.dart';
+import '../entities/channel_member.dart';
 import '../entities/channel_stats.dart';
-import '../entities/user.dart';
 
 abstract class ChannelRepository {
   Future<Either<Failure, List<Channel>>> getChannelsForUser(
@@ -13,7 +13,7 @@ abstract class ChannelRepository {
   );
   Future<Either<Failure, Channel>> getChannel(String channelId);
   Future<Either<Failure, ChannelStats>> getChannelStats(String channelId);
-  Future<Either<Failure, List<User>>> getChannelMembers(
+  Future<Either<Failure, List<ChannelMember>>> getChannelMembers(
     String channelId, {
     int page,
     int perPage,

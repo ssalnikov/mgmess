@@ -2,8 +2,8 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../domain/entities/channel.dart';
+import '../../../domain/entities/channel_member.dart';
 import '../../../domain/entities/channel_stats.dart';
-import '../../../domain/entities/user.dart';
 import '../../../domain/repositories/channel_repository.dart';
 
 // States
@@ -26,7 +26,7 @@ class ChannelInfoLoading extends ChannelInfoState {
 class ChannelInfoLoaded extends ChannelInfoState {
   final Channel channel;
   final ChannelStats stats;
-  final List<User> memberPreview;
+  final List<ChannelMember> memberPreview;
 
   const ChannelInfoLoaded({
     required this.channel,
@@ -80,8 +80,8 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
           (s) => s as ChannelStats,
         );
         final members = membersResult.fold(
-          (_) => <User>[],
-          (m) => m as List<User>,
+          (_) => <ChannelMember>[],
+          (m) => m as List<ChannelMember>,
         );
         emit(ChannelInfoLoaded(
           channel: ch,

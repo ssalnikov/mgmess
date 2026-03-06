@@ -9,6 +9,7 @@ import 'package:mgmess/data/datasources/remote/channel_remote_datasource.dart';
 import 'package:mgmess/data/datasources/remote/user_remote_datasource.dart';
 import 'package:mgmess/data/models/channel_model.dart';
 import 'package:mgmess/data/models/channel_stats_model.dart';
+import 'package:mgmess/data/models/user_model.dart';
 import 'package:mgmess/data/repositories/channel_repository_impl.dart';
 import 'package:mgmess/domain/entities/channel.dart';
 
@@ -429,20 +430,33 @@ void main() {
     });
 
     group('getChannelMembers', () {
-      test('returns list of users on success', () async {
+      test('returns list of channel members with roles on success', () async {
         when(() => mockRemote.getChannelMembers(any(),
                 page: any(named: 'page'),
                 perPage: any(named: 'perPage')))
             .thenAnswer((_) async => [
-                  {'user_id': 'u1', 'channel_id': 'ch1'},
-                  {'user_id': 'u2', 'channel_id': 'ch1'},
+                  {'user_id': 'u1', 'channel_id': 'ch1', 'roles': 'channel_admin channel_user'},
+                  {'user_id': 'u2', 'channel_id': 'ch1', 'roles': 'channel_user'},
                 ]);
         when(() => mockUserRemote.getUsersByIds(any()))
-            .thenAnswer((_) async => []);
+            .thenAnswer((_) async => [
+                  const UserModel(id: 'u1', username: 'admin'),
+                  const UserModel(id: 'u2', username: 'member'),
+                ]);
 
         final result = await repository.getChannelMembers('ch1');
 
         expect(result.isRight(), true);
+        result.fold(
+          (_) => fail('Expected Right'),
+          (members) {
+            expect(members.length, 2);
+            expect(members[0].user.id, 'u1');
+            expect(members[0].isChannelAdmin, true);
+            expect(members[1].user.id, 'u2');
+            expect(members[1].isChannelAdmin, false);
+          },
+        );
         verify(() => mockUserRemote.getUsersByIds(['u1', 'u2'])).called(1);
       });
 

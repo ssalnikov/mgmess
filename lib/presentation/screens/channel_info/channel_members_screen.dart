@@ -3,8 +3,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../domain/entities/user.dart';
+import '../../../domain/entities/channel_member.dart';
 import '../../../domain/repositories/channel_repository.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/loading_indicator.dart';
@@ -20,7 +21,7 @@ class ChannelMembersScreen extends StatefulWidget {
 }
 
 class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
-  final List<User> _members = [];
+  final List<ChannelMember> _members = [];
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -71,10 +72,10 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
         _isLoading = false;
         _error = failure.message;
       }),
-      (users) => setState(() {
+      (members) => setState(() {
         _isLoading = false;
-        _members.addAll(users);
-        _hasMore = users.length >= _perPage;
+        _members.addAll(members);
+        _hasMore = members.length >= _perPage;
       }),
     );
   }
@@ -95,10 +96,10 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
         _isLoadingMore = false;
         _page--;
       }),
-      (users) => setState(() {
+      (members) => setState(() {
         _isLoadingMore = false;
-        _members.addAll(users);
-        _hasMore = users.length >= _perPage;
+        _members.addAll(members);
+        _hasMore = members.length >= _perPage;
       }),
     );
   }
@@ -107,7 +108,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Members'),
+        title: const Text('Участники'),
       ),
       body: _buildBody(),
     );
@@ -119,27 +120,93 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
       return ErrorDisplay(message: _error!, onRetry: _loadMembers);
     }
 
+    final admins = _members.where((m) => m.isChannelAdmin).toList();
+    final others = _members.where((m) => !m.isChannelAdmin).toList();
+
     return ListView.builder(
       controller: _scrollController,
-      itemCount: _members.length + (_isLoadingMore ? 1 : 0),
-      itemBuilder: (context, index) {
-        if (index == _members.length) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final user = _members[index];
-        return ListTile(
-          leading: UserAvatar(userId: user.id, radius: 20),
-          title: Text(user.displayName, style: AppTextStyles.username),
-          subtitle: Text(
-            '@${user.username}',
-            style: AppTextStyles.caption,
-          ),
-          onTap: () => context.push(RouteNames.userProfilePath(user.id)),
-        );
-      },
+      itemCount: _sectionItemCount(admins, others),
+      itemBuilder: (context, index) =>
+          _buildSectionItem(index, admins, others),
+    );
+  }
+
+  int _sectionItemCount(
+    List<ChannelMember> admins,
+    List<ChannelMember> others,
+  ) {
+    int count = 0;
+    if (admins.isNotEmpty) {
+      count += 1 + admins.length; // header + items
+    }
+    if (others.isNotEmpty) {
+      count += 1 + others.length; // header + items
+    }
+    if (_isLoadingMore) count += 1;
+    return count;
+  }
+
+  Widget _buildSectionItem(
+    int index,
+    List<ChannelMember> admins,
+    List<ChannelMember> others,
+  ) {
+    int offset = 0;
+
+    // Admin section
+    if (admins.isNotEmpty) {
+      if (index == offset) {
+        return _buildSectionHeader('Администраторы');
+      }
+      offset++;
+      if (index < offset + admins.length) {
+        return _buildMemberTile(admins[index - offset]);
+      }
+      offset += admins.length;
+    }
+
+    // Others section
+    if (others.isNotEmpty) {
+      if (index == offset) {
+        return _buildSectionHeader('Участники');
+      }
+      offset++;
+      if (index < offset + others.length) {
+        return _buildMemberTile(others[index - offset]);
+      }
+      offset += others.length;
+    }
+
+    // Loading indicator
+    return const Padding(
+      padding: EdgeInsets.all(16),
+      child: Center(child: CircularProgressIndicator()),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Text(
+        title,
+        style: AppTextStyles.caption.copyWith(
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMemberTile(ChannelMember member) {
+    final user = member.user;
+    return ListTile(
+      leading: UserAvatar(userId: user.id, radius: 20),
+      title: Text(user.displayName, style: AppTextStyles.username),
+      subtitle: Text(
+        '@${user.username}',
+        style: AppTextStyles.caption,
+      ),
+      onTap: () => context.push(RouteNames.userProfilePath(user.id)),
     );
   }
 }

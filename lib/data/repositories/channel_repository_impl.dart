@@ -6,8 +6,8 @@ import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/entities/channel_category.dart';
+import '../../domain/entities/channel_member.dart';
 import '../../domain/entities/channel_stats.dart';
-import '../../domain/entities/user.dart';
 import '../../domain/repositories/channel_repository.dart';
 import '../datasources/local/channel_category_local_datasource.dart';
 import '../datasources/local/channel_local_datasource.dart';
@@ -190,7 +190,7 @@ class ChannelRepositoryImpl implements ChannelRepository {
   }
 
   @override
-  Future<Either<Failure, List<User>>> getChannelMembers(
+  Future<Either<Failure, List<ChannelMember>>> getChannelMembers(
     String channelId, {
     int page = 0,
     int perPage = 60,
@@ -204,8 +204,22 @@ class ChannelRepositoryImpl implements ChannelRepository {
       final userIds =
           members.map((m) => m['user_id'] as String).toList();
       if (userIds.isEmpty) return const Right([]);
+
+      // Build roles map: userId -> roles string
+      final rolesMap = <String, String>{};
+      for (final m in members) {
+        rolesMap[m['user_id'] as String] = m['roles'] as String? ?? '';
+      }
+
       final users = await _userRemoteDataSource.getUsersByIds(userIds);
-      return Right(users);
+      final channelMembers = users
+          .where((u) => !u.isDeleted)
+          .map((u) => ChannelMember(
+                user: u,
+                roles: rolesMap[u.id] ?? '',
+              ))
+          .toList();
+      return Right(channelMembers);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

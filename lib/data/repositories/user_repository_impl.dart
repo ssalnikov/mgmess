@@ -88,7 +88,7 @@ class UserRepositoryImpl implements UserRepository {
         channelId: channelId,
       );
       _localDataSource.cacheUsers(users).catchError((_) {});
-      return Right(users);
+      return Right(users.where((u) => !u.isDeleted).toList());
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

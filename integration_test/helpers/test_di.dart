@@ -3,6 +3,7 @@ import 'package:mgmess/core/config/app_config.dart';
 import 'package:mgmess/core/di/injection.dart';
 import 'package:mgmess/domain/entities/channel.dart';
 import 'package:mgmess/domain/entities/channel_category.dart';
+import 'package:mgmess/domain/entities/channel_member.dart';
 import 'package:mgmess/domain/entities/channel_stats.dart';
 import 'package:mgmess/domain/entities/user.dart';
 import 'package:mgmess/core/network/network_info.dart';
@@ -107,7 +108,7 @@ Future<TestMocks> initTestDependencies() async {
       .thenAnswer((_) async => const Right(ChannelStats(channelId: 'ch1', memberCount: 5)));
   when(() => channelRepo.getChannelMembers(any(),
           page: any(named: 'page'), perPage: any(named: 'perPage')))
-      .thenAnswer((_) async => const Right(<User>[]));
+      .thenAnswer((_) async => const Right(<ChannelMember>[]));
   when(() => channelRepo.leaveChannel(any(), any()))
       .thenAnswer((_) async => const Right(null));
   when(() => channelRepo.autocompleteChannels(any(), any()))

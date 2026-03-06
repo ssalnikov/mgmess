@@ -318,7 +318,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     final users = usersResult.fold(
       (_) => <User>[],
       (users) => (users as List<User>)
-          .where((u) => u.id != _userId)
+          .where((u) => u.id != _userId && !u.isDeleted)
           .toList(),
     );
 

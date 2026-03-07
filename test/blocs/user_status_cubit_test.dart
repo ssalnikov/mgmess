@@ -152,6 +152,61 @@ void main() {
         await wsController.close();
       });
 
+      test('refreshes all statuses on hello (WS reconnect)', () async {
+        when(() => mockUserRepository.getUserStatuses(any()))
+            .thenAnswer((_) async => const Right({
+                  'user1': 'away',
+                  'user2': 'offline',
+                }));
+
+        final wsController = StreamController<WsEvent>.broadcast();
+        final cubit =
+            UserStatusCubit(userRepository: mockUserRepository);
+
+        // Pre-populate stale statuses
+        cubit.emit(const UserStatusState(statuses: {
+          'user1': 'online',
+          'user2': 'online',
+        }));
+
+        cubit.subscribeToWs(wsController.stream);
+
+        // Simulate WS reconnect
+        wsController.add(const WsEvent(
+          event: 'hello',
+          data: {},
+        ));
+
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        verify(() => mockUserRepository.getUserStatuses(any())).called(1);
+        expect(cubit.state.statuses['user1'], 'away');
+        expect(cubit.state.statuses['user2'], 'offline');
+
+        await cubit.close();
+        await wsController.close();
+      });
+
+      test('hello with no cached statuses does not call API', () async {
+        final wsController = StreamController<WsEvent>.broadcast();
+        final cubit =
+            UserStatusCubit(userRepository: mockUserRepository);
+
+        cubit.subscribeToWs(wsController.stream);
+
+        wsController.add(const WsEvent(
+          event: 'hello',
+          data: {},
+        ));
+
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        verifyNever(() => mockUserRepository.getUserStatuses(any()));
+
+        await cubit.close();
+        await wsController.close();
+      });
+
       test('overwrites existing status for same user', () async {
         final wsController = StreamController<WsEvent>.broadcast();
         final cubit =

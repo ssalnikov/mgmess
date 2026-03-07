@@ -22,94 +22,71 @@ class ChannelMembersScreen extends StatefulWidget {
 }
 
 class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
-  final List<ChannelMember> _members = [];
+  List<ChannelMember> _members = [];
   bool _isLoading = true;
-  bool _isLoadingMore = false;
-  bool _hasMore = true;
   String? _error;
-  int _page = 0;
-  static const _perPage = 60;
-
-  final _scrollController = ScrollController();
+  static const _perPage = 200;
 
   @override
   void initState() {
     super.initState();
-    _loadMembers();
-    _scrollController.addListener(_onScroll);
+    _loadAllMembers();
   }
 
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-            _scrollController.position.maxScrollExtent - 200 &&
-        !_isLoadingMore &&
-        _hasMore) {
-      _loadMore();
-    }
-  }
-
-  Future<void> _loadMembers() async {
+  Future<void> _loadAllMembers() async {
     setState(() {
       _isLoading = true;
       _error = null;
-      _page = 0;
-      _members.clear();
     });
 
-    final result = await sl<ChannelRepository>().getChannelMembers(
-      widget.channelId,
-      page: 0,
-      perPage: _perPage,
-    );
+    final allMembers = <ChannelMember>[];
+    int page = 0;
 
-    result.fold(
-      (failure) => setState(() {
-        _isLoading = false;
-        _error = failure.message;
-      }),
-      (members) => setState(() {
-        _isLoading = false;
-        _members.addAll(members);
-        _hasMore = members.length >= _perPage;
-      }),
-    );
-  }
+    while (true) {
+      final result = await sl<ChannelRepository>().getChannelMembers(
+        widget.channelId,
+        page: page,
+        perPage: _perPage,
+      );
 
-  Future<void> _loadMore() async {
-    if (_isLoadingMore) return;
-    setState(() => _isLoadingMore = true);
+      int pageCount = 0;
+      final failed = result.fold<bool>(
+        (failure) {
+          if (allMembers.isEmpty) {
+            setState(() {
+              _isLoading = false;
+              _error = failure.message;
+            });
+          }
+          return true;
+        },
+        (members) {
+          pageCount = members.length;
+          allMembers.addAll(members);
+          return false;
+        },
+      );
 
-    _page++;
-    final result = await sl<ChannelRepository>().getChannelMembers(
-      widget.channelId,
-      page: _page,
-      perPage: _perPage,
-    );
+      if (failed) return;
+      if (pageCount == 0) break;
+      page++;
+    }
 
-    result.fold(
-      (failure) => setState(() {
-        _isLoadingMore = false;
-        _page--;
-      }),
-      (members) => setState(() {
-        _isLoadingMore = false;
-        _members.addAll(members);
-        _hasMore = members.length >= _perPage;
-      }),
-    );
+    allMembers.sort((a, b) => a.user.displayName
+        .toLowerCase()
+        .compareTo(b.user.displayName.toLowerCase()));
+
+    setState(() {
+      _isLoading = false;
+      _members = allMembers;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Участники'),
+        title: Text('Участники${_isLoading ? '' : ' (${_members.length})'}'),
       ),
       body: _buildBody(),
     );
@@ -118,14 +95,13 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
   Widget _buildBody() {
     if (_isLoading) return const LoadingIndicator();
     if (_error != null) {
-      return ErrorDisplay(message: _error!, onRetry: _loadMembers);
+      return ErrorDisplay(message: _error!, onRetry: _loadAllMembers);
     }
 
     final admins = _members.where((m) => m.isChannelAdmin).toList();
     final others = _members.where((m) => !m.isChannelAdmin).toList();
 
     return ListView.builder(
-      controller: _scrollController,
       itemCount: _sectionItemCount(admins, others),
       itemBuilder: (context, index) =>
           _buildSectionItem(index, admins, others),
@@ -137,13 +113,8 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     List<ChannelMember> others,
   ) {
     int count = 0;
-    if (admins.isNotEmpty) {
-      count += 1 + admins.length; // header + items
-    }
-    if (others.isNotEmpty) {
-      count += 1 + others.length; // header + items
-    }
-    if (_isLoadingMore) count += 1;
+    if (admins.isNotEmpty) count += 1 + admins.length;
+    if (others.isNotEmpty) count += 1 + others.length;
     return count;
   }
 
@@ -178,11 +149,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
       offset += others.length;
     }
 
-    // Loading indicator
-    return const Padding(
-      padding: EdgeInsets.all(16),
-      child: Center(child: CircularProgressIndicator()),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildSectionHeader(String title) {

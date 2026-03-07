@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/di/injection.dart';
-import '../../core/network/api_endpoints.dart';
 import '../../core/storage/secure_storage.dart';
+import '../../core/utils/custom_emoji_cache.dart';
 import '../../core/utils/emoji_utils.dart';
-import '../../data/datasources/remote/emoji_remote_datasource.dart';
 
 /// Reusable markdown widget for message text with emoji support.
 /// Replaces :emoji_code: with Unicode (system) or inline images (custom).
@@ -20,36 +18,13 @@ class MessageMarkdown extends StatelessWidget {
     this.styleSheet,
   });
 
-  static Map<String, String>? _customEmojiUrls;
-  static bool _loading = false;
-
-  static Future<void> _loadCustomEmojis() async {
-    if (_customEmojiUrls != null || _loading) return;
-    _loading = true;
-    try {
-      final datasource = sl<EmojiRemoteDataSource>();
-      final emojis = await datasource.getCustomEmojis();
-      _customEmojiUrls = {
-        for (final e in emojis)
-          e.name:
-              '${AppConfig.baseUrl}${ApiEndpoints.customEmojiImage(e.id)}',
-      };
-    } catch (_) {
-      _customEmojiUrls = {};
-    } finally {
-      _loading = false;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_customEmojiUrls == null) {
-      _loadCustomEmojis();
-    }
+    CustomEmojiCache.ensureLoaded();
 
     final processed = replaceEmojis(
       data,
-      customEmojiUrls: _customEmojiUrls ?? const {},
+      customEmojiUrls: CustomEmojiCache.urls,
     );
 
     return MarkdownBody(

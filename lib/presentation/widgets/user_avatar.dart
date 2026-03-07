@@ -58,6 +58,8 @@ class _UserAvatarState extends State<UserAvatar> {
           return s;
         });
 
+    final showIndicator = effectiveStatus != null;
+
     final avatar = Stack(
       children: [
         FutureBuilder<String?>(
@@ -95,7 +97,7 @@ class _UserAvatarState extends State<UserAvatar> {
             );
           },
         ),
-        if (effectiveStatus != null)
+        if (showIndicator)
           Positioned(
             bottom: 0,
             right: 0,

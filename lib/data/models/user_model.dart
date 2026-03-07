@@ -36,8 +36,13 @@ class UserModel extends User {
         } catch (_) {}
       }
       if (csMap != null) {
-        customEmoji = csMap['emoji'] as String? ?? '';
-        customText = csMap['text'] as String? ?? '';
+        // Check if custom status has expired
+        final expiresAt = csMap['expires_at'] as String?;
+        final isExpired = _isCustomStatusExpired(expiresAt);
+        if (!isExpired) {
+          customEmoji = csMap['emoji'] as String? ?? '';
+          customText = csMap['text'] as String? ?? '';
+        }
       }
     }
 
@@ -56,6 +61,18 @@ class UserModel extends User {
       customStatusEmoji: customEmoji,
       customStatusText: customText,
     );
+  }
+
+  static bool _isCustomStatusExpired(String? expiresAt) {
+    if (expiresAt == null || expiresAt.isEmpty) return false;
+    // Mattermost uses "0001-01-01T00:00:00Z" to mean "no expiration"
+    if (expiresAt.startsWith('0001')) return false;
+    try {
+      final expiry = DateTime.parse(expiresAt);
+      return expiry.isBefore(DateTime.now());
+    } catch (_) {
+      return false;
+    }
   }
 
   Map<String, dynamic> toJson() => {

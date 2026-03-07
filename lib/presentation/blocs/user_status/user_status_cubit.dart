@@ -58,7 +58,9 @@ class UserStatusCubit extends Cubit<UserStatusState> {
   void subscribeToWs(Stream<WsEvent> wsEvents) {
     _wsSub?.cancel();
     _wsSub = wsEvents.listen((event) {
-      if (event.event == WsEventType.statusChange) {
+      if (event.event == WsEventType.hello) {
+        _refreshAllStatuses();
+      } else if (event.event == WsEventType.statusChange) {
         final userId = event.data['user_id'] as String?;
         final status = event.data['status'] as String?;
         if (userId != null && status != null) {
@@ -74,6 +76,18 @@ class UserStatusCubit extends Cubit<UserStatusState> {
         }
       }
     });
+  }
+
+  Future<void> _refreshAllStatuses() async {
+    final userIds = state.statuses.keys.toList();
+    if (userIds.isEmpty) return;
+    final result = await _userRepository.getUserStatuses(userIds);
+    result.fold(
+      (_) {},
+      (statuses) {
+        emit(state.copyWith(statuses: statuses));
+      },
+    );
   }
 
   void _updateCustomStatusFromUser(User user) {

@@ -164,6 +164,65 @@ void main() {
         expect(user.customStatusEmoji, '');
         expect(user.customStatusText, 'Busy');
       });
+
+      test('fromJson ignores expired customStatus', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus': {
+              'emoji': 'palm_tree',
+              'text': 'On vacation',
+              'expires_at': '2020-01-01T00:00:00Z',
+            },
+          },
+        });
+        expect(user.customStatusEmoji, '');
+        expect(user.customStatusText, '');
+      });
+
+      test('fromJson keeps customStatus with no expiration', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus': {
+              'emoji': 'rocket',
+              'text': 'Working',
+              'expires_at': '0001-01-01T00:00:00Z',
+            },
+          },
+        });
+        expect(user.customStatusEmoji, 'rocket');
+        expect(user.customStatusText, 'Working');
+      });
+
+      test('fromJson keeps customStatus with future expiration', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus': {
+              'emoji': 'coffee',
+              'text': 'Break',
+              'expires_at': '2099-12-31T23:59:59Z',
+            },
+          },
+        });
+        expect(user.customStatusEmoji, 'coffee');
+        expect(user.customStatusText, 'Break');
+      });
+
+      test('fromJson keeps customStatus without expires_at', () {
+        final user = UserModel.fromJson({
+          ...json,
+          'props': {
+            'customStatus': {
+              'emoji': 'wave',
+              'text': 'Hello',
+            },
+          },
+        });
+        expect(user.customStatusEmoji, 'wave');
+        expect(user.customStatusText, 'Hello');
+      });
     });
   });
 }

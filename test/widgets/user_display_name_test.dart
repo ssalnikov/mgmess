@@ -165,10 +165,9 @@ void main() {
         displayName: 'John Doe',
       ));
 
-      // Should still render without error
+      // Should still render without error — unknown emoji is hidden
       expect(find.text('John Doe'), findsOneWidget);
-      // Unknown emoji renders as the shortcode itself
-      expect(find.text('some_unknown_emoji_xyz'), findsOneWidget);
+      expect(find.text('some_unknown_emoji_xyz'), findsNothing);
     });
   });
 }

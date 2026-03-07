@@ -5,7 +5,10 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../widgets/message_markdown.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/di/injection.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/storage/secure_storage.dart';
+import '../../../../core/utils/custom_emoji_cache.dart';
 import '../../../../core/utils/emoji_map.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -279,7 +282,17 @@ class MessageBubble extends StatelessWidget {
           final userIds = entry.value;
           final count = userIds.length;
           final isMine = currentUserId != null && userIds.contains(currentUserId);
-          final emojiChar = emojiMap[emoji] ?? ':$emoji:';
+          final emojiChar = emojiMap[emoji];
+          final customUrl = CustomEmojiCache.getUrl(emoji);
+
+          Widget emojiWidget;
+          if (emojiChar != null) {
+            emojiWidget = Text(emojiChar, style: const TextStyle(fontSize: 14));
+          } else if (customUrl != null) {
+            emojiWidget = _CustomReactionEmoji(url: customUrl);
+          } else {
+            emojiWidget = Text(':$emoji:', style: const TextStyle(fontSize: 10));
+          }
 
           return GestureDetector(
             onTap: () {
@@ -304,7 +317,7 @@ class MessageBubble extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(emojiChar, style: const TextStyle(fontSize: 14)),
+                  emojiWidget,
                   const SizedBox(width: 3),
                   Text(
                     '$count',
@@ -377,6 +390,49 @@ class MessageBubble extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
       ),
+    );
+  }
+}
+
+class _CustomReactionEmoji extends StatefulWidget {
+  final String url;
+
+  const _CustomReactionEmoji({required this.url});
+
+  @override
+  State<_CustomReactionEmoji> createState() => _CustomReactionEmojiState();
+}
+
+class _CustomReactionEmojiState extends State<_CustomReactionEmoji> {
+  Map<String, String>? _headers;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHeaders();
+  }
+
+  Future<void> _loadHeaders() async {
+    final token =
+        await sl<SecureStorage>().getToken();
+    if (mounted) {
+      setState(() {
+        _headers = {
+          if (token != null) 'Authorization': 'Bearer $token',
+        };
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_headers == null) return const SizedBox(width: 16, height: 16);
+    return Image.network(
+      widget.url,
+      width: 16,
+      height: 16,
+      headers: _headers,
+      errorBuilder: (_, _, _) => const SizedBox(width: 16, height: 16),
     );
   }
 }

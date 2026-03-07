@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/emoji_map.dart';
 import '../../../domain/entities/user.dart';
+import '../../../domain/repositories/channel_repository.dart';
 import '../../../domain/repositories/user_repository.dart';
+import '../../blocs/auth/auth_bloc.dart';
+import '../../blocs/auth/auth_state.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/loading_indicator.dart';
@@ -166,7 +171,60 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             title: Text(user.email),
           ),
         ],
+        if (_currentUserId != user.id) ...[
+          const SizedBox(height: 24),
+          Center(
+            child: FilledButton.icon(
+              onPressed: _isSendingDm ? null : () => _openDirectMessage(user),
+              icon: _isSendingDm
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.chat_bubble_outline),
+              label: const Text('Написать сообщение'),
+            ),
+          ),
+        ],
       ],
+    );
+  }
+
+  String get _currentUserId {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) return authState.user.id;
+    return '';
+  }
+
+  bool _isSendingDm = false;
+
+  Future<void> _openDirectMessage(User user) async {
+    setState(() => _isSendingDm = true);
+    final result = await sl<ChannelRepository>().createDirectChannel(
+      _currentUserId,
+      user.id,
+    );
+    if (!mounted) return;
+    setState(() => _isSendingDm = false);
+    result.fold(
+      (failure) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(failure.message)),
+        );
+      },
+      (channel) {
+        context.push(
+          RouteNames.chatPath(channel.id),
+          extra: <String, dynamic>{
+            'channelName': user.displayName,
+            'dmUserId': user.id,
+          },
+        );
+      },
     );
   }
 }

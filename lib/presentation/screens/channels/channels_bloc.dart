@@ -302,7 +302,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
 
     final results = await Future.wait([
       _channelRepository.autocompleteChannels(_teamId, query),
-      _userRepository.autocompleteUsers(query),
+      _userRepository.autocompleteUsers(query, teamId: _teamId),
     ]);
 
     final channelsResult = results[0];

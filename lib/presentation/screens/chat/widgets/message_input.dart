@@ -5,15 +5,19 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 
+import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/di/injection.dart';
 import '../../../../domain/entities/post.dart';
 import '../../../../core/storage/draft_storage.dart';
+import '../../../blocs/auth/auth_bloc.dart';
+import '../../../blocs/auth/auth_state.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../domain/entities/draft.dart';
 import '../../../../domain/entities/user.dart';
+import '../../../../domain/repositories/channel_repository.dart';
 import '../../../../domain/repositories/file_repository.dart';
 import '../../../../domain/repositories/user_repository.dart';
-import 'markdown_toolbar.dart';
 import 'mention_autocomplete.dart';
 
 class MessageInput extends StatefulWidget {
@@ -66,6 +70,8 @@ class MessageInputState extends State<MessageInput> {
   bool _suppressMentionCheck = false;
   Timer? _mentionDebounce;
   final _userRepository = sl<UserRepository>();
+  final LayerLink _mentionLayerLink = LayerLink();
+  OverlayEntry? _mentionOverlay;
 
   @override
   void initState() {
@@ -106,10 +112,9 @@ class MessageInputState extends State<MessageInput> {
 
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
-      setState(() {
-        _showMentions = false;
-        _mentionResults = [];
-      });
+      _showMentions = false;
+      _mentionResults = [];
+      _updateMentionOverlay();
     }
   }
 
@@ -134,8 +139,8 @@ class MessageInputState extends State<MessageInput> {
     }
 
     final query = textBeforeCursor.substring(atIndex + 1);
-    // No spaces in mention query, require at least 1 char
-    if (query.isEmpty || query.contains(' ') || query.contains('\n')) {
+    // No spaces in mention query
+    if (query.contains(' ') || query.contains('\n')) {
       return null;
     }
 
@@ -147,10 +152,9 @@ class MessageInputState extends State<MessageInput> {
     final query = _getMentionQuery();
     if (query == null) {
       if (_showMentions) {
-        setState(() {
-          _showMentions = false;
-          _mentionResults = [];
-        });
+        _showMentions = false;
+        _mentionResults = [];
+        _updateMentionOverlay();
       }
       _mentionDebounce?.cancel();
       return;
@@ -163,27 +167,48 @@ class MessageInputState extends State<MessageInput> {
   }
 
   Future<void> _fetchMentions(String query) async {
+    if (query.isEmpty) {
+      // autocomplete API requires non-empty name, use channel members instead
+      final result = await sl<ChannelRepository>().getChannelMembers(
+        widget.channelId,
+      );
+      if (!mounted) return;
+      result.fold(
+        (failure) {
+          _showMentions = false;
+          _mentionResults = [];
+        },
+        (members) {
+          _mentionResults = members.map((m) => m.user).toList();
+          _showMentions = _mentionResults.isNotEmpty;
+        },
+      );
+      _updateMentionOverlay();
+      return;
+    }
+
+    String? teamId;
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) teamId = authState.teamId;
+
     final result = await _userRepository.autocompleteUsers(
       query,
+      teamId: teamId,
       channelId: widget.channelId,
     );
     if (!mounted) return;
 
     result.fold(
       (failure) {
-        debugPrint('Mention autocomplete error: ${failure.message}');
-        setState(() {
-          _showMentions = false;
-          _mentionResults = [];
-        });
+        _showMentions = false;
+        _mentionResults = [];
       },
       (users) {
-        setState(() {
-          _mentionResults = users;
-          _showMentions = users.isNotEmpty;
-        });
+        _mentionResults = users;
+        _showMentions = users.isNotEmpty;
       },
     );
+    _updateMentionOverlay();
   }
 
   void _onMentionSelected(User user) {
@@ -207,10 +232,9 @@ class MessageInputState extends State<MessageInput> {
     );
     _suppressMentionCheck = false;
 
-    setState(() {
-      _showMentions = false;
-      _mentionResults = [];
-    });
+    _showMentions = false;
+    _mentionResults = [];
+    _updateMentionOverlay();
   }
 
   Future<void> _saveDraft() async {
@@ -223,8 +247,41 @@ class MessageInputState extends State<MessageInput> {
     ));
   }
 
+  void _updateMentionOverlay() {
+    if (_showMentions && _mentionResults.isNotEmpty) {
+      if (_mentionOverlay != null) {
+        _mentionOverlay!.markNeedsBuild();
+      } else {
+        _mentionOverlay = OverlayEntry(
+          builder: (context) {
+            return Positioned(
+              width: MediaQuery.of(this.context).size.width,
+              child: CompositedTransformFollower(
+                link: _mentionLayerLink,
+                showWhenUnlinked: false,
+                offset: const Offset(0, 0),
+                followerAnchor: Alignment.bottomLeft,
+                targetAnchor: Alignment.topLeft,
+                child: MentionAutocomplete(
+                  users: _mentionResults,
+                  onSelect: _onMentionSelected,
+                ),
+              ),
+            );
+          },
+        );
+        Overlay.of(this.context).insert(_mentionOverlay!);
+      }
+    } else {
+      _mentionOverlay?.remove();
+      _mentionOverlay = null;
+    }
+  }
+
   @override
   void dispose() {
+    _mentionOverlay?.remove();
+    _mentionOverlay = null;
     _draftTimer?.cancel();
     _mentionDebounce?.cancel();
     _saveDraft();
@@ -321,13 +378,10 @@ class MessageInputState extends State<MessageInput> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        if (_showMentions && _mentionResults.isNotEmpty)
-          MentionAutocomplete(
-            users: _mentionResults,
-            onSelect: _onMentionSelected,
-          ),
+    return CompositedTransformTarget(
+      link: _mentionLayerLink,
+      child: Column(
+        children: [
         if (!_isEditing && _pendingFileNames.isNotEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -350,7 +404,6 @@ class MessageInputState extends State<MessageInput> {
               }).toList(),
             ),
           ),
-        MarkdownToolbar(controller: _controller, focusNode: _focusNode),
         if (!_isEditing) _buildPriorityBar(),
         if (_isEditing)
           Container(
@@ -437,6 +490,7 @@ class MessageInputState extends State<MessageInput> {
           ),
         ),
       ],
+      ),
     );
   }
 

@@ -80,11 +80,13 @@ class UserRepositoryImpl implements UserRepository {
   @override
   Future<Either<Failure, List<User>>> autocompleteUsers(
     String name, {
+    String? teamId,
     String? channelId,
   }) async {
     try {
       final users = await _remoteDataSource.autocompleteUsers(
         name,
+        teamId: teamId,
         channelId: channelId,
       );
       _localDataSource.cacheUsers(users).catchError((_) {});

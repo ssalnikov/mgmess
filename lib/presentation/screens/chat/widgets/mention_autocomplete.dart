@@ -18,8 +18,6 @@ class MentionAutocomplete extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final displayUsers = users.length > 4 ? users.sublist(0, 4) : users;
-
     return Material(
       elevation: 4,
       color: Colors.white,
@@ -28,11 +26,11 @@ class MentionAutocomplete extends StatelessWidget {
         child: ListView.separated(
           shrinkWrap: true,
           padding: EdgeInsets.zero,
-          itemCount: displayUsers.length,
+          itemCount: users.length,
           separatorBuilder: (_, __) =>
               const Divider(height: 1, color: AppColors.divider),
           itemBuilder: (context, index) {
-            final user = displayUsers[index];
+            final user = users[index];
             return InkWell(
               onTap: () => onSelect(user),
               child: Padding(

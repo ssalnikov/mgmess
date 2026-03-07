@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../../../core/utils/emoji_map.dart';
 import '../../../../domain/entities/post.dart';
+import 'emoji_picker_sheet.dart';
 
 const _quickReactionNames = ['+1', 'heart', 'grinning', 'white_check_mark', 'eyes', 'raised_hands'];
 
@@ -124,22 +125,49 @@ class MessageActionsSheet extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: _quickReactionNames.map((name) {
-          return GestureDetector(
+        children: [
+          ..._quickReactionNames.map((name) {
+            return GestureDetector(
+              onTap: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+                onReaction!(name);
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: Text(
+                  emojiMap[name] ?? ':$name:',
+                  style: const TextStyle(fontSize: 28),
+                ),
+              ),
+            );
+          }),
+          GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
               Navigator.pop(context);
-              onReaction!(name);
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                builder: (_) => EmojiPickerSheet(
+                  onEmojiSelected: onReaction!,
+                ),
+              );
             },
             child: Padding(
               padding: const EdgeInsets.all(4),
-              child: Text(
-                emojiMap[name] ?? ':$name:',
-                style: const TextStyle(fontSize: 28),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.shade200,
+                ),
+                child: const Icon(Icons.add, size: 22, color: Colors.black54),
               ),
             ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }

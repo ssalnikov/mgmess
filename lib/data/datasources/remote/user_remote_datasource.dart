@@ -67,12 +67,15 @@ class UserRemoteDataSource {
 
   Future<List<UserModel>> autocompleteUsers(
     String name, {
+    String? teamId,
     String? channelId,
   }) async {
+    if (name.isEmpty) return [];
     try {
       final queryParams = <String, dynamic>{
         'name': name,
       };
+      if (teamId != null) queryParams['in_team'] = teamId;
       if (channelId != null) queryParams['in_channel'] = channelId;
 
       final response = await _apiClient.dio.get(

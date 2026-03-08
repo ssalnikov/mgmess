@@ -61,3 +61,16 @@ class NotificationUpdateMutedChannels extends NotificationEvent {
   @override
   List<Object?> get props => [mutedChannelIds];
 }
+
+class NotificationChannelSettingChanged extends NotificationEvent {
+  final String channelId;
+  final String filter;
+
+  const NotificationChannelSettingChanged({
+    required this.channelId,
+    required this.filter,
+  });
+
+  @override
+  List<Object?> get props => [channelId, filter];
+}

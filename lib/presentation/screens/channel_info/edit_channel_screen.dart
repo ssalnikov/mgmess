@@ -95,7 +95,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
       context.pop(true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Не удалось обновить канал')),
+        const SnackBar(content: Text('Failed to update channel')),
       );
     }
   }
@@ -104,7 +104,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Редактировать канал'),
+        title: const Text('Edit Channel'),
         actions: [
           TextButton(
             onPressed: _isSaving || _isLoading ? null : _save,
@@ -118,7 +118,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                     ),
                   )
                 : const Text(
-                    'Сохранить',
+                    'Save',
                     style: TextStyle(color: Colors.white),
                   ),
           ),
@@ -134,12 +134,12 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                   TextFormField(
                     controller: _displayNameController,
                     decoration: const InputDecoration(
-                      labelText: 'Название',
-                      hintText: 'Название канала',
+                      labelText: 'Name',
+                      hintText: 'Channel name',
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Название не может быть пустым';
+                        return 'Name cannot be empty';
                       }
                       return null;
                     },
@@ -149,14 +149,14 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                     controller: _headerController,
                     decoration: const InputDecoration(
                       labelText: 'Header',
-                      hintText: 'Заголовок канала',
+                      hintText: 'Channel header',
                     ),
                     maxLines: 3,
                     minLines: 1,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Текст, который отображается в заголовке канала. Часто используется для ссылок и краткой информации.',
+                    'Text displayed at the top of the channel. Often used for links and quick reference info.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -166,14 +166,14 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                     controller: _purposeController,
                     decoration: const InputDecoration(
                       labelText: 'Purpose',
-                      hintText: 'Назначение канала',
+                      hintText: 'Channel purpose',
                     ),
                     maxLines: 3,
                     minLines: 1,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Описание назначения канала. Помогает другим пользователям понять, для чего предназначен канал.',
+                    'Describe the purpose of this channel. Helps other users understand what it is for.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),

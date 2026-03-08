@@ -20,6 +20,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   String? _activeChannelId;
   String? _currentUserId;
   Set<String> _mutedChannelIds = {};
+  Map<String, String> _channelNotificationFilters = {};
 
   static const _prefKeyEnabled = 'notification_enabled';
   static const _prefKeyFilter = 'notification_filter';
@@ -37,6 +38,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     on<NotificationClearActiveChannel>(_onClearActiveChannel);
     on<NotificationLogout>(_onLogout);
     on<NotificationUpdateMutedChannels>(_onUpdateMutedChannels);
+    on<NotificationChannelSettingChanged>(_onChannelSettingChanged);
   }
 
   Future<void> _onInit(
@@ -68,6 +70,19 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
 
     final prefs = await SharedPreferences.getInstance();
     final enabled = prefs.getBool(_prefKeyEnabled) ?? true;
+
+    // Load per-channel notification filters
+    _channelNotificationFilters = {};
+    final keys = prefs.getKeys();
+    for (final key in keys) {
+      if (key.startsWith('channel_notification_')) {
+        final channelId = key.substring('channel_notification_'.length);
+        final value = prefs.getString(key);
+        if (value != null && value != 'default') {
+          _channelNotificationFilters[channelId] = value;
+        }
+      }
+    }
 
     emit(NotificationReady(token: token, enabled: enabled));
   }
@@ -115,20 +130,34 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       final message = post['message'] as String? ?? '';
       if (message.isEmpty) return;
 
-      // Apply notification filter
-      final prefs = await SharedPreferences.getInstance();
-      final filter = prefs.getString(_prefKeyFilter) ?? 'all';
+      // Apply per-channel notification filter first
+      final channelFilter = _channelNotificationFilters[channelId];
+      if (channelFilter != null) {
+        if (channelFilter == 'none') return;
+        if (channelFilter == 'mentions') {
+          final mentionsJson = wsEvent.data['mentions'] as String?;
+          final isMentioned = mentionsJson != null &&
+              _currentUserId != null &&
+              mentionsJson.contains(_currentUserId!);
+          if (!isMentioned) return;
+        }
+        // 'all' — show everything, skip global filter
+      } else {
+        // Apply global notification filter
+        final prefs = await SharedPreferences.getInstance();
+        final filter = prefs.getString(_prefKeyFilter) ?? 'all';
 
-      if (filter != 'all') {
-        final channelType = wsEvent.data['channel_type'] as String? ?? '';
-        final mentionsJson = wsEvent.data['mentions'] as String?;
-        final isMentioned = mentionsJson != null &&
-            _currentUserId != null &&
-            mentionsJson.contains(_currentUserId!);
-        final isDm = channelType == 'D' || channelType == 'G';
+        if (filter != 'all') {
+          final channelType = wsEvent.data['channel_type'] as String? ?? '';
+          final mentionsJson = wsEvent.data['mentions'] as String?;
+          final isMentioned = mentionsJson != null &&
+              _currentUserId != null &&
+              mentionsJson.contains(_currentUserId!);
+          final isDm = channelType == 'D' || channelType == 'G';
 
-        if (filter == 'dm_only' && !isDm) return;
-        if (filter == 'mentions_dm' && !isMentioned && !isDm) return;
+          if (filter == 'dm_only' && !isDm) return;
+          if (filter == 'mentions_dm' && !isMentioned && !isDm) return;
+        }
       }
 
       final senderName = wsEvent.data['sender_name'] as String? ?? '';
@@ -172,6 +201,17 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     _mutedChannelIds = event.mutedChannelIds;
   }
 
+  void _onChannelSettingChanged(
+    NotificationChannelSettingChanged event,
+    Emitter<NotificationState> emit,
+  ) {
+    if (event.filter == 'default') {
+      _channelNotificationFilters.remove(event.channelId);
+    } else {
+      _channelNotificationFilters[event.channelId] = event.filter;
+    }
+  }
+
   Future<void> _onLogout(
     NotificationLogout event,
     Emitter<NotificationState> emit,
@@ -181,6 +221,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     _activeChannelId = null;
     _currentUserId = null;
     _mutedChannelIds = {};
+    _channelNotificationFilters = {};
     await _repository.unregisterDevice();
     emit(const NotificationInitial());
   }

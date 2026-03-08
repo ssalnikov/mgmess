@@ -318,6 +318,22 @@ class _ChatScreenState extends State<ChatScreen> {
                               count: state.newMessagesCount,
                               onTap: _scrollToBottom,
                             ),
+                          if (_isUserScrolledUp && state.newMessagesCount == 0)
+                            Positioned(
+                              bottom: 16,
+                              right: 16,
+                              child: FloatingActionButton.small(
+                                heroTag: 'scroll_to_bottom',
+                                onPressed: _scrollToBottom,
+                                backgroundColor: Theme.of(context).colorScheme.surface,
+                                elevation: 4,
+                                child: Icon(
+                                  Icons.arrow_downward,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
                         ],
                       );
                     },

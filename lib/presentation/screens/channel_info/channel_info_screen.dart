@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
@@ -12,6 +13,8 @@ import '../../../domain/entities/channel_stats.dart';
 import '../../../domain/repositories/channel_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../blocs/notification/notification_bloc.dart';
+import '../../blocs/notification/notification_event.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/loading_indicator.dart';
 import 'channel_info_cubit.dart';
@@ -110,6 +113,12 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
         if (channel.purpose.isNotEmpty && !isDm) ...[
           _buildSection('Purpose', channel.purpose),
           const Divider(height: 32),
+        ],
+
+        // Notification settings
+        if (!isDm) ...[
+          _buildNotificationSettings(channel),
+          const Divider(height: 1),
         ],
 
         // Members
@@ -255,6 +264,29 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
     );
   }
 
+  Widget _buildNotificationSettings(Channel channel) {
+    return ListTile(
+      leading: const Icon(Icons.notifications_outlined),
+      title: const Text('Notification Preferences'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => _showNotificationSettingsSheet(channel),
+    );
+  }
+
+  void _showNotificationSettingsSheet(Channel channel) {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => _ChannelNotificationSheet(
+        channelId: widget.channelId,
+        channelName: channel.displayName,
+      ),
+    );
+  }
+
   Widget _buildLeaveButton(Channel channel) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -330,6 +362,116 @@ class _QuickAction extends StatelessWidget {
             Text(label, style: AppTextStyles.caption),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ChannelNotificationSheet extends StatefulWidget {
+  final String channelId;
+  final String channelName;
+
+  const _ChannelNotificationSheet({
+    required this.channelId,
+    required this.channelName,
+  });
+
+  @override
+  State<_ChannelNotificationSheet> createState() =>
+      _ChannelNotificationSheetState();
+}
+
+class _ChannelNotificationSheetState extends State<_ChannelNotificationSheet> {
+  String _filter = 'default';
+  bool _loading = true;
+
+  static String _prefKey(String channelId) =>
+      'channel_notification_$channelId';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPref();
+  }
+
+  Future<void> _loadPref() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _filter = prefs.getString(_prefKey(widget.channelId)) ?? 'default';
+      _loading = false;
+    });
+  }
+
+  Future<void> _setFilter(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (value == 'default') {
+      await prefs.remove(_prefKey(widget.channelId));
+    } else {
+      await prefs.setString(_prefKey(widget.channelId), value);
+    }
+    setState(() => _filter = value);
+
+    // Update the notification bloc with the new per-channel settings
+    if (context.mounted) {
+      try {
+        context.read<NotificationBloc>().add(
+              NotificationChannelSettingChanged(
+                channelId: widget.channelId,
+                filter: value,
+              ),
+            );
+      } catch (_) {}
+    }
+  }
+
+  static const _options = [
+    (value: 'default', label: 'Default', subtitle: 'Use global notification setting', icon: Icons.settings),
+    (value: 'all', label: 'All messages', subtitle: 'Notify for every new message', icon: Icons.notifications_active),
+    (value: 'mentions', label: 'Mentions only', subtitle: 'Only when you are mentioned', icon: Icons.alternate_email),
+    (value: 'none', label: 'Nothing', subtitle: 'Never notify for this channel', icon: Icons.notifications_off),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.divider,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Notifications — ${widget.channelName}',
+            style: AppTextStyles.heading2,
+          ),
+          const SizedBox(height: 8),
+          for (final option in _options)
+            RadioListTile<String>(
+              value: option.value,
+              groupValue: _filter,
+              title: Text(option.label),
+              subtitle: Text(option.subtitle, style: AppTextStyles.caption),
+              secondary: Icon(option.icon, color: AppColors.accent),
+              onChanged: (v) {
+                if (v != null) _setFilter(v);
+              },
+            ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }

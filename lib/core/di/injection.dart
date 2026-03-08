@@ -37,8 +37,10 @@ import '../../domain/services/ws_post_parser.dart';
 import '../../presentation/blocs/auth/auth_bloc.dart';
 import '../../presentation/blocs/connectivity/connectivity_cubit.dart';
 import '../../presentation/blocs/notification/notification_bloc.dart';
+import '../../presentation/blocs/theme/theme_cubit.dart';
 import '../../presentation/blocs/user_status/user_status_cubit.dart';
 import '../../presentation/blocs/websocket/websocket_bloc.dart';
+import '../auth/biometric_service.dart';
 import '../network/api_client.dart';
 import '../network/network_info.dart';
 import '../network/websocket_client.dart';
@@ -56,6 +58,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => WebSocketClient(secureStorage: sl()));
   sl.registerLazySingleton(() => NetworkInfo());
   sl.registerLazySingleton(() => NotificationService());
+  sl.registerLazySingleton(() => BiometricService());
 
   // Database
   sl.registerLazySingleton(() => AppDatabase());
@@ -152,4 +155,5 @@ Future<void> initDependencies() async {
       ));
   sl.registerFactory(
       () => UserStatusCubit(userRepository: sl()));
+  sl.registerLazySingleton(() => ThemeCubit());
 }

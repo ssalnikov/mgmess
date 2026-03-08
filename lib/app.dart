@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'core/auth/biometric_service.dart';
 import 'core/config/app_config.dart';
 import 'core/di/injection.dart';
 import 'core/router/app_router.dart';
@@ -14,9 +15,11 @@ import 'presentation/blocs/auth/auth_state.dart';
 import 'presentation/blocs/connectivity/connectivity_cubit.dart';
 import 'presentation/blocs/notification/notification_bloc.dart';
 import 'presentation/blocs/notification/notification_event.dart';
+import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/user_status/user_status_cubit.dart';
 import 'presentation/blocs/websocket/websocket_bloc.dart';
 import 'presentation/blocs/websocket/websocket_event.dart';
+import 'presentation/screens/auth/biometric_lock_screen.dart';
 import 'presentation/screens/server/server_url_screen.dart';
 
 class App extends StatefulWidget {
@@ -26,7 +29,7 @@ class App extends StatefulWidget {
   State<App> createState() => _AppState();
 }
 
-class _AppState extends State<App> {
+class _AppState extends State<App> with WidgetsBindingObserver {
   late bool _serverReady;
 
   AuthBloc? _authBloc;
@@ -34,15 +37,24 @@ class _AppState extends State<App> {
   ConnectivityCubit? _connectivityCubit;
   NotificationBloc? _notificationBloc;
   UserStatusCubit? _userStatusCubit;
+  late ThemeCubit _themeCubit;
   AppRouter? _appRouter;
   StreamSubscription? _wsEventSub;
+
+  bool _biometricLocked = false;
+  bool _wasInBackground = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _themeCubit = AppConfig.isServerConfigured
+        ? sl<ThemeCubit>()
+        : ThemeCubit();
     _serverReady = AppConfig.isServerConfigured;
     if (_serverReady) {
       _initBlocs();
+      _checkBiometricOnLaunch();
     }
   }
 
@@ -56,15 +68,48 @@ class _AppState extends State<App> {
     _authBloc!.add(const AuthCheckSession());
   }
 
+  Future<void> _checkBiometricOnLaunch() async {
+    final bio = sl<BiometricService>();
+    final enabled = await bio.isEnabled();
+    final available = await bio.isAvailable();
+    if (enabled && available) {
+      setState(() => _biometricLocked = true);
+    }
+  }
+
   void _onServerConfigured() {
+    _themeCubit.close();
     setState(() {
       _serverReady = true;
+      _themeCubit = sl<ThemeCubit>();
       _initBlocs();
+      _checkBiometricOnLaunch();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      _wasInBackground = true;
+    } else if (state == AppLifecycleState.resumed && _wasInBackground) {
+      _wasInBackground = false;
+      _checkBiometricOnResume();
+    }
+  }
+
+  Future<void> _checkBiometricOnResume() async {
+    if (!_serverReady) return;
+    final bio = sl<BiometricService>();
+    final enabled = await bio.isEnabled();
+    final available = await bio.isAvailable();
+    if (enabled && available) {
+      setState(() => _biometricLocked = true);
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _wsEventSub?.cancel();
     _authBloc?.close();
     _wsBloc?.close();
@@ -77,12 +122,20 @@ class _AppState extends State<App> {
   @override
   Widget build(BuildContext context) {
     if (!_serverReady) {
-      return MaterialApp(
-        title: 'MGMess',
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        debugShowCheckedModeBanner: false,
-        home: ServerUrlScreen(onServerConfigured: _onServerConfigured),
+      return BlocProvider.value(
+        value: _themeCubit,
+        child: BlocBuilder<ThemeCubit, ThemeState>(
+          builder: (context, themeState) {
+            return MaterialApp(
+              title: 'MGMess',
+              theme: AppTheme.light,
+              darkTheme: AppTheme.dark,
+              themeMode: themeState.themeMode,
+              debugShowCheckedModeBanner: false,
+              home: ServerUrlScreen(onServerConfigured: _onServerConfigured),
+            );
+          },
+        ),
       );
     }
 
@@ -93,6 +146,7 @@ class _AppState extends State<App> {
         BlocProvider.value(value: _connectivityCubit!),
         BlocProvider.value(value: _notificationBloc!),
         BlocProvider.value(value: _userStatusCubit!),
+        BlocProvider.value(value: _themeCubit),
       ],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -119,12 +173,27 @@ class _AppState extends State<App> {
 
           }
         },
-        child: MaterialApp.router(
-          title: 'MGMess',
-          theme: AppTheme.light,
-          darkTheme: AppTheme.dark,
-          routerConfig: _appRouter!.router,
-          debugShowCheckedModeBanner: false,
+        child: BlocBuilder<ThemeCubit, ThemeState>(
+          builder: (context, themeState) {
+            return MaterialApp.router(
+              title: 'MGMess',
+              theme: AppTheme.light,
+              darkTheme: AppTheme.dark,
+              themeMode: themeState.themeMode,
+              routerConfig: _appRouter!.router,
+              debugShowCheckedModeBanner: false,
+              builder: (context, child) {
+                if (_biometricLocked) {
+                  return BiometricLockScreen(
+                    onAuthenticated: () {
+                      setState(() => _biometricLocked = false);
+                    },
+                  );
+                }
+                return child ?? const SizedBox.shrink();
+              },
+            );
+          },
         ),
       ),
     );

@@ -186,7 +186,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     )
                   : const Icon(Icons.chat_bubble_outline),
-              label: const Text('Написать сообщение'),
+              label: const Text('Send Message'),
             ),
           ),
         ],

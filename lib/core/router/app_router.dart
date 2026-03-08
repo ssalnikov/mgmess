@@ -18,6 +18,7 @@ import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
 import '../../presentation/screens/drafts/drafts_screen.dart';
 import '../../presentation/screens/channels/create_channel_screen.dart';
 import '../../presentation/screens/channels/create_group_dm_screen.dart';
+import '../../presentation/screens/onboarding/onboarding_screen.dart';
 import '../../presentation/screens/search/search_screen.dart';
 import '../../presentation/screens/thread/thread_screen.dart';
 import '../../presentation/screens/threads/threads_screen.dart';
@@ -26,8 +27,17 @@ import 'route_names.dart';
 
 class AppRouter {
   final AuthBloc _authBloc;
+  bool _onboardingChecked = false;
+  bool _needsOnboarding = false;
 
-  AppRouter({required AuthBloc authBloc}) : _authBloc = authBloc;
+  AppRouter({required AuthBloc authBloc}) : _authBloc = authBloc {
+    _checkOnboarding();
+  }
+
+  Future<void> _checkOnboarding() async {
+    _needsOnboarding = !(await OnboardingScreen.isCompleted());
+    _onboardingChecked = true;
+  }
 
   late final GoRouter router = GoRouter(
     initialLocation: RouteNames.channels,
@@ -37,15 +47,33 @@ class AppRouter {
       final authState = _authBloc.state;
       final isAuth = authState is AuthAuthenticated;
       final isAuthPage = state.matchedLocation == RouteNames.auth;
+      final isOnboarding = state.matchedLocation == RouteNames.onboarding;
 
       if (!isAuth && !isAuthPage) return RouteNames.auth;
-      if (isAuth && isAuthPage) return RouteNames.channels;
+      if (isAuth && isAuthPage) {
+        if (_onboardingChecked && _needsOnboarding) {
+          return RouteNames.onboarding;
+        }
+        return RouteNames.channels;
+      }
+      if (isAuth && isOnboarding && !_needsOnboarding) {
+        return RouteNames.channels;
+      }
       return null;
     },
     routes: [
       GoRoute(
         path: RouteNames.auth,
         builder: (context, state) => const AuthScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.onboarding,
+        builder: (context, state) => OnboardingScreen(
+          onComplete: () {
+            _needsOnboarding = false;
+            router.go(RouteNames.channels);
+          },
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) =>

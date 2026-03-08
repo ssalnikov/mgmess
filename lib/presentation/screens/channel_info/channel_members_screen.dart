@@ -111,7 +111,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Участники${_isLoading ? '' : ' (${_members.length})'}'),
+        title: Text('Members${_isLoading ? '' : ' (${_members.length})'}'),
         actions: [
           if (_isCurrentUserAdmin)
             IconButton(
@@ -160,7 +160,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     // Admin section
     if (admins.isNotEmpty) {
       if (index == offset) {
-        return _buildSectionHeader('Администраторы');
+        return _buildSectionHeader('Admins');
       }
       offset++;
       if (index < offset + admins.length) {
@@ -172,7 +172,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     // Others section
     if (others.isNotEmpty) {
       if (index == offset) {
-        return _buildSectionHeader('Участники');
+        return _buildSectionHeader('Members');
       }
       offset++;
       if (index < offset + others.length) {
@@ -238,7 +238,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
             if (member.isChannelAdmin)
               ListTile(
                 leading: const Icon(Icons.arrow_downward),
-                title: const Text('Снять админа'),
+                title: const Text('Remove Admin'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _updateRole(member, schemeAdmin: false);
@@ -247,7 +247,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
             else
               ListTile(
                 leading: const Icon(Icons.arrow_upward),
-                title: const Text('Сделать админом'),
+                title: const Text('Make Admin'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _updateRole(member, schemeAdmin: true);
@@ -256,7 +256,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
             ListTile(
               leading: const Icon(Icons.person_remove, color: AppColors.error),
               title: const Text(
-                'Удалить из канала',
+                'Remove from Channel',
                 style: TextStyle(color: AppColors.error),
               ),
               onTap: () {
@@ -293,14 +293,14 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить из канала'),
+        title: const Text('Remove from Channel'),
         content: Text(
-          'Удалить ${member.user.displayName} из канала?',
+          'Remove ${member.user.displayName} from channel?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
@@ -308,7 +308,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
               _removeMember(member);
             },
             child: const Text(
-              'Удалить',
+              'Remove',
               style: TextStyle(color: AppColors.error),
             ),
           ),
@@ -410,7 +410,7 @@ class _InviteUserSheetState extends State<_InviteUserSheet> {
       ),
       (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${user.displayName} добавлен')),
+          SnackBar(content: Text('${user.displayName} added')),
         );
         Navigator.pop(context);
         widget.onInvited();
@@ -443,7 +443,7 @@ class _InviteUserSheetState extends State<_InviteUserSheet> {
                 controller: _searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Поиск пользователя...',
+                  hintText: 'Search users...',
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

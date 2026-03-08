@@ -20,9 +20,11 @@ import 'package:mgmess/domain/repositories/seens_repository.dart';
 import 'package:mgmess/domain/repositories/user_repository.dart';
 import 'package:mgmess/domain/services/ws_post_parser.dart';
 import 'package:mgmess/data/services/ws_post_parser_impl.dart';
+import 'package:mgmess/core/auth/biometric_service.dart';
 import 'package:mgmess/presentation/blocs/auth/auth_bloc.dart';
 import 'package:mgmess/presentation/blocs/connectivity/connectivity_cubit.dart';
 import 'package:mgmess/presentation/blocs/notification/notification_bloc.dart';
+import 'package:mgmess/presentation/blocs/theme/theme_cubit.dart';
 import 'package:mgmess/presentation/blocs/user_status/user_status_cubit.dart';
 import 'package:mgmess/presentation/blocs/websocket/websocket_bloc.dart';
 import 'package:mocktail/mocktail.dart';
@@ -75,7 +77,9 @@ Future<TestMocks> initTestDependencies() async {
   await sl.reset();
 
   AppConfig.serverUrlOverride = 'https://mm.my.games';
-  SharedPreferences.setMockInitialValues({});
+  SharedPreferences.setMockInitialValues({
+    'onboarding_completed': true,
+  });
 
   // Создаём моки
   final authRepo = MockAuthRepository();
@@ -152,6 +156,7 @@ Future<TestMocks> initTestDependencies() async {
   sl.registerLazySingleton<WebSocketClient>(() => wsClient);
   sl.registerLazySingleton<NetworkInfo>(() => networkInfo);
   sl.registerLazySingleton<NotificationService>(() => notificationService);
+  sl.registerLazySingleton(() => BiometricService());
 
   // Services
   sl.registerLazySingleton<WsPostParser>(() => WsPostParserImpl());
@@ -172,6 +177,7 @@ Future<TestMocks> initTestDependencies() async {
   sl.registerFactory(
       () => NotificationBloc(repository: sl(), notificationService: sl()));
   sl.registerFactory(() => UserStatusCubit(userRepository: sl()));
+  sl.registerLazySingleton(() => ThemeCubit());
 
   return TestMocks(
     authRepository: authRepo,

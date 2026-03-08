@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:flutter/services.dart';
 
+import '../../../core/auth/biometric_service.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -13,6 +15,7 @@ import '../../../core/utils/emoji_map.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../blocs/theme/theme_cubit.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
 import '../../widgets/restart_widget.dart';
 import '../../widgets/user_avatar.dart';
@@ -102,6 +105,10 @@ class ProfileScreen extends StatelessWidget {
                 label: const Text('Notification Settings'),
               ),
               const SizedBox(height: 12),
+              _ThemeSelector(),
+              const SizedBox(height: 12),
+              const _BiometricToggle(),
+              const SizedBox(height: 12),
               _ProfileItem(
                 icon: Icons.dns,
                 label: 'Server',
@@ -169,11 +176,11 @@ class _CustomStatusButton extends StatelessWidget {
   const _CustomStatusButton({required this.userId});
 
   static const _presets = [
-    _CustomStatusPreset('calendar', 'В совещании'),
-    _CustomStatusPreset('car', 'В пути'),
-    _CustomStatusPreset('sick', 'Болею'),
-    _CustomStatusPreset('house', 'Работаю из дома'),
-    _CustomStatusPreset('palm_tree', 'В отпуске'),
+    _CustomStatusPreset('calendar', 'In a meeting'),
+    _CustomStatusPreset('car', 'Commuting'),
+    _CustomStatusPreset('sick', 'Out sick'),
+    _CustomStatusPreset('house', 'Working from home'),
+    _CustomStatusPreset('palm_tree', 'On vacation'),
   ];
 
   @override
@@ -183,12 +190,12 @@ class _CustomStatusButton extends StatelessWidget {
         final cs = state.customStatuses[userId];
         final hasStatus = cs != null && cs.isNotEmpty;
 
-        String label = 'Установить статус';
+        String label = 'Set a status';
         String? emojiChar;
         if (hasStatus) {
           final shortcode = cs.emoji.replaceAll(':', '');
           emojiChar = emojiMap[shortcode] ?? cs.emoji;
-          label = cs.text.isNotEmpty ? cs.text : 'Статус';
+          label = cs.text.isNotEmpty ? cs.text : 'Status';
         }
 
         return Center(
@@ -319,7 +326,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
               ),
               const SizedBox(height: 16),
               const Center(
-                child: Text('Пользовательский статус',
+                child: Text('Custom Status',
                     style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 16),
@@ -351,7 +358,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                       child: TextField(
                         controller: _textController,
                         decoration: const InputDecoration(
-                          hintText: 'Что у вас нового?',
+                          hintText: "What's your status?",
                           border: OutlineInputBorder(),
                           isDense: true,
                         ),
@@ -364,7 +371,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
               const SizedBox(height: 8),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Быстрый выбор',
+                child: Text('Quick select',
                     style: AppTextStyles.caption),
               ),
               const SizedBox(height: 4),
@@ -393,7 +400,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _clearStatus,
-                          child: const Text('Очистить'),
+                          child: const Text('Clear'),
                         ),
                       ),
                     if (widget.current != null &&
@@ -402,7 +409,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _saveStatus,
-                        child: const Text('Сохранить'),
+                        child: const Text('Save'),
                       ),
                     ),
                   ],
@@ -443,7 +450,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Выберите эмодзи', style: AppTextStyles.heading2),
+                const Text('Choose Emoji', style: AppTextStyles.heading2),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
@@ -509,10 +516,10 @@ class _StatusSelector extends StatelessWidget {
   const _StatusSelector({required this.userId});
 
   static const _statusOptions = [
-    _StatusOption('online', 'В сети', 'Вы видны как активный', AppColors.online),
-    _StatusOption('away', 'Нет на месте', 'Вы видны как отсутствующий', AppColors.away),
-    _StatusOption('dnd', 'Не беспокоить', 'Уведомления отключены', AppColors.dnd),
-    _StatusOption('offline', 'Не в сети', 'Вы видны как отключённый', AppColors.offline),
+    _StatusOption('online', 'Online', 'You appear as active', AppColors.online),
+    _StatusOption('away', 'Away', 'You appear as away', AppColors.away),
+    _StatusOption('dnd', 'Do Not Disturb', 'Notifications are disabled', AppColors.dnd),
+    _StatusOption('offline', 'Offline', 'You appear as offline', AppColors.offline),
   ];
 
   @override
@@ -575,7 +582,7 @@ class _StatusSelector extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Статус', style: AppTextStyles.heading2),
+              const Text('Status', style: AppTextStyles.heading2),
               const SizedBox(height: 8),
               for (final option in _statusOptions)
                 ListTile(
@@ -619,6 +626,124 @@ class _StatusOption {
   final Color color;
 
   const _StatusOption(this.key, this.label, this.description, this.color);
+}
+
+class _ThemeSelector extends StatelessWidget {
+  static const _options = [
+    (mode: ThemeMode.system, label: 'System', icon: Icons.settings_brightness),
+    (mode: ThemeMode.light, label: 'Light', icon: Icons.light_mode),
+    (mode: ThemeMode.dark, label: 'Dark', icon: Icons.dark_mode),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<ThemeCubit, ThemeState>(
+      builder: (context, state) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.divider),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.palette, size: 20, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  Text('Appearance', style: AppTextStyles.body),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<ThemeMode>(
+                segments: _options
+                    .map((o) => ButtonSegment<ThemeMode>(
+                          value: o.mode,
+                          label: Text(o.label, style: const TextStyle(fontSize: 12)),
+                          icon: Icon(o.icon, size: 16),
+                        ))
+                    .toList(),
+                selected: {state.themeMode},
+                onSelectionChanged: (selected) {
+                  context.read<ThemeCubit>().setThemeMode(selected.first);
+                },
+                showSelectedIcon: false,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BiometricToggle extends StatefulWidget {
+  const _BiometricToggle();
+
+  @override
+  State<_BiometricToggle> createState() => _BiometricToggleState();
+}
+
+class _BiometricToggleState extends State<_BiometricToggle> {
+  final _bio = sl<BiometricService>();
+  bool _available = false;
+  bool _enabled = false;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final available = await _bio.isAvailable();
+    final enabled = await _bio.isEnabled();
+    if (mounted) {
+      setState(() {
+        _available = available;
+        _enabled = enabled;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _onChanged(bool value) async {
+    if (value) {
+      // Verify biometric before enabling
+      final success = await _bio.authenticate();
+      if (!success) return;
+    }
+    await _bio.setEnabled(value);
+    setState(() => _enabled = value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading || !_available) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.fingerprint, size: 20, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('Biometric Lock', style: AppTextStyles.body),
+          ),
+          Switch(
+            value: _enabled,
+            onChanged: _onChanged,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ProfileItem extends StatelessWidget {

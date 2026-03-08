@@ -39,7 +39,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
   void initState() {
     super.initState();
     _cubit = ChannelInfoCubit(channelRepository: sl<ChannelRepository>());
-    _cubit.loadChannelInfo(widget.channelId);
+    _cubit.loadChannelInfo(widget.channelId, currentUserId: _currentUserId);
   }
 
   @override
@@ -87,6 +87,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
     final channel = state.channel;
     final stats = state.stats;
     final isDm = channel.isDirect || channel.isGroup;
+    final canEdit = state.isCurrentUserAdmin && !isDm;
 
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -96,7 +97,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
         const SizedBox(height: 24),
 
         // Quick actions
-        _buildQuickActions(channel),
+        _buildQuickActions(channel, canEdit: canEdit),
         const Divider(height: 32),
 
         // Header
@@ -177,7 +178,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
     );
   }
 
-  Widget _buildQuickActions(Channel channel) {
+  Widget _buildQuickActions(Channel channel, {bool canEdit = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
@@ -197,6 +198,23 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
               );
             },
           ),
+          if (canEdit)
+            _QuickAction(
+              icon: Icons.edit,
+              label: 'Edit',
+              onTap: () async {
+                HapticFeedback.selectionClick();
+                final updated = await context.push<bool>(
+                  RouteNames.channelEditPath(widget.channelId),
+                );
+                if (updated == true) {
+                  _cubit.loadChannelInfo(
+                    widget.channelId,
+                    currentUserId: _currentUserId,
+                  );
+                }
+              },
+            ),
         ],
       ),
     );

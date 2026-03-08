@@ -14,6 +14,7 @@ class RouteNames {
   static const String thread = '/thread/:postId';
   static const String channelInfo = '/channel/:channelId/info';
   static const String channelMembers = '/channel/:channelId/members';
+  static const String channelEdit = '/channel/:channelId/edit';
 
   static String chatPath(String channelId) => '/chat/$channelId';
   static String userProfilePath(String userId) => '/user/$userId';
@@ -22,4 +23,6 @@ class RouteNames {
       '/channel/$channelId/info';
   static String channelMembersPath(String channelId) =>
       '/channel/$channelId/members';
+  static String channelEditPath(String channelId) =>
+      '/channel/$channelId/edit';
 }

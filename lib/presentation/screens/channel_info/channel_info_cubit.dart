@@ -27,15 +27,17 @@ class ChannelInfoLoaded extends ChannelInfoState {
   final Channel channel;
   final ChannelStats stats;
   final List<ChannelMember> memberPreview;
+  final bool isCurrentUserAdmin;
 
   const ChannelInfoLoaded({
     required this.channel,
     required this.stats,
     this.memberPreview = const [],
+    this.isCurrentUserAdmin = false,
   });
 
   @override
-  List<Object?> get props => [channel, stats, memberPreview];
+  List<Object?> get props => [channel, stats, memberPreview, isCurrentUserAdmin];
 }
 
 class ChannelInfoError extends ChannelInfoState {
@@ -57,14 +59,21 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
   })  : _channelRepository = channelRepository,
         super(const ChannelInfoInitial());
 
-  Future<void> loadChannelInfo(String channelId) async {
+  Future<void> loadChannelInfo(
+    String channelId, {
+    String currentUserId = '',
+  }) async {
     emit(const ChannelInfoLoading());
 
-    final results = await Future.wait([
+    final futures = <Future>[
       _channelRepository.getChannel(channelId),
       _channelRepository.getChannelStats(channelId),
       _channelRepository.getChannelMembers(channelId, page: 0, perPage: 5),
-    ]);
+      if (currentUserId.isNotEmpty)
+        _channelRepository.getChannelMemberRoles(channelId, currentUserId),
+    ];
+
+    final results = await Future.wait(futures);
 
     final channelResult = results[0];
     final statsResult = results[1];
@@ -83,10 +92,18 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
           (_) => <ChannelMember>[],
           (m) => m as List<ChannelMember>,
         );
+        var isAdmin = false;
+        if (currentUserId.isNotEmpty && results.length > 3) {
+          isAdmin = results[3].fold(
+            (_) => false,
+            (roles) => (roles as String).contains('channel_admin'),
+          );
+        }
         emit(ChannelInfoLoaded(
           channel: ch,
           stats: stats,
           memberPreview: members,
+          isCurrentUserAdmin: isAdmin,
         ));
       },
     );
@@ -100,6 +117,20 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
     );
   }
 
+  Future<bool> updateChannel(
+    String channelId,
+    Map<String, dynamic> data,
+  ) async {
+    final result = await _channelRepository.updateChannel(channelId, data);
+    return result.fold(
+      (failure) {
+        emit(ChannelInfoError(message: failure.message));
+        return false;
+      },
+      (_) => true,
+    );
+  }
+
   Future<void> toggleMute(
     String channelId,
     String userId,
@@ -110,7 +141,7 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
         : await _channelRepository.muteChannel(channelId, userId);
     result.fold(
       (failure) => emit(ChannelInfoError(message: failure.message)),
-      (_) => loadChannelInfo(channelId),
+      (_) => loadChannelInfo(channelId, currentUserId: userId),
     );
   }
 }

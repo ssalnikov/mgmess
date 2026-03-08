@@ -30,6 +30,7 @@ class ApiEndpoints {
       '/channels/$channelId/members/$userId/notify_props';
   static String channelMemberSchemeRoles(String channelId, String userId) =>
       '/channels/$channelId/members/$userId/schemeRoles';
+  static String channelPatch(String id) => '/channels/$id/patch';
   static String channelStats(String id) => '/channels/$id/stats';
   static const String channelsAutocomplete = '/channels/autocomplete';
   static String channelCategories(String userId, String teamId) =>

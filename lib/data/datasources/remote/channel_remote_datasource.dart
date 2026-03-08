@@ -195,6 +195,22 @@ class ChannelRemoteDataSource {
     }
   }
 
+  Future<ChannelModel> updateChannel(
+    String channelId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await _apiClient.dio.put(
+        ApiEndpoints.channelPatch(channelId),
+        data: data,
+      );
+      return ChannelModel.fromJson(
+          response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw ServerException(message: 'Failed to update channel: $e');
+    }
+  }
+
   Future<List<ChannelCategoryModel>> getChannelCategories(
     String userId,
     String teamId,

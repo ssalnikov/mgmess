@@ -51,6 +51,14 @@ abstract class ChannelRepository {
     String userId, {
     required bool schemeAdmin,
   });
+  Future<Either<Failure, String>> getChannelMemberRoles(
+    String channelId,
+    String userId,
+  );
+  Future<Either<Failure, Channel>> updateChannel(
+    String channelId,
+    Map<String, dynamic> data,
+  );
   Future<Either<Failure, List<Channel>>> autocompleteChannels(
     String teamId,
     String term,

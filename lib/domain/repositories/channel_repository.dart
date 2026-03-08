@@ -38,6 +38,19 @@ abstract class ChannelRepository {
     String channelId,
     String userId,
   );
+  Future<Either<Failure, void>> removeChannelMember(
+    String channelId,
+    String userId,
+  );
+  Future<Either<Failure, void>> addChannelMember(
+    String channelId,
+    String userId,
+  );
+  Future<Either<Failure, void>> updateChannelMemberSchemeRoles(
+    String channelId,
+    String userId, {
+    required bool schemeAdmin,
+  });
   Future<Either<Failure, List<Channel>>> autocompleteChannels(
     String teamId,
     String term,

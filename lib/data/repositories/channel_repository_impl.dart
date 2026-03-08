@@ -239,6 +239,50 @@ class ChannelRepositoryImpl implements ChannelRepository {
   }
 
   @override
+  Future<Either<Failure, void>> removeChannelMember(
+    String channelId,
+    String userId,
+  ) async {
+    try {
+      await _remoteDataSource.removeChannelMember(channelId, userId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> addChannelMember(
+    String channelId,
+    String userId,
+  ) async {
+    try {
+      await _remoteDataSource.addChannelMember(channelId, userId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateChannelMemberSchemeRoles(
+    String channelId,
+    String userId, {
+    required bool schemeAdmin,
+  }) async {
+    try {
+      await _remoteDataSource.updateChannelMemberSchemeRoles(
+        channelId,
+        userId,
+        schemeAdmin: schemeAdmin,
+      );
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Channel>>> autocompleteChannels(
     String teamId,
     String term,

@@ -155,6 +155,46 @@ class ChannelRemoteDataSource {
     }
   }
 
+  Future<void> removeChannelMember(String channelId, String userId) async {
+    try {
+      await _apiClient.dio.delete(
+        ApiEndpoints.channelMember(channelId, userId),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to remove channel member: $e');
+    }
+  }
+
+  Future<void> addChannelMember(String channelId, String userId) async {
+    try {
+      await _apiClient.dio.post(
+        ApiEndpoints.channelMembers(channelId),
+        data: {'user_id': userId},
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to add channel member: $e');
+    }
+  }
+
+  Future<void> updateChannelMemberSchemeRoles(
+    String channelId,
+    String userId, {
+    required bool schemeAdmin,
+  }) async {
+    try {
+      await _apiClient.dio.put(
+        ApiEndpoints.channelMemberSchemeRoles(channelId, userId),
+        data: {
+          'scheme_user': true,
+          'scheme_admin': schemeAdmin,
+        },
+      );
+    } catch (e) {
+      throw ServerException(
+          message: 'Failed to update member roles: $e');
+    }
+  }
+
   Future<List<ChannelCategoryModel>> getChannelCategories(
     String userId,
     String teamId,

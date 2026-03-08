@@ -28,6 +28,8 @@ class ApiEndpoints {
   static String directChannel = '/channels/direct';
   static String channelMemberNotifyProps(String channelId, String userId) =>
       '/channels/$channelId/members/$userId/notify_props';
+  static String channelMemberSchemeRoles(String channelId, String userId) =>
+      '/channels/$channelId/members/$userId/schemeRoles';
   static String channelStats(String id) => '/channels/$id/stats';
   static const String channelsAutocomplete = '/channels/autocomplete';
   static String channelCategories(String userId, String teamId) =>

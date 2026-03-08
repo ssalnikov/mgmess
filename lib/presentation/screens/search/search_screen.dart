@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -66,8 +67,8 @@ class _SearchScreenState extends State<SearchScreen> {
           title: TextField(
             controller: _controller,
             autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'Search messages...',
+            decoration: InputDecoration(
+              hintText: context.l10n.searchMessages,
               border: InputBorder.none,
             ),
             onChanged: (query) {
@@ -82,7 +83,7 @@ class _SearchScreenState extends State<SearchScreen> {
           actions: [
             IconButton(
               icon: const Icon(Icons.tune),
-              tooltip: 'Filters',
+              tooltip: context.l10n.filters,
               onPressed: _showFilterSheet,
             ),
             if (_controller.text.isNotEmpty)
@@ -145,12 +146,12 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Search messages',
+              context.l10n.searchMessagesHint,
               style: AppTextStyles.caption.copyWith(fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
-              'Use filters for more precise results',
+              context.l10n.useFiltersHint,
               style: AppTextStyles.caption,
             ),
           ],
@@ -164,7 +165,7 @@ class _SearchScreenState extends State<SearchScreen> {
       return Center(child: Text(state.error!));
     }
     if (state.results.isEmpty) {
-      return const Center(child: Text('No results found'));
+      return Center(child: Text(context.l10n.noResultsFound));
     }
     return ListView.builder(
       itemCount: state.results.length,
@@ -366,27 +367,27 @@ class _FilterSheetState extends State<_FilterSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('Search Filters',
+              Text(context.l10n.searchFilters,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 16),
               TextField(
                 controller: _fromController,
-                decoration: const InputDecoration(
-                  labelText: 'From user',
+                decoration: InputDecoration(
+                  labelText: context.l10n.fromUser,
                   hintText: 'username',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.person),
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _inChannelController,
-                decoration: const InputDecoration(
-                  labelText: 'In channel',
+                decoration: InputDecoration(
+                  labelText: context.l10n.inChannel,
                   hintText: 'channel-name',
-                  prefixIcon: Icon(Icons.tag),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.tag),
+                  border: const OutlineInputBorder(),
                   isDense: true,
                 ),
               ),
@@ -396,17 +397,17 @@ class _FilterSheetState extends State<_FilterSheet> {
                 runSpacing: 4,
                 children: [
                   FilterChip(
-                    label: const Text('Files'),
+                    label: Text(context.l10n.files),
                     selected: _hasFile,
                     onSelected: (v) => setState(() => _hasFile = v),
                   ),
                   FilterChip(
-                    label: const Text('Images'),
+                    label: Text(context.l10n.images),
                     selected: _hasImage,
                     onSelected: (v) => setState(() => _hasImage = v),
                   ),
                   FilterChip(
-                    label: const Text('Links'),
+                    label: Text(context.l10n.links),
                     selected: _hasLink,
                     onSelected: (v) => setState(() => _hasLink = v),
                   ),
@@ -419,7 +420,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_afterDate ?? 'After'),
+                      label: Text(_afterDate ?? context.l10n.after),
                       onPressed: () => _pickDate(
                         'After',
                         _afterDate,
@@ -431,7 +432,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                   Expanded(
                     child: OutlinedButton.icon(
                       icon: const Icon(Icons.calendar_today, size: 16),
-                      label: Text(_beforeDate ?? 'Before'),
+                      label: Text(_beforeDate ?? context.l10n.before),
                       onPressed: () => _pickDate(
                         'Before',
                         _beforeDate,
@@ -444,7 +445,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 icon: const Icon(Icons.today, size: 16),
-                label: Text(_onDate ?? 'On date'),
+                label: Text(_onDate ?? context.l10n.onDate),
                 onPressed: () => _pickDate(
                   'On',
                   _onDate,
@@ -456,7 +457,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _apply,
-                  child: const Text('Apply Filters'),
+                  child: Text(context.l10n.applyFilters),
                 ),
               ),
             ],

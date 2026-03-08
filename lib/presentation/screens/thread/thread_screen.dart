@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../domain/entities/post.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -81,7 +82,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
         onSwipeBack: _navigateToChannel,
         child: Scaffold(
           appBar: AppBar(
-            title: const Text('Thread'),
+            title: Text(context.l10n.thread),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
               onPressed: _navigateToChannel,
@@ -161,19 +162,19 @@ class _ThreadScreenState extends State<ThreadScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete message'),
-        content: const Text('Are you sure you want to delete this message?'),
+        title: Text(context.l10n.deleteMessageTitle),
+        content: Text(context.l10n.deleteMessageConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _threadBloc.add(DeleteThreadPost(postId: post.id));
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -233,7 +234,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
-                        '${state.posts.length - 1} ${state.posts.length - 1 == 1 ? 'reply' : 'replies'}',
+                        context.l10n.repliesCount(state.posts.length - 1),
                         style: AppTextStyles.caption,
                       ),
                     ),

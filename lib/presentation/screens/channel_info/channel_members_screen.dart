@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -111,7 +112,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Members${_isLoading ? '' : ' (${_members.length})'}'),
+        title: Text(_isLoading ? context.l10n.members : context.l10n.membersWithCount(_members.length)),
         actions: [
           if (_isCurrentUserAdmin)
             IconButton(
@@ -160,7 +161,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     // Admin section
     if (admins.isNotEmpty) {
       if (index == offset) {
-        return _buildSectionHeader('Admins');
+        return _buildSectionHeader(context.l10n.admins);
       }
       offset++;
       if (index < offset + admins.length) {
@@ -172,7 +173,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     // Others section
     if (others.isNotEmpty) {
       if (index == offset) {
-        return _buildSectionHeader('Members');
+        return _buildSectionHeader(context.l10n.members);
       }
       offset++;
       if (index < offset + others.length) {
@@ -238,7 +239,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
             if (member.isChannelAdmin)
               ListTile(
                 leading: const Icon(Icons.arrow_downward),
-                title: const Text('Remove Admin'),
+                title: Text(context.l10n.removeAdmin),
                 onTap: () {
                   Navigator.pop(ctx);
                   _updateRole(member, schemeAdmin: false);
@@ -247,7 +248,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
             else
               ListTile(
                 leading: const Icon(Icons.arrow_upward),
-                title: const Text('Make Admin'),
+                title: Text(context.l10n.makeAdmin),
                 onTap: () {
                   Navigator.pop(ctx);
                   _updateRole(member, schemeAdmin: true);
@@ -255,9 +256,9 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
               ),
             ListTile(
               leading: const Icon(Icons.person_remove, color: AppColors.error),
-              title: const Text(
-                'Remove from Channel',
-                style: TextStyle(color: AppColors.error),
+              title: Text(
+                context.l10n.removeFromChannel,
+                style: const TextStyle(color: AppColors.error),
               ),
               onTap: () {
                 Navigator.pop(ctx);
@@ -293,23 +294,23 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove from Channel'),
+        title: Text(context.l10n.removeFromChannel),
         content: Text(
-          'Remove ${member.user.displayName} from channel?',
+          context.l10n.removeFromChannelConfirm(member.user.displayName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _removeMember(member);
             },
-            child: const Text(
-              'Remove',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              context.l10n.remove,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -410,7 +411,7 @@ class _InviteUserSheetState extends State<_InviteUserSheet> {
       ),
       (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${user.displayName} added')),
+          SnackBar(content: Text(context.l10n.userAdded(user.displayName))),
         );
         Navigator.pop(context);
         widget.onInvited();
@@ -443,7 +444,7 @@ class _InviteUserSheetState extends State<_InviteUserSheet> {
                 controller: _searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Search users...',
+                  hintText: context.l10n.searchUsers,
                   prefixIcon: const Icon(Icons.search),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),

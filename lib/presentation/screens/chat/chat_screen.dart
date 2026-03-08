@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
@@ -235,7 +236,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         if (_memberCount != null)
                           Text(
-                            '$_memberCount members',
+                            context.l10n.membersCount(_memberCount!),
                             style: AppTextStyles.caption.copyWith(
                               color: AppColors.textSecondary,
                               fontSize: 12,
@@ -251,7 +252,7 @@ class _ChatScreenState extends State<ChatScreen> {
             actions: [
               IconButton(
                 icon: const Icon(Icons.push_pin_outlined),
-                tooltip: 'Pinned messages',
+                tooltip: context.l10n.pinnedMessages,
                 onPressed: _showPinnedMessages,
               ),
             ],
@@ -487,7 +488,7 @@ class _ChatScreenState extends State<ChatScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Text(
-              'New messages',
+              context.l10n.newMessagesLabel,
               style: AppTextStyles.caption.copyWith(
                 color: AppColors.accent,
                 fontWeight: FontWeight.w600,
@@ -504,19 +505,19 @@ class _ChatScreenState extends State<ChatScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete message'),
-        content: const Text('Are you sure you want to delete this message?'),
+        title: Text(context.l10n.deleteMessageTitle),
+        content: Text(context.l10n.deleteMessageConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               _chatBloc.add(DeleteMessage(postId: post.id));
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -533,7 +534,7 @@ class _ChatScreenState extends State<ChatScreen> {
           padding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: Text(
-            '${state.typingUsers.length} typing...',
+            context.l10n.typingIndicator(state.typingUsers.length),
             style: AppTextStyles.caption.copyWith(
               fontStyle: FontStyle.italic,
             ),

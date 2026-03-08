@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/utils/emoji_map.dart';
 import '../../../../domain/entities/post.dart';
 import 'emoji_picker_sheet.dart';
@@ -41,15 +42,15 @@ class MessageActionsSheet extends StatelessWidget {
           if (post.message.isNotEmpty)
             ListTile(
               leading: const Icon(Icons.copy),
-              title: const Text('Copy'),
+              title: Text(context.l10n.copy),
               onTap: () {
                 HapticFeedback.selectionClick();
                 Clipboard.setData(ClipboardData(text: post.message));
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Copied to clipboard'),
-                    duration: Duration(seconds: 1),
+                  SnackBar(
+                    content: Text(context.l10n.copiedToClipboard),
+                    duration: const Duration(seconds: 1),
                   ),
                 );
               },
@@ -57,7 +58,7 @@ class MessageActionsSheet extends StatelessWidget {
           if (post.message.isNotEmpty && onQuote != null)
             ListTile(
               leading: const Icon(Icons.format_quote),
-              title: const Text('Quote'),
+              title: Text(context.l10n.quote),
               onTap: () {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
@@ -67,7 +68,7 @@ class MessageActionsSheet extends StatelessWidget {
           if (onForward != null)
             ListTile(
               leading: const Icon(Icons.shortcut),
-              title: const Text('Forward'),
+              title: Text(context.l10n.forward),
               onTap: () {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
@@ -77,7 +78,7 @@ class MessageActionsSheet extends StatelessWidget {
           if (!post.isPinned && onPin != null)
             ListTile(
               leading: const Icon(Icons.push_pin_outlined),
-              title: const Text('Pin'),
+              title: Text(context.l10n.pin),
               onTap: () {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
@@ -87,7 +88,7 @@ class MessageActionsSheet extends StatelessWidget {
           if (post.isPinned && onUnpin != null)
             ListTile(
               leading: const Icon(Icons.push_pin),
-              title: const Text('Unpin'),
+              title: Text(context.l10n.unpin),
               onTap: () {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
@@ -97,7 +98,7 @@ class MessageActionsSheet extends StatelessWidget {
           if (isOwn && post.message.isNotEmpty && onEdit != null)
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
+              title: Text(context.l10n.edit),
               onTap: () {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
@@ -107,7 +108,7 @@ class MessageActionsSheet extends StatelessWidget {
           if (isOwn && onDelete != null)
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
-              title: const Text('Delete', style: TextStyle(color: Colors.red)),
+              title: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
               onTap: () {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);

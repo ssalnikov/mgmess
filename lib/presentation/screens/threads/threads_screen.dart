@@ -6,6 +6,7 @@ import '../../widgets/message_markdown.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -68,7 +69,7 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
       value: _bloc,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Threads'),
+          title: Text(context.l10n.threads),
         ),
         body: BlocBuilder<ThreadsBloc, ThreadsState>(
           builder: (context, state) {
@@ -82,8 +83,8 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
               );
             }
             if (state.threads.isEmpty) {
-              return const Center(
-                child: Text('No threads'),
+              return Center(
+                child: Text(context.l10n.noThreads),
               );
             }
             return RefreshIndicator(
@@ -120,9 +121,7 @@ class _ThreadTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final post = thread.post;
-    final replyLabel = thread.replyCount == 1
-        ? '1 reply'
-        : '${thread.replyCount} replies';
+    final replyLabel = context.l10n.repliesCount(thread.replyCount);
     final timeLabel = DateFormatter.formatChannelTime(thread.lastReplyAt);
 
     return ListTile(

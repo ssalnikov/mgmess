@@ -7,6 +7,7 @@ import 'package:get_it/get_it.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
@@ -130,9 +131,9 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Mattermost for MyGames',
-                    style: TextStyle(
+                  Text(
+                    context.l10n.mattermostForMyGames,
+                    style: const TextStyle(
                       fontSize: 16,
                       color: AppColors.textSecondary,
                     ),
@@ -178,20 +179,20 @@ class _AuthScreenState extends State<AuthScreen> {
                             _buildLoginForm(),
                             if (_enableGitLab) ...[
                               const SizedBox(height: 16),
-                              const Row(
+                              Row(
                                 children: [
-                                  Expanded(child: Divider()),
+                                  const Expanded(child: Divider()),
                                   Padding(
-                                    padding: EdgeInsets.symmetric(
+                                    padding: const EdgeInsets.symmetric(
                                         horizontal: 16),
                                     child: Text(
-                                      'or',
-                                      style: TextStyle(
+                                      context.l10n.or,
+                                      style: const TextStyle(
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
                                   ),
-                                  Expanded(child: Divider()),
+                                  const Expanded(child: Divider()),
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -203,9 +204,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               child: ElevatedButton.icon(
                                 onPressed: _launchOAuth,
                                 icon: const Icon(Icons.login),
-                                label: const Text(
-                                  'Sign in with GitLab',
-                                  style: TextStyle(fontSize: 16),
+                                label: Text(
+                                  context.l10n.signInWithGitLab,
+                                  style: const TextStyle(fontSize: 16),
                                 ),
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
@@ -232,11 +233,11 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _buildLoginForm() {
     String hint;
     if (_enableEmail && _enableUsername) {
-      hint = 'Email or Username';
+      hint = context.l10n.emailOrUsername;
     } else if (_enableEmail) {
-      hint = 'Email';
+      hint = context.l10n.email;
     } else {
-      hint = 'Username';
+      hint = context.l10n.username;
     }
 
     return Form(
@@ -257,7 +258,7 @@ class _AuthScreenState extends State<AuthScreen> {
             textInputAction: TextInputAction.next,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Please enter your $hint';
+                return context.l10n.pleaseEnterField(hint);
               }
               return null;
             },
@@ -265,17 +266,17 @@ class _AuthScreenState extends State<AuthScreen> {
           const SizedBox(height: 16),
           TextFormField(
             controller: _passwordController,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.lock),
+            decoration: InputDecoration(
+              labelText: context.l10n.password,
+              border: const OutlineInputBorder(),
+              prefixIcon: const Icon(Icons.lock),
             ),
             obscureText: true,
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submitLogin(),
             validator: (value) {
               if (value == null || value.isEmpty) {
-                return 'Please enter your password';
+                return context.l10n.pleaseEnterPassword;
               }
               return null;
             },
@@ -288,9 +289,9 @@ class _AuthScreenState extends State<AuthScreen> {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              child: const Text(
-                'Sign In',
-                style: TextStyle(fontSize: 16),
+              child: Text(
+                context.l10n.signIn,
+                style: const TextStyle(fontSize: 16),
               ),
             ),
           ),

@@ -1,0 +1,324 @@
+{
+  "@@locale": "en",
+
+  "appName": "MGMess",
+  "mattermostForMyGames": "Mattermost for MyGames",
+  "mattermostClient": "Mattermost Client",
+  "or": "or",
+  "signInWithGitLab": "Sign in with GitLab",
+  "emailOrUsername": "Email or Username",
+  "email": "Email",
+  "username": "Username",
+  "pleaseEnterField": "Please enter your {field}",
+  "@pleaseEnterField": {
+    "placeholders": {
+      "field": {"type": "String"}
+    }
+  },
+  "password": "Password",
+  "pleaseEnterPassword": "Please enter your password",
+  "signIn": "Sign In",
+
+  "serverUrl": "Server URL",
+  "serverUrlHint": "https://mattermost.example.com",
+  "connect": "Connect",
+  "enterServerUrl": "Enter server URL",
+  "connectionTimedOut": "Connection timed out. Check the URL and try again.",
+  "cannotConnectToServer": "Cannot connect to server. Check the URL.",
+  "serverError": "Server error: {statusCode}",
+  "@serverError": {
+    "placeholders": {
+      "statusCode": {"type": "String"}
+    }
+  },
+  "connectionFailed": "Connection failed: {message}",
+  "@connectionFailed": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+  "unexpectedError": "Unexpected error: {error}",
+  "@unexpectedError": {
+    "placeholders": {
+      "error": {"type": "String"}
+    }
+  },
+  "serverReturnedStatus": "Server returned status {statusCode}",
+  "@serverReturnedStatus": {
+    "placeholders": {
+      "statusCode": {"type": "int"}
+    }
+  },
+
+  "channels": "Channels",
+  "newChannel": "New Channel",
+  "createChannelSubtitle": "Create a public or private channel",
+  "newMessage": "New Message",
+  "startDirectOrGroupMessage": "Start a direct or group message",
+  "threads": "Threads",
+  "drafts": "Drafts",
+  "searchChannels": "Search channels...",
+  "otherChannels": "Other channels",
+  "users": "Users",
+  "noResultsFound": "No results found",
+  "mute": "Mute",
+  "unmute": "Unmute",
+
+  "publicType": "Public",
+  "privateType": "Private",
+  "create": "Create",
+  "publicChannelsDescription": "Public channels can be found and joined by anyone",
+  "privateChannelsDescription": "Private channels are only visible to invited members",
+  "channelName": "Channel name",
+  "channelNameHint": "e.g. Project Updates",
+  "required_": "Required",
+  "urlLabel": "URL",
+  "urlHint": "e.g. project-updates",
+  "urlValidation": "Only lowercase letters, numbers, - and _",
+  "purposeOptional": "Purpose (optional)",
+  "purposeHint": "Describe the channel purpose",
+  "headerOptional": "Header (optional)",
+  "headerHint": "Markdown-supported header text",
+
+  "go": "Go",
+  "searchForPeople": "Search for people...",
+
+  "membersCount": "{count} members",
+  "@membersCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "pinnedMessages": "Pinned messages",
+  "newMessagesLabel": "New messages",
+  "deleteMessageTitle": "Delete message",
+  "deleteMessageConfirm": "Are you sure you want to delete this message?",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "typingIndicator": "{count} typing...",
+  "@typingIndicator": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "standard": "Standard",
+  "important": "Important",
+  "urgent": "Urgent",
+  "editingMessage": "Editing message",
+  "writeAMessage": "Write a message...",
+  "photoFromGallery": "Photo from Gallery",
+  "file": "File",
+  "uploadFailed": "Upload failed: {message}",
+  "@uploadFailed": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  },
+
+  "copy": "Copy",
+  "copiedToClipboard": "Copied to clipboard",
+  "quote": "Quote",
+  "forward": "Forward",
+  "pin": "Pin",
+  "unpin": "Unpin",
+  "edit": "Edit",
+
+  "profile": "Profile",
+  "notAuthenticated": "Not authenticated",
+  "firstName": "First Name",
+  "lastName": "Last Name",
+  "nickname": "Nickname",
+  "setAStatus": "Set a status",
+  "status": "Status",
+  "inAMeeting": "In a meeting",
+  "commuting": "Commuting",
+  "outSick": "Out sick",
+  "workingFromHome": "Working from home",
+  "onVacation": "On vacation",
+  "customStatus": "Custom Status",
+  "whatsYourStatus": "What's your status?",
+  "quickSelect": "Quick select",
+  "clear": "Clear",
+  "save": "Save",
+  "chooseEmoji": "Choose Emoji",
+  "editProfile": "Edit Profile",
+  "notificationSettings": "Notification Settings",
+  "appearance": "Appearance",
+  "systemTheme": "System",
+  "lightTheme": "Light",
+  "darkTheme": "Dark",
+  "server": "Server",
+  "changeServer": "Change Server",
+  "signOut": "Sign Out",
+  "changeServerMessage": "You will be signed out and redirected to the server selection screen.",
+  "change": "Change",
+  "online": "Online",
+  "away": "Away",
+  "doNotDisturb": "Do Not Disturb",
+  "offline": "Offline",
+  "youAppearAsActive": "You appear as active",
+  "youAppearAsAway": "You appear as away",
+  "notificationsDisabled": "Notifications are disabled",
+  "youAppearAsOffline": "You appear as offline",
+  "biometricLock": "Biometric Lock",
+
+  "notifications": "Notifications",
+  "pushNotifications": "Push Notifications",
+  "receiveNotificationsSubtitle": "Receive notifications for new messages",
+  "notifyMeAbout": "Notify me about...",
+  "allNewMessages": "All new messages",
+  "mentionsAndDM": "Mentions & direct messages",
+  "dmOnly": "Direct messages only",
+
+  "header": "Header",
+  "purpose": "Purpose",
+  "leaveChannel": "Leave Channel",
+  "directMessage": "Direct Message",
+  "groupMessage": "Group Message",
+  "privateChannel": "Private Channel",
+  "publicChannel": "Public Channel",
+  "membersWithCount": "Members ({count})",
+  "@membersWithCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "notificationPreferences": "Notification Preferences",
+  "leaveChannelConfirm": "Are you sure you want to leave \"{channelName}\"?",
+  "@leaveChannelConfirm": {
+    "placeholders": {
+      "channelName": {"type": "String"}
+    }
+  },
+  "leave": "Leave",
+
+  "editChannel": "Edit Channel",
+  "name": "Name",
+  "channelNameHintEdit": "Channel name",
+  "nameCannotBeEmpty": "Name cannot be empty",
+  "channelHeader": "Channel header",
+  "channelHeaderDescription": "Text displayed at the top of the channel. Often used for links and quick reference info.",
+  "channelPurpose": "Channel purpose",
+  "channelPurposeDescription": "Describe the purpose of this channel. Helps other users understand what it is for.",
+  "failedToUpdateChannel": "Failed to update channel",
+
+  "members": "Members",
+  "admins": "Admins",
+  "removeAdmin": "Remove Admin",
+  "makeAdmin": "Make Admin",
+  "removeFromChannel": "Remove from Channel",
+  "remove": "Remove",
+  "removeFromChannelConfirm": "Remove {userName} from channel?",
+  "@removeFromChannelConfirm": {
+    "placeholders": {
+      "userName": {"type": "String"}
+    }
+  },
+  "searchUsers": "Search users...",
+  "userAdded": "{userName} added",
+  "@userAdded": {
+    "placeholders": {
+      "userName": {"type": "String"}
+    }
+  },
+
+  "recentMentions": "Recent Mentions",
+  "noRecentMentions": "No recent mentions",
+
+  "savedMessages": "Saved Messages",
+  "noSavedMessages": "No saved messages",
+
+  "noThreads": "No threads",
+  "repliesCount": "{count, plural, =1{1 reply} other{{count} replies}}",
+  "@repliesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "noDrafts": "No drafts",
+  "unknownChannel": "Unknown channel",
+
+  "thread": "Thread",
+
+  "userProfile": "User Profile",
+  "sendMessage": "Send Message",
+  "userNotFound": "User not found",
+
+  "position": "Position",
+  "takePhoto": "Take Photo",
+  "chooseFromGallery": "Choose from Gallery",
+  "avatarUpdated": "Avatar updated",
+
+  "authenticationRequired": "Authentication required",
+  "unlock": "Unlock",
+
+  "skip": "Skip",
+  "realtimeMessaging": "Real-time Messaging",
+  "realtimeMessagingDesc": "Send messages, share files, and react with emoji. All synced in real-time with your Mattermost server.",
+  "quickActions": "Quick Actions",
+  "quickActionsDesc": "Long-press a message for actions like reply, forward, pin, and edit. Swipe right to reply quickly.",
+  "stayOrganized": "Stay Organized",
+  "stayOrganizedDesc": "Use channels, threads, and search to keep conversations organized. Pin important messages and save them for later.",
+  "next": "Next",
+  "getStarted": "Get Started",
+
+  "saved": "Saved",
+  "mentions": "Mentions",
+
+  "retry": "Retry",
+
+  "pinned": "Pinned",
+  "edited": "(edited)",
+  "forwarded": "Forwarded",
+  "forwardedFrom": "Forwarded from #{channelName}",
+  "@forwardedFrom": {
+    "placeholders": {
+      "channelName": {"type": "String"}
+    }
+  },
+
+  "newMessagesCount": "{count, plural, =1{1 new message} other{{count} new messages}}",
+  "@newMessagesCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "noPinnedMessages": "No pinned messages",
+
+  "searchEmoji": "Search emoji...",
+  "nothingFound": "Nothing found",
+  "noEmojisYet": "No emojis yet",
+
+  "searchMessages": "Search messages...",
+  "filters": "Filters",
+  "searchMessagesHint": "Search messages",
+  "useFiltersHint": "Use filters for more precise results",
+  "searchFilters": "Search Filters",
+  "fromUser": "From user",
+  "inChannel": "In channel",
+  "files": "Files",
+  "images": "Images",
+  "links": "Links",
+  "after": "After",
+  "before": "Before",
+  "onDate": "On date",
+  "applyFilters": "Apply Filters",
+
+  "defaultNotif": "Default",
+  "useGlobalSetting": "Use global notification setting",
+  "allMessages": "All messages",
+  "notifyEveryMessage": "Notify for every new message",
+  "mentionsOnly": "Mentions only",
+  "onlyWhenMentioned": "Only when you are mentioned",
+  "nothing": "Nothing",
+  "neverNotify": "Never notify for this channel",
+  "notificationsChannelTitle": "Notifications — {channelName}",
+  "@notificationsChannelTitle": {
+    "placeholders": {
+      "channelName": {"type": "String"}
+    }
+  }
+}

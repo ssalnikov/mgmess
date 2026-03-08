@@ -5,6 +5,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../../widgets/message_markdown.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/date_formatter.dart';
@@ -66,10 +67,10 @@ class _PinnedMessagesSheetState extends State<PinnedMessagesSheet> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              const Padding(
-                padding: EdgeInsets.all(16),
+              Padding(
+                padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Pinned messages',
+                  context.l10n.pinnedMessages,
                   style: AppTextStyles.heading2,
                 ),
               ),
@@ -88,18 +89,18 @@ class _PinnedMessagesSheetState extends State<PinnedMessagesSheet> {
                       );
                     }
                     if (state.posts.isEmpty) {
-                      return const Center(
+                      return Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            const Icon(
                               Icons.push_pin_outlined,
                               size: 48,
                               color: AppColors.textSecondary,
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             Text(
-                              'No pinned messages',
+                              context.l10n.noPinnedMessages,
                               style: AppTextStyles.bodySmall,
                             ),
                           ],
@@ -154,7 +155,7 @@ class _PinnedMessagesSheetState extends State<PinnedMessagesSheet> {
                                       size: 18,
                                       color: AppColors.textSecondary,
                                     ),
-                                    tooltip: 'Unpin',
+                                    tooltip: context.l10n.unpin,
                                     onPressed: () {
                                       _bloc.add(
                                           UnpinMessage(postId: post.id));

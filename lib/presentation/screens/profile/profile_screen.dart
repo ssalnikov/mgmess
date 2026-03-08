@@ -19,6 +19,7 @@ import '../../blocs/theme/theme_cubit.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
 import '../../widgets/restart_widget.dart';
 import '../../widgets/user_avatar.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../widgets/user_display_name.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -27,11 +28,11 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(context.l10n.profile)),
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is! AuthAuthenticated) {
-            return const Center(child: Text('Not authenticated'));
+            return Center(child: Text(context.l10n.notAuthenticated));
           }
           final user = state.user;
           return ListView(
@@ -72,37 +73,37 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 24),
               _ProfileItem(
                 icon: Icons.email,
-                label: 'Email',
+                label: context.l10n.email,
                 value: user.email,
               ),
               _ProfileItem(
                 icon: Icons.person,
-                label: 'First Name',
+                label: context.l10n.firstName,
                 value: user.firstName,
               ),
               _ProfileItem(
                 icon: Icons.person,
-                label: 'Last Name',
+                label: context.l10n.lastName,
                 value: user.lastName,
               ),
               if (user.nickname.isNotEmpty)
                 _ProfileItem(
                   icon: Icons.badge,
-                  label: 'Nickname',
+                  label: context.l10n.nickname,
                   value: user.nickname,
                 ),
               const SizedBox(height: 24),
               OutlinedButton.icon(
                 onPressed: () => context.push(RouteNames.editProfile),
                 icon: const Icon(Icons.edit),
-                label: const Text('Edit Profile'),
+                label: Text(context.l10n.editProfile),
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () =>
                     context.push(RouteNames.notificationSettings),
                 icon: const Icon(Icons.notifications_outlined),
-                label: const Text('Notification Settings'),
+                label: Text(context.l10n.notificationSettings),
               ),
               const SizedBox(height: 12),
               _ThemeSelector(),
@@ -111,14 +112,14 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _ProfileItem(
                 icon: Icons.dns,
-                label: 'Server',
+                label: context.l10n.server,
                 value: AppConfig.serverUrl,
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () => _showChangeServerDialog(context),
                 icon: const Icon(Icons.swap_horiz),
-                label: const Text('Change Server'),
+                label: Text(context.l10n.changeServer),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
@@ -126,7 +127,7 @@ class ProfileScreen extends StatelessWidget {
                   context.read<AuthBloc>().add(const AuthLogoutRequested());
                 },
                 icon: const Icon(Icons.logout),
-                label: const Text('Sign Out'),
+                label: Text(context.l10n.signOut),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.error,
                   foregroundColor: Colors.white,
@@ -143,14 +144,14 @@ class ProfileScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Change Server'),
-        content: const Text(
-          'You will be signed out and redirected to the server selection screen.',
+        title: Text(context.l10n.changeServer),
+        content: Text(
+          context.l10n.changeServerMessage,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -162,7 +163,7 @@ class ProfileScreen extends StatelessWidget {
                 RestartWidget.restartApp(context);
               }
             },
-            child: const Text('Change'),
+            child: Text(context.l10n.change),
           ),
         ],
       ),
@@ -175,12 +176,12 @@ class _CustomStatusButton extends StatelessWidget {
 
   const _CustomStatusButton({required this.userId});
 
-  static const _presets = [
-    _CustomStatusPreset('calendar', 'In a meeting'),
-    _CustomStatusPreset('car', 'Commuting'),
-    _CustomStatusPreset('sick', 'Out sick'),
-    _CustomStatusPreset('house', 'Working from home'),
-    _CustomStatusPreset('palm_tree', 'On vacation'),
+  static List<_CustomStatusPreset> _getPresets(BuildContext context) => [
+    _CustomStatusPreset('calendar', context.l10n.inAMeeting),
+    _CustomStatusPreset('car', context.l10n.commuting),
+    _CustomStatusPreset('sick', context.l10n.outSick),
+    _CustomStatusPreset('house', context.l10n.workingFromHome),
+    _CustomStatusPreset('palm_tree', context.l10n.onVacation),
   ];
 
   @override
@@ -190,12 +191,12 @@ class _CustomStatusButton extends StatelessWidget {
         final cs = state.customStatuses[userId];
         final hasStatus = cs != null && cs.isNotEmpty;
 
-        String label = 'Set a status';
+        String label = context.l10n.setAStatus;
         String? emojiChar;
         if (hasStatus) {
           final shortcode = cs.emoji.replaceAll(':', '');
           emojiChar = emojiMap[shortcode] ?? cs.emoji;
-          label = cs.text.isNotEmpty ? cs.text : 'Status';
+          label = cs.text.isNotEmpty ? cs.text : context.l10n.status;
         }
 
         return Center(
@@ -251,7 +252,7 @@ class _CustomStatusButton extends StatelessWidget {
         return _CustomStatusSheet(
           userId: userId,
           current: current,
-          presets: _presets,
+          presets: _getPresets(context),
           parentContext: context,
         );
       },
@@ -325,8 +326,8 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
-                child: Text('Custom Status',
+              Center(
+                child: Text(context.l10n.customStatus,
                     style: AppTextStyles.heading2),
               ),
               const SizedBox(height: 16),
@@ -357,9 +358,9 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                     Expanded(
                       child: TextField(
                         controller: _textController,
-                        decoration: const InputDecoration(
-                          hintText: "What's your status?",
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          hintText: context.l10n.whatsYourStatus,
+                          border: const OutlineInputBorder(),
                           isDense: true,
                         ),
                         maxLength: 100,
@@ -369,9 +370,9 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Quick select',
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(context.l10n.quickSelect,
                     style: AppTextStyles.caption),
               ),
               const SizedBox(height: 4),
@@ -400,7 +401,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: _clearStatus,
-                          child: const Text('Clear'),
+                          child: Text(context.l10n.clear),
                         ),
                       ),
                     if (widget.current != null &&
@@ -409,7 +410,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: _saveStatus,
-                        child: const Text('Save'),
+                        child: Text(context.l10n.save),
                       ),
                     ),
                   ],
@@ -450,7 +451,7 @@ class _CustomStatusSheetState extends State<_CustomStatusSheet> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Choose Emoji', style: AppTextStyles.heading2),
+                Text(context.l10n.chooseEmoji, style: AppTextStyles.heading2),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
@@ -515,11 +516,11 @@ class _StatusSelector extends StatelessWidget {
 
   const _StatusSelector({required this.userId});
 
-  static const _statusOptions = [
-    _StatusOption('online', 'Online', 'You appear as active', AppColors.online),
-    _StatusOption('away', 'Away', 'You appear as away', AppColors.away),
-    _StatusOption('dnd', 'Do Not Disturb', 'Notifications are disabled', AppColors.dnd),
-    _StatusOption('offline', 'Offline', 'You appear as offline', AppColors.offline),
+  static List<_StatusOption> _getOptions(BuildContext context) => [
+    _StatusOption('online', context.l10n.online, context.l10n.youAppearAsActive, AppColors.online),
+    _StatusOption('away', context.l10n.away, context.l10n.youAppearAsAway, AppColors.away),
+    _StatusOption('dnd', context.l10n.doNotDisturb, context.l10n.notificationsDisabled, AppColors.dnd),
+    _StatusOption('offline', context.l10n.offline, context.l10n.youAppearAsOffline, AppColors.offline),
   ];
 
   @override
@@ -527,9 +528,10 @@ class _StatusSelector extends StatelessWidget {
     return BlocBuilder<UserStatusCubit, UserStatusState>(
       builder: (context, state) {
         final currentStatus = state.statuses[userId] ?? 'offline';
-        final option = _statusOptions.firstWhere(
+        final options = _getOptions(context);
+        final option = options.firstWhere(
           (o) => o.key == currentStatus,
-          orElse: () => _statusOptions.last,
+          orElse: () => options.last,
         );
         return InkWell(
           onTap: () => _showStatusSheet(context, currentStatus),
@@ -582,9 +584,9 @@ class _StatusSelector extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('Status', style: AppTextStyles.heading2),
+              Text(context.l10n.status, style: AppTextStyles.heading2),
               const SizedBox(height: 8),
-              for (final option in _statusOptions)
+              for (final option in _getOptions(context))
                 ListTile(
                   leading: Container(
                     width: 14,
@@ -629,10 +631,10 @@ class _StatusOption {
 }
 
 class _ThemeSelector extends StatelessWidget {
-  static const _options = [
-    (mode: ThemeMode.system, label: 'System', icon: Icons.settings_brightness),
-    (mode: ThemeMode.light, label: 'Light', icon: Icons.light_mode),
-    (mode: ThemeMode.dark, label: 'Dark', icon: Icons.dark_mode),
+  static List<({ThemeMode mode, String label, IconData icon})> _getOptions(BuildContext context) => [
+    (mode: ThemeMode.system, label: context.l10n.systemTheme, icon: Icons.settings_brightness),
+    (mode: ThemeMode.light, label: context.l10n.lightTheme, icon: Icons.light_mode),
+    (mode: ThemeMode.dark, label: context.l10n.darkTheme, icon: Icons.dark_mode),
   ];
 
   @override
@@ -652,12 +654,12 @@ class _ThemeSelector extends StatelessWidget {
                 children: [
                   const Icon(Icons.palette, size: 20, color: AppColors.textSecondary),
                   const SizedBox(width: 8),
-                  Text('Appearance', style: AppTextStyles.body),
+                  Text(context.l10n.appearance, style: AppTextStyles.body),
                 ],
               ),
               const SizedBox(height: 8),
               SegmentedButton<ThemeMode>(
-                segments: _options
+                segments: _getOptions(context)
                     .map((o) => ButtonSegment<ThemeMode>(
                           value: o.mode,
                           label: Text(o.label, style: const TextStyle(fontSize: 12)),
@@ -734,7 +736,7 @@ class _BiometricToggleState extends State<_BiometricToggle> {
           const Icon(Icons.fingerprint, size: 20, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           Expanded(
-            child: Text('Biometric Lock', style: AppTextStyles.body),
+            child: Text(context.l10n.biometricLock, style: AppTextStyles.body),
           ),
           Switch(
             value: _enabled,

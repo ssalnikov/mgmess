@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
@@ -131,7 +132,7 @@ class _CreateGroupDmScreenState extends State<CreateGroupDmScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Message'),
+        title: Text(context.l10n.newMessage),
         actions: [
           TextButton(
             onPressed:
@@ -142,7 +143,7 @@ class _CreateGroupDmScreenState extends State<CreateGroupDmScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Go'),
+                : Text(context.l10n.go),
           ),
         ],
       ),
@@ -175,7 +176,7 @@ class _CreateGroupDmScreenState extends State<CreateGroupDmScreen> {
               controller: _searchController,
               autofocus: true,
               decoration: InputDecoration(
-                hintText: 'Search for people...',
+                hintText: context.l10n.searchForPeople,
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),

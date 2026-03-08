@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
@@ -92,7 +93,7 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Channel'),
+        title: Text(context.l10n.newChannel),
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _create,
@@ -102,7 +103,7 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Create'),
+                : Text(context.l10n.create),
           ),
         ],
       ),
@@ -113,16 +114,16 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
           children: [
             // Channel type selector
             SegmentedButton<ChannelType>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: ChannelType.open,
-                  label: Text('Public'),
-                  icon: Icon(Icons.tag),
+                  label: Text(context.l10n.publicType),
+                  icon: const Icon(Icons.tag),
                 ),
                 ButtonSegment(
                   value: ChannelType.private_,
-                  label: Text('Private'),
-                  icon: Icon(Icons.lock),
+                  label: Text(context.l10n.privateType),
+                  icon: const Icon(Icons.lock),
                 ),
               ],
               selected: {_channelType},
@@ -132,8 +133,8 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
             const SizedBox(height: 16),
             Text(
               _channelType == ChannelType.open
-                  ? 'Public channels can be found and joined by anyone'
-                  : 'Private channels are only visible to invited members',
+                  ? context.l10n.publicChannelsDescription
+                  : context.l10n.privateChannelsDescription,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textSecondary,
                   ),
@@ -141,14 +142,14 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
             const SizedBox(height: 24),
             TextFormField(
               controller: _displayNameController,
-              decoration: const InputDecoration(
-                labelText: 'Channel name',
-                hintText: 'e.g. Project Updates',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.channelName,
+                hintText: context.l10n.channelNameHint,
+                border: const OutlineInputBorder(),
               ),
               textCapitalization: TextCapitalization.words,
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  (v == null || v.trim().isEmpty) ? context.l10n.required_ : null,
               onChanged: (v) {
                 if (!_nameManuallyEdited) {
                   _nameController.text = _generateSlug(v);
@@ -158,17 +159,17 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'URL',
-                hintText: 'e.g. project-updates',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.urlLabel,
+                hintText: context.l10n.urlHint,
+                border: const OutlineInputBorder(),
                 prefixText: '~',
               ),
               onChanged: (_) => _nameManuallyEdited = true,
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return null;
                 if (RegExp(r'[^a-z0-9\-_]').hasMatch(v.trim())) {
-                  return 'Only lowercase letters, numbers, - and _';
+                  return context.l10n.urlValidation;
                 }
                 return null;
               },
@@ -176,20 +177,20 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _purposeController,
-              decoration: const InputDecoration(
-                labelText: 'Purpose (optional)',
-                hintText: 'Describe the channel purpose',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.purposeOptional,
+                hintText: context.l10n.purposeHint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _headerController,
-              decoration: const InputDecoration(
-                labelText: 'Header (optional)',
-                hintText: 'Markdown-supported header text',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.headerOptional,
+                hintText: context.l10n.headerHint,
+                border: const OutlineInputBorder(),
               ),
               maxLines: 2,
             ),

@@ -6,6 +6,7 @@ import '../../widgets/message_markdown.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -53,7 +54,7 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
     return BlocProvider.value(
       value: _bloc,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Saved Messages')),
+        appBar: AppBar(title: Text(context.l10n.savedMessages)),
         body: BlocBuilder<SavedMessagesBloc, SavedMessagesState>(
           builder: (context, state) {
             if (state.isLoading && state.posts.isEmpty) {
@@ -66,8 +67,8 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
               );
             }
             if (state.posts.isEmpty) {
-              return const Center(
-                child: Text('No saved messages'),
+              return Center(
+                child: Text(context.l10n.noSavedMessages),
               );
             }
             return RefreshIndicator(

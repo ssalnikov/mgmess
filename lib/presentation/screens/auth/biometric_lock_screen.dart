@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/auth/biometric_service.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
@@ -61,7 +62,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
               const Text('MGMess', style: AppTextStyles.heading1),
               const SizedBox(height: 8),
               Text(
-                'Authentication required',
+                context.l10n.authenticationRequired,
                 style: AppTextStyles.bodySmall,
               ),
               const SizedBox(height: 32),
@@ -71,7 +72,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
                 ElevatedButton.icon(
                   onPressed: _authenticate,
                   icon: const Icon(Icons.fingerprint),
-                  label: const Text('Unlock'),
+                  label: Text(context.l10n.unlock),
                 ),
             ],
           ),

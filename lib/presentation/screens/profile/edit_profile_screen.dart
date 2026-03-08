@@ -9,6 +9,7 @@ import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../widgets/user_avatar.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -95,7 +96,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
+              title: Text(context.l10n.takePhoto),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera);
@@ -103,7 +104,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
+              title: Text(context.l10n.chooseFromGallery),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.gallery);
@@ -151,7 +152,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _avatarCacheBuster = DateTime.now().millisecondsSinceEpoch;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avatar updated')),
+          SnackBar(content: Text(context.l10n.avatarUpdated)),
         );
       },
     );
@@ -161,7 +162,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(context.l10n.editProfile),
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _save,
@@ -174,9 +175,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    'Save',
-                    style: TextStyle(color: Colors.white),
+                : Text(
+                    context.l10n.save,
+                    style: const TextStyle(color: Colors.white),
                   ),
           ),
         ],
@@ -191,25 +192,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             TextFormField(
               controller: _firstNameController,
               decoration:
-                  const InputDecoration(labelText: 'First Name'),
+                  InputDecoration(labelText: context.l10n.firstName),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _lastNameController,
               decoration:
-                  const InputDecoration(labelText: 'Last Name'),
+                  InputDecoration(labelText: context.l10n.lastName),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _nicknameController,
               decoration:
-                  const InputDecoration(labelText: 'Nickname'),
+                  InputDecoration(labelText: context.l10n.nickname),
             ),
             const SizedBox(height: 16),
             TextFormField(
               controller: _positionController,
               decoration:
-                  const InputDecoration(labelText: 'Position'),
+                  InputDecoration(labelText: context.l10n.position),
             ),
           ],
         ),

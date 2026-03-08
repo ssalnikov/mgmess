@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class NewMessagesIndicator extends StatelessWidget {
@@ -46,7 +47,7 @@ class NewMessagesIndicator extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  '$count new message${count == 1 ? '' : 's'}',
+                  context.l10n.newMessagesCount(count),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,

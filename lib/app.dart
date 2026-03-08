@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:app_badge_plus/app_badge_plus.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
 import 'core/auth/biometric_service.dart';
 import 'core/config/app_config.dart';
 import 'core/di/injection.dart';
+import 'core/l10n/l10n.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
@@ -132,6 +132,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               darkTheme: AppTheme.dark,
               themeMode: themeState.themeMode,
               debugShowCheckedModeBanner: false,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               home: ServerUrlScreen(onServerConfigured: _onServerConfigured),
             );
           },
@@ -182,6 +184,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
               themeMode: themeState.themeMode,
               routerConfig: _appRouter!.router,
               debugShowCheckedModeBanner: false,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
               builder: (context, child) {
                 if (_biometricLocked) {
                   return BiometricLockScreen(

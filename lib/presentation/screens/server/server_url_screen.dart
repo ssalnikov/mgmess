@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
 
@@ -128,9 +129,9 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Mattermost Client',
-                  style: TextStyle(
+                Text(
+                  context.l10n.mattermostClient,
+                  style: const TextStyle(
                     fontSize: 16,
                     color: AppColors.textSecondary,
                   ),
@@ -139,8 +140,8 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
                 TextField(
                   controller: _urlController,
                   decoration: InputDecoration(
-                    labelText: 'Server URL',
-                    hintText: 'https://mattermost.example.com',
+                    labelText: context.l10n.serverUrl,
+                    hintText: context.l10n.serverUrlHint,
                     prefixIcon: const Icon(Icons.dns),
                     border: const OutlineInputBorder(),
                     errorText: _error,
@@ -168,9 +169,9 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : const Text(
-                            'Connect',
-                            style: TextStyle(fontSize: 16),
+                        : Text(
+                            context.l10n.connect,
+                            style: const TextStyle(fontSize: 16),
                           ),
                   ),
                 ),

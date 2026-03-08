@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/custom_emoji_cache.dart';
@@ -116,7 +117,7 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet>
                 controller: _searchController,
                 autofocus: false,
                 decoration: InputDecoration(
-                  hintText: 'Search emoji...',
+                  hintText: context.l10n.searchEmoji,
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _query.isNotEmpty
                       ? IconButton(
@@ -203,7 +204,7 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet>
     }
 
     if (results.isEmpty) {
-      return const Center(child: Text('Nothing found'));
+      return Center(child: Text(context.l10n.nothingFound));
     }
 
     return GridView.builder(
@@ -221,8 +222,8 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet>
 
   Widget _buildGrid(List<_EmojiEntry> entries) {
     if (entries.isEmpty) {
-      return const Center(
-        child: Text('No emojis yet', style: TextStyle(color: AppColors.textSecondary)),
+      return Center(
+        child: Text(context.l10n.noEmojisYet, style: const TextStyle(color: AppColors.textSecondary)),
       );
     }
     return GridView.builder(

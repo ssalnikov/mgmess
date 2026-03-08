@@ -16,6 +16,7 @@ import '../../blocs/user_status/user_status_cubit.dart';
 import '../../widgets/error_display.dart';
 import '../../widgets/loading_indicator.dart';
 import '../../widgets/user_avatar.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../widgets/user_display_name.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -79,7 +80,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         } else {
           setState(() {
             _isLoading = false;
-            _error = 'User not found';
+            _error = context.l10n.userNotFound;
           });
         }
       },
@@ -89,7 +90,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('User Profile')),
+      appBar: AppBar(title: Text(context.l10n.userProfile)),
       body: _buildBody(),
     );
   }
@@ -186,7 +187,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                     )
                   : const Icon(Icons.chat_bubble_outline),
-              label: const Text('Send Message'),
+              label: Text(context.l10n.sendMessage),
             ),
           ),
         ],

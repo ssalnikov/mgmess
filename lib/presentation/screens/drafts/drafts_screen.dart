@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/storage/draft_storage.dart';
 import '../../../core/theme/app_colors.dart';
@@ -47,12 +48,12 @@ class _DraftsScreenState extends State<DraftsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Drafts'),
+        title: Text(context.l10n.drafts),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _drafts.isEmpty
-              ? const Center(child: Text('No drafts'))
+              ? Center(child: Text(context.l10n.noDrafts))
               : ListView.separated(
                   itemCount: _drafts.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
@@ -96,7 +97,7 @@ class _DraftTile extends StatelessWidget {
         child: const Icon(Icons.edit_note, color: AppColors.primary, size: 20),
       ),
       title: Text(
-        draft.channelName.isNotEmpty ? draft.channelName : 'Unknown channel',
+        draft.channelName.isNotEmpty ? draft.channelName : context.l10n.unknownChannel,
         style: AppTextStyles.channelName,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,

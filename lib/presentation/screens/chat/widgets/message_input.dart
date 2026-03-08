@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../domain/entities/post.dart';
 import '../../../../core/storage/draft_storage.dart';
@@ -359,7 +360,7 @@ class MessageInputState extends State<MessageInput> {
       (failure) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Upload failed: ${failure.message}')),
+            SnackBar(content: Text(context.l10n.uploadFailed(failure.message))),
           );
         }
       },
@@ -413,10 +414,10 @@ class MessageInputState extends State<MessageInput> {
               children: [
                 const Icon(Icons.edit_outlined, size: 16, color: AppColors.accent),
                 const SizedBox(width: 8),
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Editing message',
-                    style: TextStyle(
+                    context.l10n.editingMessage,
+                    style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.accent,
                       fontWeight: FontWeight.w500,
@@ -458,11 +459,11 @@ class MessageInputState extends State<MessageInput> {
                     maxLines: 4,
                     minLines: 1,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Write a message...',
+                    decoration: InputDecoration(
+                      hintText: context.l10n.writeAMessage,
                       border: InputBorder.none,
                       contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12),
+                          const EdgeInsets.symmetric(horizontal: 12),
                     ),
                     onChanged: (_) => _checkForMention(),
                     onSubmitted: (_) => _send(),
@@ -503,7 +504,7 @@ class MessageInputState extends State<MessageInput> {
           const Icon(Icons.flag_outlined, size: 16, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           ChoiceChip(
-            label: const Text('Standard'),
+            label: Text(context.l10n.standard),
             selected: _selectedPriority == null,
             onSelected: (_) => setState(() => _selectedPriority = null),
             labelStyle: TextStyle(
@@ -516,7 +517,7 @@ class MessageInputState extends State<MessageInput> {
           ),
           const SizedBox(width: 6),
           ChoiceChip(
-            label: const Text('Important'),
+            label: Text(context.l10n.important),
             selected: _selectedPriority == 'important',
             onSelected: (_) => setState(() => _selectedPriority = 'important'),
             labelStyle: TextStyle(
@@ -531,7 +532,7 @@ class MessageInputState extends State<MessageInput> {
           ),
           const SizedBox(width: 6),
           ChoiceChip(
-            label: const Text('Urgent'),
+            label: Text(context.l10n.urgent),
             selected: _selectedPriority == 'urgent',
             onSelected: (_) => setState(() => _selectedPriority = 'urgent'),
             labelStyle: TextStyle(
@@ -557,7 +558,7 @@ class MessageInputState extends State<MessageInput> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo),
-              title: const Text('Photo from Gallery'),
+              title: Text(context.l10n.photoFromGallery),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage();
@@ -565,7 +566,7 @@ class MessageInputState extends State<MessageInput> {
             ),
             ListTile(
               leading: const Icon(Icons.attach_file),
-              title: const Text('File'),
+              title: Text(context.l10n.file),
               onTap: () {
                 Navigator.pop(context);
                 _pickFile();

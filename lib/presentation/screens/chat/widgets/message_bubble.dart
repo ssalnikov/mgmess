@@ -6,6 +6,7 @@ import '../../../widgets/message_markdown.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/utils/custom_emoji_cache.dart';
@@ -141,7 +142,7 @@ class MessageBubble extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (post.hasPriority) ...[
-                          _buildPriorityBadge(),
+                          _buildPriorityBadge(context),
                           const SizedBox(height: 4),
                         ],
                         if (post.isPinned) ...[
@@ -152,7 +153,7 @@ class MessageBubble extends StatelessWidget {
                                   size: 12, color: AppColors.accent),
                               const SizedBox(width: 4),
                               Text(
-                                'Pinned',
+                                context.l10n.pinned,
                                 style: AppTextStyles.caption.copyWith(
                                   color: AppColors.accent,
                                   fontWeight: FontWeight.w500,
@@ -172,8 +173,8 @@ class MessageBubble extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   post.forwardedChannelName.isNotEmpty
-                                      ? 'Forwarded from #${post.forwardedChannelName}'
-                                      : 'Forwarded',
+                                      ? context.l10n.forwardedFrom(post.forwardedChannelName)
+                                      : context.l10n.forwarded,
                                   style: AppTextStyles.caption.copyWith(
                                     fontStyle: FontStyle.italic,
                                   ),
@@ -238,7 +239,7 @@ class MessageBubble extends StatelessWidget {
                             ),
                             if (post.isEdited) ...[
                               const SizedBox(width: 4),
-                              const Text('(edited)',
+                              Text(context.l10n.edited,
                                   style: AppTextStyles.timestamp),
                             ],
                           ],
@@ -252,7 +253,7 @@ class MessageBubble extends StatelessWidget {
                                   size: 14, color: AppColors.accent),
                               const SizedBox(width: 4),
                               Text(
-                                '${post.replyCount} ${post.replyCount == 1 ? 'reply' : 'replies'}',
+                                context.l10n.repliesCount(post.replyCount),
                                 style: AppTextStyles.caption.copyWith(
                                   color: AppColors.accent,
                                   fontWeight: FontWeight.w500,
@@ -374,11 +375,11 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildPriorityBadge() {
+  Widget _buildPriorityBadge(BuildContext context) {
     final isUrgent = post.isUrgent;
     final color =
         isUrgent ? AppColors.priorityUrgent : AppColors.priorityImportant;
-    final label = isUrgent ? 'Urgent' : 'Important';
+    final label = isUrgent ? context.l10n.urgent : context.l10n.important;
     final icon = isUrgent ? Icons.priority_high : Icons.error_outline;
 
     return Row(

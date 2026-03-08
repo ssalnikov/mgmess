@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
@@ -85,7 +86,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
       value: _channelsBloc,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Channels'),
+          title: Text(context.l10n.channels),
           actions: [
             IconButton(
               icon: const Icon(Icons.search),
@@ -146,8 +147,8 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.tag),
-              title: const Text('New Channel'),
-              subtitle: const Text('Create a public or private channel'),
+              title: Text(context.l10n.newChannel),
+              subtitle: Text(context.l10n.createChannelSubtitle),
               onTap: () {
                 Navigator.pop(ctx);
                 context.push(RouteNames.createChannel);
@@ -155,8 +156,8 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.message),
-              title: const Text('New Message'),
-              subtitle: const Text('Start a direct or group message'),
+              title: Text(context.l10n.newMessage),
+              subtitle: Text(context.l10n.startDirectOrGroupMessage),
               onTap: () {
                 Navigator.pop(ctx);
                 context.push(RouteNames.createGroupDm);
@@ -174,7 +175,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
         backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         child: const Icon(Icons.forum_outlined, color: AppColors.primary, size: 20),
       ),
-      title: const Text('Threads'),
+      title: Text(context.l10n.threads),
       dense: true,
       onTap: () => context.push(RouteNames.threads),
     );
@@ -186,7 +187,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
         backgroundColor: AppColors.primary.withValues(alpha: 0.1),
         child: const Icon(Icons.edit_note, color: AppColors.primary, size: 20),
       ),
-      title: const Text('Drafts'),
+      title: Text(context.l10n.drafts),
       dense: true,
       onTap: () => context.push(RouteNames.drafts),
     );
@@ -254,7 +255,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
 
     // Section: Joined channels
     if (state.filteredChannels.isNotEmpty) {
-      sections.add(_buildSectionHeader('Channels'));
+      sections.add(_buildSectionHeader(context.l10n.channels));
       for (final channel in state.filteredChannels) {
         sections.add(_ChannelListTile(
           key: ValueKey(channel.id),
@@ -266,7 +267,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
 
     // Section: Other public channels (from server autocomplete)
     if (state.serverChannels.isNotEmpty) {
-      sections.add(_buildSectionHeader('Other channels'));
+      sections.add(_buildSectionHeader(context.l10n.otherChannels));
       for (final channel in state.serverChannels) {
         sections.add(_ChannelListTile(
           key: ValueKey('server_${channel.id}'),
@@ -278,7 +279,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
 
     // Section: Users (for starting DM)
     if (state.userResults.isNotEmpty) {
-      sections.add(_buildSectionHeader('Users'));
+      sections.add(_buildSectionHeader(context.l10n.users));
       for (final user in state.userResults) {
         sections.add(_UserSearchTile(
           key: ValueKey('user_${user.id}'),
@@ -289,11 +290,11 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     }
 
     if (sections.isEmpty && !state.isSearching) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Text(
-            'No results found',
+            context.l10n.noResultsFound,
             style: AppTextStyles.bodySmall,
           ),
         ),
@@ -337,7 +338,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
       child: TextField(
         controller: _searchController,
         decoration: InputDecoration(
-          hintText: 'Search channels...',
+          hintText: context.l10n.searchChannels,
           prefixIcon: const Icon(Icons.search),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -496,7 +497,7 @@ class _ChannelListTileState extends State<_ChannelListTile> {
               leading: Icon(
                 isMuted ? Icons.notifications : Icons.notifications_off,
               ),
-              title: Text(isMuted ? 'Unmute' : 'Mute'),
+              title: Text(isMuted ? context.l10n.unmute : context.l10n.mute),
               onTap: () {
                 Navigator.pop(ctx);
                 context.read<ChannelsBloc>().add(

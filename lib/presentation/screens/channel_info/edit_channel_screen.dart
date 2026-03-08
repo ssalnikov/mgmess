@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/channel.dart';
 import '../../../domain/repositories/channel_repository.dart';
@@ -95,7 +96,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
       context.pop(true);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update channel')),
+        SnackBar(content: Text(context.l10n.failedToUpdateChannel)),
       );
     }
   }
@@ -104,7 +105,7 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Channel'),
+        title: Text(context.l10n.editChannel),
         actions: [
           TextButton(
             onPressed: _isSaving || _isLoading ? null : _save,
@@ -117,9 +118,9 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    'Save',
-                    style: TextStyle(color: Colors.white),
+                : Text(
+                    context.l10n.save,
+                    style: const TextStyle(color: Colors.white),
                   ),
           ),
         ],
@@ -133,13 +134,13 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                 children: [
                   TextFormField(
                     controller: _displayNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name',
-                      hintText: 'Channel name',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.name,
+                      hintText: context.l10n.channelNameHintEdit,
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Name cannot be empty';
+                        return context.l10n.nameCannotBeEmpty;
                       }
                       return null;
                     },
@@ -147,16 +148,16 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _headerController,
-                    decoration: const InputDecoration(
-                      labelText: 'Header',
-                      hintText: 'Channel header',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.header,
+                      hintText: context.l10n.channelHeader,
                     ),
                     maxLines: 3,
                     minLines: 1,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Text displayed at the top of the channel. Often used for links and quick reference info.',
+                    context.l10n.channelHeaderDescription,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),
@@ -164,16 +165,16 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _purposeController,
-                    decoration: const InputDecoration(
-                      labelText: 'Purpose',
-                      hintText: 'Channel purpose',
+                    decoration: InputDecoration(
+                      labelText: context.l10n.purpose,
+                      hintText: context.l10n.channelPurpose,
                     ),
                     maxLines: 3,
                     minLines: 1,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Describe the purpose of this channel. Helps other users understand what it is for.',
+                    context.l10n.channelPurposeDescription,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.textSecondary,
                         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 
@@ -29,32 +30,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
 
-  static const _pages = [
+  static const _pageCount = 3;
+
+  List<_OnboardingPage> _getPages(BuildContext context) => [
     _OnboardingPage(
       icon: Icons.chat_bubble_outline,
-      title: 'Real-time Messaging',
-      description:
-          'Send messages, share files, and react with emoji. '
-          'All synced in real-time with your Mattermost server.',
+      title: context.l10n.realtimeMessaging,
+      description: context.l10n.realtimeMessagingDesc,
     ),
     _OnboardingPage(
       icon: Icons.swipe,
-      title: 'Quick Actions',
-      description:
-          'Long-press a message for actions like reply, forward, pin, and edit. '
-          'Swipe right to reply quickly.',
+      title: context.l10n.quickActions,
+      description: context.l10n.quickActionsDesc,
     ),
     _OnboardingPage(
       icon: Icons.explore_outlined,
-      title: 'Stay Organized',
-      description:
-          'Use channels, threads, and search to keep conversations organized. '
-          'Pin important messages and save them for later.',
+      title: context.l10n.stayOrganized,
+      description: context.l10n.stayOrganizedDesc,
     ),
   ];
 
   void _next() {
-    if (_currentPage < _pages.length - 1) {
+    if (_currentPage < _pageCount - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -86,19 +83,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               alignment: Alignment.topRight,
               child: TextButton(
                 onPressed: _finish,
-                child: const Text('Skip'),
+                child: Text(context.l10n.skip),
               ),
             ),
             // Pages
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
-                itemCount: _pages.length,
+                itemCount: _pageCount,
                 onPageChanged: (index) {
                   setState(() => _currentPage = index);
                 },
                 itemBuilder: (context, index) {
-                  final page = _pages[index];
+                  final pages = _getPages(context);
+                  final page = pages[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Column(
@@ -147,7 +145,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   // Dots
                   Row(
                     children: List.generate(
-                      _pages.length,
+                      _pageCount,
                       (index) => AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         margin: const EdgeInsets.only(right: 8),
@@ -166,9 +164,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ElevatedButton(
                     onPressed: _next,
                     child: Text(
-                      _currentPage == _pages.length - 1
-                          ? 'Get Started'
-                          : 'Next',
+                      _currentPage == _pageCount - 1
+                          ? context.l10n.getStarted
+                          : context.l10n.next,
                     ),
                   ),
                 ],

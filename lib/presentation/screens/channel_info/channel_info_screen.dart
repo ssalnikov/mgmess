@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/di/injection.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -105,13 +106,13 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
 
         // Header
         if (channel.header.isNotEmpty && !isDm) ...[
-          _buildSection('Header', channel.header),
+          _buildSection(context.l10n.header, channel.header),
           const Divider(height: 32),
         ],
 
         // Purpose
         if (channel.purpose.isNotEmpty && !isDm) ...[
-          _buildSection('Purpose', channel.purpose),
+          _buildSection(context.l10n.purpose, channel.purpose),
           const Divider(height: 32),
         ],
 
@@ -128,7 +129,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
         // Pinned Messages
         ListTile(
           leading: const Icon(Icons.push_pin_outlined),
-          title: const Text('Pinned Messages'),
+          title: Text(context.l10n.pinnedMessages),
           trailing: stats.pinnedPostCount > 0
               ? Text(
                   '${stats.pinnedPostCount}',
@@ -153,16 +154,16 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
 
     if (channel.isDirect) {
       typeIcon = Icons.person;
-      typeLabel = 'Direct Message';
+      typeLabel = context.l10n.directMessage;
     } else if (channel.isGroup) {
       typeIcon = Icons.group;
-      typeLabel = 'Group Message';
+      typeLabel = context.l10n.groupMessage;
     } else if (channel.isPrivate) {
       typeIcon = Icons.lock;
-      typeLabel = 'Private Channel';
+      typeLabel = context.l10n.privateChannel;
     } else {
       typeIcon = Icons.tag;
-      typeLabel = 'Public Channel';
+      typeLabel = context.l10n.publicChannel;
     }
 
     return Column(
@@ -197,7 +198,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
             icon: channel.isMuted
                 ? Icons.notifications_off
                 : Icons.notifications,
-            label: channel.isMuted ? 'Unmute' : 'Mute',
+            label: channel.isMuted ? context.l10n.unmute : context.l10n.mute,
             onTap: () {
               HapticFeedback.selectionClick();
               _cubit.toggleMute(
@@ -210,7 +211,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
           if (canEdit)
             _QuickAction(
               icon: Icons.edit,
-              label: 'Edit',
+              label: context.l10n.edit,
               onTap: () async {
                 HapticFeedback.selectionClick();
                 final updated = await context.push<bool>(
@@ -254,7 +255,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
   ) {
     return ListTile(
       leading: const Icon(Icons.people_outline),
-      title: Text('Members (${stats.memberCount})'),
+      title: Text(context.l10n.membersWithCount(stats.memberCount)),
       trailing: const Icon(Icons.chevron_right),
       onTap: () {
         context.push(
@@ -267,7 +268,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
   Widget _buildNotificationSettings(Channel channel) {
     return ListTile(
       leading: const Icon(Icons.notifications_outlined),
-      title: const Text('Notification Preferences'),
+      title: Text(context.l10n.notificationPreferences),
       trailing: const Icon(Icons.chevron_right),
       onTap: () => _showNotificationSettingsSheet(channel),
     );
@@ -293,9 +294,9 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
       child: TextButton.icon(
         onPressed: () => _confirmLeave(channel),
         icon: const Icon(Icons.exit_to_app, color: AppColors.error),
-        label: const Text(
-          'Leave Channel',
-          style: TextStyle(color: AppColors.error),
+        label: Text(
+          context.l10n.leaveChannel,
+          style: const TextStyle(color: AppColors.error),
         ),
       ),
     );
@@ -305,14 +306,14 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Leave Channel'),
+        title: Text(context.l10n.leaveChannel),
         content: Text(
-          'Are you sure you want to leave "${channel.displayName}"?',
+          context.l10n.leaveChannelConfirm(channel.displayName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -325,9 +326,9 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
                 context.go(RouteNames.channels);
               }
             },
-            child: const Text(
-              'Leave',
-              style: TextStyle(color: AppColors.error),
+            child: Text(
+              context.l10n.leave,
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -424,11 +425,11 @@ class _ChannelNotificationSheetState extends State<_ChannelNotificationSheet> {
     }
   }
 
-  static const _options = [
-    (value: 'default', label: 'Default', subtitle: 'Use global notification setting', icon: Icons.settings),
-    (value: 'all', label: 'All messages', subtitle: 'Notify for every new message', icon: Icons.notifications_active),
-    (value: 'mentions', label: 'Mentions only', subtitle: 'Only when you are mentioned', icon: Icons.alternate_email),
-    (value: 'none', label: 'Nothing', subtitle: 'Never notify for this channel', icon: Icons.notifications_off),
+  static List<({String value, String label, String subtitle, IconData icon})> _getOptions(BuildContext context) => [
+    (value: 'default', label: context.l10n.defaultNotif, subtitle: context.l10n.useGlobalSetting, icon: Icons.settings),
+    (value: 'all', label: context.l10n.allMessages, subtitle: context.l10n.notifyEveryMessage, icon: Icons.notifications_active),
+    (value: 'mentions', label: context.l10n.mentionsOnly, subtitle: context.l10n.onlyWhenMentioned, icon: Icons.alternate_email),
+    (value: 'none', label: context.l10n.nothing, subtitle: context.l10n.neverNotify, icon: Icons.notifications_off),
   ];
 
   @override
@@ -455,11 +456,11 @@ class _ChannelNotificationSheetState extends State<_ChannelNotificationSheet> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Notifications — ${widget.channelName}',
+            context.l10n.notificationsChannelTitle(widget.channelName),
             style: AppTextStyles.heading2,
           ),
           const SizedBox(height: 8),
-          for (final option in _options)
+          for (final option in _getOptions(context))
             RadioListTile<String>(
               value: option.value,
               groupValue: _filter,

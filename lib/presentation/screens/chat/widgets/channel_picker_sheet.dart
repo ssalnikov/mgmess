@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/di/injection.dart';
+import '../../../../core/l10n/l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../domain/entities/channel.dart';
 import '../../../../domain/repositories/channel_repository.dart';
@@ -127,7 +128,7 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search channels...',
+                  hintText: context.l10n.searchChannels,
                   prefixIcon: const Icon(Icons.search),
                   isDense: true,
                   border: OutlineInputBorder(

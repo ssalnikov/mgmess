@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/l10n/l10n.dart';
 import '../../core/router/route_names.dart';
 
 class BottomNavShell extends StatelessWidget {
@@ -34,26 +35,26 @@ class BottomNavShell extends StatelessWidget {
               context.go(RouteNames.profile);
           }
         },
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            activeIcon: Icon(Icons.chat_bubble),
-            label: 'Channels',
+            icon: const Icon(Icons.chat_bubble_outline),
+            activeIcon: const Icon(Icons.chat_bubble),
+            label: context.l10n.channels,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            activeIcon: Icon(Icons.bookmark),
-            label: 'Saved',
+            icon: const Icon(Icons.bookmark_border),
+            activeIcon: const Icon(Icons.bookmark),
+            label: context.l10n.saved,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.alternate_email),
-            activeIcon: Icon(Icons.alternate_email),
-            label: 'Mentions',
+            icon: const Icon(Icons.alternate_email),
+            activeIcon: const Icon(Icons.alternate_email),
+            label: context.l10n.mentions,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            activeIcon: const Icon(Icons.person),
+            label: context.l10n.profile,
           ),
         ],
       ),

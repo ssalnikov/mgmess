@@ -1,3 +1,4 @@
+import '../../domain/entities/link_preview.dart';
 import '../../domain/entities/post.dart';
 import 'file_info_model.dart';
 
@@ -24,6 +25,7 @@ class PostModel extends Post {
     super.forwardedPostMessage,
     super.forwardedChannelName,
     super.priority,
+    super.linkPreviews,
   });
 
   factory PostModel.fromJson(Map<String, dynamic> json) {
@@ -42,21 +44,43 @@ class PostModel extends Post {
       }
     }
 
-    // Parse forwarded post from permalink embed
+    // Parse embeds: permalink (forwarded) and opengraph (link preview)
     String forwardedMsg = '';
     String forwardedChannel = '';
+    final linkPreviews = <LinkPreview>[];
     final embeds = meta['embeds'] as List<dynamic>?;
     if (embeds != null) {
       for (final embed in embeds) {
-        if (embed is Map<String, dynamic> &&
-            embed['type'] == 'permalink') {
+        if (embed is! Map<String, dynamic>) continue;
+        final embedType = embed['type'] as String? ?? '';
+        if (embedType == 'permalink') {
           final data = embed['data'] as Map<String, dynamic>?;
           if (data != null) {
             final embedPost = data['post'] as Map<String, dynamic>?;
             forwardedMsg = embedPost?['message'] as String? ?? '';
             forwardedChannel =
                 data['channel_display_name'] as String? ?? '';
-            break;
+          }
+        } else if (embedType == 'opengraph') {
+          final url = embed['url'] as String? ?? '';
+          final data = embed['data'] as Map<String, dynamic>?;
+          if (data != null && url.isNotEmpty) {
+            String? imageUrl;
+            final images = data['images'] as List<dynamic>?;
+            if (images != null && images.isNotEmpty) {
+              final img = images.first;
+              if (img is Map<String, dynamic>) {
+                imageUrl = img['url'] as String? ??
+                    img['secure_url'] as String?;
+              }
+            }
+            linkPreviews.add(LinkPreview(
+              url: url,
+              title: data['title'] as String? ?? '',
+              description: data['description'] as String? ?? '',
+              siteName: data['site_name'] as String? ?? '',
+              imageUrl: imageUrl,
+            ));
           }
         }
       }
@@ -90,6 +114,7 @@ class PostModel extends Post {
       forwardedPostMessage: forwardedMsg,
       forwardedChannelName: forwardedChannel,
       priority: priority,
+      linkPreviews: linkPreviews,
     );
   }
 

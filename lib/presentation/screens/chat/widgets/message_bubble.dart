@@ -16,7 +16,9 @@ import '../../../../core/utils/date_formatter.dart';
 import '../../../../domain/entities/post.dart';
 import '../../../widgets/user_avatar.dart';
 import 'file_attachment_widget.dart';
+import 'link_preview_widget.dart';
 import 'message_actions_sheet.dart';
+import 'reactions_list_sheet.dart';
 import 'swipe_to_reply.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -210,6 +212,10 @@ class MessageBubble extends StatelessWidget {
                               p: AppTextStyles.body,
                             ),
                           ),
+                        if (post.hasLinkPreviews)
+                          ...post.linkPreviews.map(
+                            (lp) => LinkPreviewWidget(preview: lp),
+                          ),
                         if (post.hasFiles) ...[
                           const SizedBox(height: 4),
                           ...post.files.map(
@@ -259,7 +265,7 @@ class MessageBubble extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (post.reactions.isNotEmpty) _buildReactions(),
+                if (post.reactions.isNotEmpty) _buildReactions(context),
                 ],
               ),
             ),
@@ -271,7 +277,7 @@ class MessageBubble extends StatelessWidget {
     );
   }
 
-  Widget _buildReactions() {
+  Widget _buildReactions(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Wrap(
@@ -302,6 +308,7 @@ class MessageBubble extends StatelessWidget {
                 onAddReaction?.call(post, emoji);
               }
             },
+            onLongPress: () => _showReactionsList(context, emoji),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
@@ -331,6 +338,18 @@ class MessageBubble extends StatelessWidget {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  void _showReactionsList(BuildContext context, String initialEmoji) {
+    HapticFeedback.selectionClick();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => ReactionsListSheet(
+        reactions: post.reactions,
+        initialEmoji: initialEmoji,
       ),
     );
   }

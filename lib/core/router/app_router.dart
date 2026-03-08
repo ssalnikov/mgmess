@@ -16,6 +16,8 @@ import '../../presentation/screens/channel_info/edit_channel_screen.dart';
 import '../../presentation/screens/profile/user_profile_screen.dart';
 import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
 import '../../presentation/screens/drafts/drafts_screen.dart';
+import '../../presentation/screens/channels/create_channel_screen.dart';
+import '../../presentation/screens/channels/create_group_dm_screen.dart';
 import '../../presentation/screens/search/search_screen.dart';
 import '../../presentation/screens/thread/thread_screen.dart';
 import '../../presentation/screens/threads/threads_screen.dart';
@@ -67,6 +69,14 @@ class AppRouter {
             builder: (context, state) => const ProfileScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: RouteNames.createChannel,
+        builder: (context, state) => const CreateChannelScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.createGroupDm,
+        builder: (context, state) => const CreateGroupDmScreen(),
       ),
       GoRoute(
         path: RouteNames.search,

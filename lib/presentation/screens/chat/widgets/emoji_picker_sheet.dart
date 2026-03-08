@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/custom_emoji_cache.dart';
+import '../../../../core/utils/emoji_categories.dart';
 import '../../../../core/utils/emoji_map.dart';
 
-/// Full emoji picker with search, showing both standard and custom server emojis.
+const _recentKey = 'recent_emojis';
+const _maxRecent = 32;
+
+/// Full emoji picker with categories, search, recents, and custom server emojis.
 class EmojiPickerSheet extends StatefulWidget {
   final void Function(String emojiName) onEmojiSelected;
 
@@ -17,16 +22,28 @@ class EmojiPickerSheet extends StatefulWidget {
   State<EmojiPickerSheet> createState() => _EmojiPickerSheetState();
 }
 
-class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
+class _EmojiPickerSheetState extends State<EmojiPickerSheet>
+    with SingleTickerProviderStateMixin {
   final _searchController = TextEditingController();
   String _query = '';
   Map<String, String>? _authHeaders;
+  late TabController _tabController;
+  late List<EmojiCategory> _categories;
+  List<String> _recentEmojis = [];
+  bool _hasCustom = false;
 
   @override
   void initState() {
     super.initState();
     CustomEmojiCache.ensureLoaded();
+    _categories = getEmojiCategories();
+    _hasCustom = CustomEmojiCache.urls.isNotEmpty;
+
+    // tabs: recent + custom(if any) + standard categories
+    final tabCount = 1 + (_hasCustom ? 1 : 0) + _categories.length;
+    _tabController = TabController(length: tabCount, vsync: this);
     _loadHeaders();
+    _loadRecent();
   }
 
   Future<void> _loadHeaders() async {
@@ -40,17 +57,41 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
     }
   }
 
+  Future<void> _loadRecent() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _recentEmojis = prefs.getStringList(_recentKey) ?? [];
+      });
+    }
+  }
+
+  Future<void> _saveRecent(String emojiName) async {
+    _recentEmojis.remove(emojiName);
+    _recentEmojis.insert(0, emojiName);
+    if (_recentEmojis.length > _maxRecent) {
+      _recentEmojis = _recentEmojis.sublist(0, _maxRecent);
+    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_recentKey, _recentEmojis);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
+  }
+
+  void _onSelect(String emojiName) {
+    HapticFeedback.selectionClick();
+    _saveRecent(emojiName);
+    Navigator.pop(context);
+    widget.onEmojiSelected(emojiName);
   }
 
   @override
   Widget build(BuildContext context) {
-    final customUrls = CustomEmojiCache.urls;
-    final filtered = _buildFilteredList(customUrls);
-
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
       minChildSize: 0.3,
@@ -68,11 +109,12 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
+            // Search
             Padding(
               padding: const EdgeInsets.all(12),
               child: TextField(
                 controller: _searchController,
-                autofocus: true,
+                autofocus: false,
                 decoration: InputDecoration(
                   hintText: 'Search emoji...',
                   prefixIcon: const Icon(Icons.search),
@@ -93,60 +135,111 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
                 onChanged: (v) => setState(() => _query = v.toLowerCase()),
               ),
             ),
-            if (filtered.isEmpty)
-              const Expanded(
-                child: Center(child: Text('Nothing found')),
-              )
-            else
-              Expanded(
-                child: GridView.builder(
-                  controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 8,
-                    mainAxisSpacing: 4,
-                    crossAxisSpacing: 4,
+            // Show search results OR tabbed categories
+            if (_query.isNotEmpty)
+              Expanded(child: _buildSearchResults(scrollController))
+            else ...[
+              // Category tabs
+              TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 10),
+                indicatorSize: TabBarIndicatorSize.label,
+                tabs: [
+                  const Tab(icon: Icon(Icons.access_time, size: 20)),
+                  if (_hasCustom)
+                    const Tab(icon: Icon(Icons.star, size: 20)),
+                  ..._categories.map(
+                    (c) => Tab(child: Text(c.icon, style: const TextStyle(fontSize: 20))),
                   ),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) {
-                    final entry = filtered[index];
-                    return _buildEmojiTile(entry);
-                  },
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildGrid(_recentEmojis
+                        .map((name) {
+                          final unicode = emojiMap[name];
+                          final url = CustomEmojiCache.getUrl(name);
+                          return _EmojiEntry(name: name, unicode: unicode, imageUrl: url);
+                        })
+                        .toList()),
+                    if (_hasCustom)
+                      _buildGrid(CustomEmojiCache.urls.entries
+                          .map((e) => _EmojiEntry(name: e.key, imageUrl: e.value))
+                          .toList()),
+                    ..._categories.map(
+                      (cat) => _buildGrid(cat.emojis
+                          .map((e) => _EmojiEntry(name: e.key, unicode: e.value))
+                          .toList()),
+                    ),
+                  ],
                 ),
               ),
+            ],
           ],
         );
       },
     );
   }
 
-  List<_EmojiEntry> _buildFilteredList(Map<String, String> customUrls) {
+  Widget _buildSearchResults(ScrollController scrollController) {
     final results = <_EmojiEntry>[];
 
-    // Custom emojis first
-    for (final e in customUrls.entries) {
-      if (_query.isEmpty || e.key.contains(_query)) {
+    // Custom emojis
+    for (final e in CustomEmojiCache.urls.entries) {
+      if (e.key.contains(_query)) {
         results.add(_EmojiEntry(name: e.key, imageUrl: e.value));
       }
     }
 
     // Standard emojis
     for (final e in emojiMap.entries) {
-      if (_query.isEmpty || e.key.contains(_query)) {
+      if (e.key.contains(_query)) {
         results.add(_EmojiEntry(name: e.key, unicode: e.value));
       }
     }
 
-    return results;
+    if (results.isEmpty) {
+      return const Center(child: Text('Nothing found'));
+    }
+
+    return GridView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 8,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+      ),
+      itemCount: results.length,
+      itemBuilder: (context, index) => _buildEmojiTile(results[index]),
+    );
+  }
+
+  Widget _buildGrid(List<_EmojiEntry> entries) {
+    if (entries.isEmpty) {
+      return const Center(
+        child: Text('No emojis yet', style: TextStyle(color: AppColors.textSecondary)),
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 8,
+        mainAxisSpacing: 4,
+        crossAxisSpacing: 4,
+      ),
+      itemCount: entries.length,
+      itemBuilder: (context, index) => _buildEmojiTile(entries[index]),
+    );
   }
 
   Widget _buildEmojiTile(_EmojiEntry entry) {
     return GestureDetector(
-      onTap: () {
-        HapticFeedback.selectionClick();
-        Navigator.pop(context);
-        widget.onEmojiSelected(entry.name);
-      },
+      onTap: () => _onSelect(entry.name),
       child: Tooltip(
         message: ':${entry.name}:',
         child: Center(
@@ -159,7 +252,8 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet> {
                   errorBuilder: (_, _, _) =>
                       Text(':${entry.name}:', style: const TextStyle(fontSize: 10)),
                 )
-              : Text(entry.unicode!, style: const TextStyle(fontSize: 28)),
+              : Text(entry.unicode ?? '?',
+                  style: const TextStyle(fontSize: 28)),
         ),
       ),
     );

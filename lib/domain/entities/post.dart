@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 import 'file_info.dart';
+import 'link_preview.dart';
 
 class Post extends Equatable {
   final String id;
@@ -24,6 +25,7 @@ class Post extends Equatable {
   final String forwardedPostMessage;
   final String forwardedChannelName;
   final String priority;
+  final List<LinkPreview> linkPreviews;
 
   const Post({
     required this.id,
@@ -47,6 +49,7 @@ class Post extends Equatable {
     this.forwardedPostMessage = '',
     this.forwardedChannelName = '',
     this.priority = '',
+    this.linkPreviews = const [],
   });
 
   bool get isDeleted => deleteAt > 0;
@@ -55,6 +58,7 @@ class Post extends Equatable {
   bool get isReply => rootId.isNotEmpty;
   bool get hasFiles => fileIds.isNotEmpty;
   bool get isForwarded => forwardedPostMessage.isNotEmpty;
+  bool get hasLinkPreviews => linkPreviews.isNotEmpty;
   bool get isUrgent => priority == 'urgent';
   bool get isImportant => priority == 'important';
   bool get hasPriority => priority.isNotEmpty;
@@ -92,6 +96,7 @@ class Post extends Equatable {
       forwardedPostMessage: forwardedPostMessage,
       forwardedChannelName: forwardedChannelName,
       priority: priority ?? this.priority,
+      linkPreviews: linkPreviews,
     );
   }
 

@@ -26,6 +26,8 @@ class ApiEndpoints {
   static String channelViewForUser(String userId) =>
       '/channels/members/$userId/view';
   static String directChannel = '/channels/direct';
+  static const String channels = '/channels';
+  static const String groupChannel = '/channels/group';
   static String channelMemberNotifyProps(String channelId, String userId) =>
       '/channels/$channelId/members/$userId/notify_props';
   static String channelMemberSchemeRoles(String channelId, String userId) =>

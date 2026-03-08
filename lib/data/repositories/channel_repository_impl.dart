@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
-import '../../domain/entities/channel.dart';
+import '../../domain/entities/channel.dart' show Channel, ChannelType;
 import '../../domain/entities/channel_category.dart';
 import '../../domain/entities/channel_member.dart';
 import '../../domain/entities/channel_stats.dart';
@@ -137,6 +137,43 @@ class ChannelRepositoryImpl implements ChannelRepository {
         userId,
         otherUserId,
       );
+      return Right(channel);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Channel>> createChannel({
+    required String teamId,
+    required String name,
+    required String displayName,
+    required ChannelType type,
+    String purpose = '',
+    String header = '',
+  }) async {
+    try {
+      final typeStr = type == ChannelType.private_ ? 'P' : 'O';
+      final channel = await _remoteDataSource.createChannel(
+        teamId: teamId,
+        name: name,
+        displayName: displayName,
+        type: typeStr,
+        purpose: purpose,
+        header: header,
+      );
+      return Right(channel);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Channel>> createGroupChannel(
+    List<String> userIds,
+  ) async {
+    try {
+      final channel = await _remoteDataSource.createGroupChannel(userIds);
       return Right(channel);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));

@@ -25,4 +25,7 @@ class RouteNames {
       '/channel/$channelId/members';
   static String channelEditPath(String channelId) =>
       '/channel/$channelId/edit';
+
+  static const String createChannel = '/create-channel';
+  static const String createGroupDm = '/create-group-dm';
 }

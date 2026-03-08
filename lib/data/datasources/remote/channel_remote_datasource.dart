@@ -114,6 +114,47 @@ class ChannelRemoteDataSource {
     }
   }
 
+  Future<ChannelModel> createChannel({
+    required String teamId,
+    required String name,
+    required String displayName,
+    required String type,
+    String purpose = '',
+    String header = '',
+  }) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.channels,
+        data: {
+          'team_id': teamId,
+          'name': name,
+          'display_name': displayName,
+          'type': type,
+          if (purpose.isNotEmpty) 'purpose': purpose,
+          if (header.isNotEmpty) 'header': header,
+        },
+      );
+      return ChannelModel.fromJson(
+          response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw ServerException(message: 'Failed to create channel: $e');
+    }
+  }
+
+  Future<ChannelModel> createGroupChannel(List<String> userIds) async {
+    try {
+      final response = await _apiClient.dio.post(
+        ApiEndpoints.groupChannel,
+        data: userIds,
+      );
+      return ChannelModel.fromJson(
+          response.data as Map<String, dynamic>);
+    } catch (e) {
+      throw ServerException(
+          message: 'Failed to create group channel: $e');
+    }
+  }
+
   Future<ChannelStatsModel> getChannelStats(String channelId) async {
     try {
       final response = await _apiClient.dio.get(

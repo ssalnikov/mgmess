@@ -26,6 +26,17 @@ abstract class ChannelRepository {
     String userId,
     String otherUserId,
   );
+  Future<Either<Failure, Channel>> createChannel({
+    required String teamId,
+    required String name,
+    required String displayName,
+    required ChannelType type,
+    String purpose,
+    String header,
+  });
+  Future<Either<Failure, Channel>> createGroupChannel(
+    List<String> userIds,
+  );
   Future<Either<Failure, void>> muteChannel(
     String channelId,
     String userId,

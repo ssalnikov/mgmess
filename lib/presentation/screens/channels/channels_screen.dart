@@ -93,6 +93,10 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
             ),
           ],
         ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () => _showCreateOptions(context),
+          child: const Icon(Icons.add),
+        ),
         body: Column(
           children: [
             _buildSearchBar(),
@@ -126,6 +130,37 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
                   return _buildGroupedChannelList(state);
                 },
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCreateOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.tag),
+              title: const Text('New Channel'),
+              subtitle: const Text('Create a public or private channel'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push(RouteNames.createChannel);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.message),
+              title: const Text('New Message'),
+              subtitle: const Text('Start a direct or group message'),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push(RouteNames.createGroupDm);
+              },
             ),
           ],
         ),

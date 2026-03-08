@@ -283,13 +283,16 @@ class ChannelRepositoryImpl implements ChannelRepository {
   }
 
   @override
-  Future<Either<Failure, String>> getChannelMemberRoles(
+  Future<Either<Failure, ({String roles, bool isMuted})>> getChannelMemberInfo(
     String channelId,
     String userId,
   ) async {
     try {
       final data = await _remoteDataSource.getChannelMember(channelId, userId);
-      return Right(data['roles'] as String? ?? '');
+      final roles = data['roles'] as String? ?? '';
+      final notifyProps = data['notify_props'] as Map<String, dynamic>?;
+      final isMuted = notifyProps?['mark_unread'] == 'mention';
+      return Right((roles: roles, isMuted: isMuted));
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

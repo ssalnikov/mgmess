@@ -70,7 +70,7 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
       _channelRepository.getChannelStats(channelId),
       _channelRepository.getChannelMembers(channelId, page: 0, perPage: 5),
       if (currentUserId.isNotEmpty)
-        _channelRepository.getChannelMemberRoles(channelId, currentUserId),
+        _channelRepository.getChannelMemberInfo(channelId, currentUserId),
     ];
 
     final results = await Future.wait(futures);
@@ -83,7 +83,7 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
     channelResult.fold(
       (failure) => emit(ChannelInfoError(message: failure.message)),
       (channel) {
-        final ch = channel as Channel;
+        var ch = channel as Channel;
         final stats = statsResult.fold(
           (_) => ChannelStats(channelId: channelId),
           (s) => s as ChannelStats,
@@ -94,9 +94,14 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
         );
         var isAdmin = false;
         if (currentUserId.isNotEmpty && results.length > 3) {
-          isAdmin = results[3].fold(
-            (_) => false,
-            (roles) => (roles as String).contains('channel_admin'),
+          results[3].fold(
+            (_) {},
+            (info) {
+              final memberInfo =
+                  info as ({String roles, bool isMuted});
+              isAdmin = memberInfo.roles.contains('channel_admin');
+              ch = ch.copyWith(isMuted: memberInfo.isMuted);
+            },
           );
         }
         emit(ChannelInfoLoaded(

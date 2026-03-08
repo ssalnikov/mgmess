@@ -51,7 +51,7 @@ abstract class ChannelRepository {
     String userId, {
     required bool schemeAdmin,
   });
-  Future<Either<Failure, String>> getChannelMemberRoles(
+  Future<Either<Failure, ({String roles, bool isMuted})>> getChannelMemberInfo(
     String channelId,
     String userId,
   );

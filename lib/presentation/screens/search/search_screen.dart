@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +10,11 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../../domain/entities/channel.dart';
+import '../../../domain/entities/user.dart';
+import '../../../domain/repositories/channel_repository.dart';
 import '../../../domain/repositories/post_repository.dart';
+import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../widgets/user_avatar.dart';
@@ -290,6 +296,16 @@ class _FilterSheetState extends State<_FilterSheet> {
   String? _afterDate;
   String? _onDate;
 
+  // Autocomplete state
+  final _userRepository = sl<UserRepository>();
+  final _channelRepository = sl<ChannelRepository>();
+  List<User> _userSuggestions = [];
+  List<Channel> _channelSuggestions = [];
+  Timer? _userDebounce;
+  Timer? _channelDebounce;
+  bool _showUserSuggestions = false;
+  bool _showChannelSuggestions = false;
+
   @override
   void initState() {
     super.initState();
@@ -302,13 +318,85 @@ class _FilterSheetState extends State<_FilterSheet> {
     _beforeDate = state.beforeDate;
     _afterDate = state.afterDate;
     _onDate = state.onDate;
+    _fromController.addListener(_onFromChanged);
+    _inChannelController.addListener(_onInChannelChanged);
   }
 
   @override
   void dispose() {
+    _userDebounce?.cancel();
+    _channelDebounce?.cancel();
+    _fromController.removeListener(_onFromChanged);
+    _inChannelController.removeListener(_onInChannelChanged);
     _fromController.dispose();
     _inChannelController.dispose();
     super.dispose();
+  }
+
+  void _onFromChanged() {
+    final query = _fromController.text.trim();
+    _userDebounce?.cancel();
+    if (query.isEmpty) {
+      setState(() {
+        _userSuggestions = [];
+        _showUserSuggestions = false;
+      });
+      return;
+    }
+    _userDebounce = Timer(const Duration(milliseconds: 300), () {
+      _searchUsers(query);
+    });
+  }
+
+  Future<void> _searchUsers(String query) async {
+    final result = await _userRepository.autocompleteUsers(
+      query,
+      teamId: widget.teamId,
+    );
+    if (!mounted) return;
+    result.fold(
+      (_) => setState(() {
+        _userSuggestions = [];
+        _showUserSuggestions = false;
+      }),
+      (users) => setState(() {
+        _userSuggestions = users;
+        _showUserSuggestions = users.isNotEmpty;
+      }),
+    );
+  }
+
+  void _onInChannelChanged() {
+    final query = _inChannelController.text.trim();
+    _channelDebounce?.cancel();
+    if (query.isEmpty) {
+      setState(() {
+        _channelSuggestions = [];
+        _showChannelSuggestions = false;
+      });
+      return;
+    }
+    _channelDebounce = Timer(const Duration(milliseconds: 300), () {
+      _searchChannels(query);
+    });
+  }
+
+  Future<void> _searchChannels(String query) async {
+    final result = await _channelRepository.autocompleteChannels(
+      widget.teamId,
+      query,
+    );
+    if (!mounted) return;
+    result.fold(
+      (_) => setState(() {
+        _channelSuggestions = [];
+        _showChannelSuggestions = false;
+      }),
+      (channels) => setState(() {
+        _channelSuggestions = channels;
+        _showChannelSuggestions = channels.isNotEmpty;
+      }),
+    );
   }
 
   Future<void> _pickDate(String label, String? current, ValueChanged<String?> onPicked) async {
@@ -370,6 +458,7 @@ class _FilterSheetState extends State<_FilterSheet> {
               Text(context.l10n.searchFilters,
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 16),
+              // From user — with autocomplete
               TextField(
                 controller: _fromController,
                 decoration: InputDecoration(
@@ -378,9 +467,54 @@ class _FilterSheetState extends State<_FilterSheet> {
                   prefixIcon: const Icon(Icons.person),
                   border: const OutlineInputBorder(),
                   isDense: true,
+                  suffixIcon: _fromController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _fromController.clear();
+                            setState(() {
+                              _userSuggestions = [];
+                              _showUserSuggestions = false;
+                            });
+                          },
+                        )
+                      : null,
                 ),
               ),
+              if (_showUserSuggestions)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 150),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.divider),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: _userSuggestions.length,
+                    itemBuilder: (context, index) {
+                      final user = _userSuggestions[index];
+                      return ListTile(
+                        dense: true,
+                        leading: UserAvatar(userId: user.id, radius: 14),
+                        title: Text(user.displayName,
+                            style: AppTextStyles.body),
+                        subtitle: Text('@${user.username}',
+                            style: AppTextStyles.caption),
+                        onTap: () {
+                          _fromController.text = user.username;
+                          setState(() {
+                            _userSuggestions = [];
+                            _showUserSuggestions = false;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
               const SizedBox(height: 12),
+              // In channel — with autocomplete
               TextField(
                 controller: _inChannelController,
                 decoration: InputDecoration(
@@ -389,8 +523,58 @@ class _FilterSheetState extends State<_FilterSheet> {
                   prefixIcon: const Icon(Icons.tag),
                   border: const OutlineInputBorder(),
                   isDense: true,
+                  suffixIcon: _inChannelController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _inChannelController.clear();
+                            setState(() {
+                              _channelSuggestions = [];
+                              _showChannelSuggestions = false;
+                            });
+                          },
+                        )
+                      : null,
                 ),
               ),
+              if (_showChannelSuggestions)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 150),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.divider),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    itemCount: _channelSuggestions.length,
+                    itemBuilder: (context, index) {
+                      final channel = _channelSuggestions[index];
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(
+                          channel.type == ChannelType.private_
+                              ? Icons.lock
+                              : Icons.tag,
+                          size: 20,
+                          color: AppColors.textSecondary,
+                        ),
+                        title: Text(channel.displayName,
+                            style: AppTextStyles.body),
+                        subtitle: Text(channel.name,
+                            style: AppTextStyles.caption),
+                        onTap: () {
+                          _inChannelController.text = channel.name;
+                          setState(() {
+                            _channelSuggestions = [];
+                            _showChannelSuggestions = false;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
               const SizedBox(height: 16),
               Wrap(
                 spacing: 8,

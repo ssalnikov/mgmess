@@ -36,7 +36,7 @@ class ApiEndpoints {
   static String channelStats(String id) => '/channels/$id/stats';
   static const String channelsAutocomplete = '/channels/autocomplete';
   static String commonChannels(String userId, String otherUserId) =>
-      '/channels/users/$userId/$otherUserId';
+      '/users/$userId/channels/$otherUserId/common';
   static String channelCategories(String userId, String teamId) =>
       '/users/$userId/teams/$teamId/channels/categories';
   static String channelCategory(

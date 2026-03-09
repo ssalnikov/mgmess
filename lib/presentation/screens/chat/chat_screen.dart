@@ -144,10 +144,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _openChannelInfo() {
-    context.push(
-      RouteNames.channelInfoPath(widget.channelId),
-      extra: {'channelName': widget.channelName},
-    );
+    if (widget.dmUserId != null) {
+      context.push(RouteNames.userProfilePath(widget.dmUserId!));
+    } else {
+      context.push(
+        RouteNames.channelInfoPath(widget.channelId),
+        extra: {'channelName': widget.channelName},
+      );
+    }
   }
 
   void _showPinnedMessages() {

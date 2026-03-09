@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -20,11 +21,15 @@ import '../../widgets/loading_indicator.dart';
 import '../../widgets/user_avatar.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../widgets/user_display_name.dart';
+import '../chat/widgets/pinned_messages_sheet.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
 
-  const UserProfileScreen({super.key, required this.userId});
+  const UserProfileScreen({
+    super.key,
+    required this.userId,
+  });
 
   @override
   State<UserProfileScreen> createState() => _UserProfileScreenState();
@@ -36,11 +41,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String? _error;
   List<Channel>? _commonChannels;
 
+  // DM channel state
+  Channel? _dmChannel;
+  bool? _isMuted;
+
   @override
   void initState() {
     super.initState();
     _loadUser();
     _loadCommonChannels();
+    _loadDmChannel();
   }
 
   Future<void> _loadUser() async {
@@ -49,12 +59,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       _error = null;
     });
 
-    // Always fetch fresh data via getUsersByIds (bypasses cache)
     final result = await sl<UserRepository>()
         .getUsersByIds([widget.userId]);
     result.fold(
       (failure) async {
-        // Fallback to cache on server error
         final cached = await sl<UserRepository>().getUser(widget.userId);
         cached.fold(
           (_) => setState(() {
@@ -104,6 +112,66 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Future<void> _loadDmChannel() async {
+    final myId = _currentUserId;
+    if (myId.isEmpty || myId == widget.userId) return;
+    final result = await sl<ChannelRepository>()
+        .createDirectChannel(myId, widget.userId);
+    result.fold(
+      (_) {},
+      (channel) async {
+        if (!mounted) return;
+        setState(() => _dmChannel = channel);
+        // Load mute status
+        final memberResult = await sl<ChannelRepository>()
+            .getChannelMemberInfo(channel.id, myId);
+        memberResult.fold(
+          (_) {},
+          (info) {
+            if (mounted) setState(() => _isMuted = info.isMuted);
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _toggleMute() async {
+    final channel = _dmChannel;
+    if (channel == null || _isMuted == null) return;
+    HapticFeedback.selectionClick();
+    final repo = sl<ChannelRepository>();
+    final result = _isMuted!
+        ? await repo.unmuteChannel(channel.id, _currentUserId)
+        : await repo.muteChannel(channel.id, _currentUserId);
+    result.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(failure.message)),
+          );
+        }
+      },
+      (_) {
+        if (mounted) setState(() => _isMuted = !_isMuted!);
+      },
+    );
+  }
+
+  void _showPinnedMessages() {
+    final channel = _dmChannel;
+    if (channel == null) return;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => PinnedMessagesSheet(
+        channelId: channel.id,
+        onPostTap: (post) {
+          Navigator.of(context).pop();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,6 +187,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
 
     final user = _user!;
+    final isOtherUser = _currentUserId != user.id;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -142,8 +212,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         if (user.position.isNotEmpty) ...[
           const SizedBox(height: 4),
           Center(
-            child:
-                Text(user.position, style: AppTextStyles.bodySmall),
+            child: Text(user.position, style: AppTextStyles.bodySmall),
           ),
         ],
         // Last seen / online status
@@ -222,8 +291,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             title: Text(user.email),
           ),
         ],
+        // DM channel actions (mute, pinned)
+        if (isOtherUser && _dmChannel != null) ...[
+          const Divider(height: 32),
+          if (_isMuted != null)
+            ListTile(
+              leading: Icon(
+                _isMuted! ? Icons.notifications_off : Icons.notifications,
+              ),
+              title: Text(
+                _isMuted! ? context.l10n.unmute : context.l10n.mute,
+              ),
+              onTap: _toggleMute,
+            ),
+          ListTile(
+            leading: const Icon(Icons.push_pin_outlined),
+            title: Text(context.l10n.pinnedMessages),
+            onTap: _showPinnedMessages,
+          ),
+        ],
         // Common channels
-        if (_currentUserId != user.id && _commonChannels != null) ...[
+        if (isOtherUser && _commonChannels != null) ...[
           const SizedBox(height: 16),
           Text(
             context.l10n.commonChannels,
@@ -262,7 +350,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   },
                 ))),
         ],
-        if (_currentUserId != user.id) ...[
+        if (isOtherUser) ...[
           const SizedBox(height: 24),
           Center(
             child: FilledButton.icon(
@@ -294,6 +382,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _isSendingDm = false;
 
   Future<void> _openDirectMessage(User user) async {
+    if (_dmChannel != null) {
+      context.push(
+        RouteNames.chatPath(_dmChannel!.id),
+        extra: <String, dynamic>{
+          'channelName': user.displayName,
+          'dmUserId': user.id,
+        },
+      );
+      return;
+    }
     setState(() => _isSendingDm = true);
     final result = await sl<ChannelRepository>().createDirectChannel(
       _currentUserId,

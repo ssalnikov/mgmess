@@ -24,24 +24,28 @@ class CustomStatus extends Equatable {
 class UserStatusState extends Equatable {
   final Map<String, String> statuses;
   final Map<String, CustomStatus> customStatuses;
+  final Map<String, int> lastActivity;
 
   const UserStatusState({
     this.statuses = const {},
     this.customStatuses = const {},
+    this.lastActivity = const {},
   });
 
   UserStatusState copyWith({
     Map<String, String>? statuses,
     Map<String, CustomStatus>? customStatuses,
+    Map<String, int>? lastActivity,
   }) {
     return UserStatusState(
       statuses: statuses ?? this.statuses,
       customStatuses: customStatuses ?? this.customStatuses,
+      lastActivity: lastActivity ?? this.lastActivity,
     );
   }
 
   @override
-  List<Object?> get props => [statuses, customStatuses];
+  List<Object?> get props => [statuses, customStatuses, lastActivity];
 }
 
 class UserStatusCubit extends Cubit<UserStatusState> {
@@ -84,8 +88,13 @@ class UserStatusCubit extends Cubit<UserStatusState> {
     final result = await _userRepository.getUserStatuses(userIds);
     result.fold(
       (_) {},
-      (statuses) {
-        emit(state.copyWith(statuses: statuses));
+      (data) {
+        final updatedActivity = Map<String, int>.from(state.lastActivity);
+        updatedActivity.addAll(data.lastActivity);
+        emit(state.copyWith(
+          statuses: data.statuses,
+          lastActivity: updatedActivity,
+        ));
       },
     );
   }
@@ -112,10 +121,15 @@ class UserStatusCubit extends Cubit<UserStatusState> {
     final result = await _userRepository.getUserStatuses(userIds);
     result.fold(
       (_) {},
-      (statuses) {
+      (data) {
         final updated = Map<String, String>.from(state.statuses);
-        updated.addAll(statuses);
-        emit(state.copyWith(statuses: updated));
+        updated.addAll(data.statuses);
+        final updatedActivity = Map<String, int>.from(state.lastActivity);
+        updatedActivity.addAll(data.lastActivity);
+        emit(state.copyWith(
+          statuses: updated,
+          lastActivity: updatedActivity,
+        ));
       },
     );
   }

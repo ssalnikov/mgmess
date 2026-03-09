@@ -168,6 +168,32 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Future<void> _showDatePicker() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(2015),
+      lastDate: now,
+    );
+    if (picked == null || !mounted) return;
+
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) return;
+
+    // Get channel URL-safe name
+    final channelResult =
+        await sl<ChannelRepository>().getChannel(widget.channelId);
+    final channelName = channelResult.fold((_) => null, (c) => c.name);
+    if (channelName == null || !mounted) return;
+
+    _chatBloc.add(JumpToDate(
+      date: picked,
+      teamId: authState.teamId,
+      channelUrlName: channelName,
+    ));
+  }
+
   void _scrollToBottom() {
     _scrollController.animateTo(
       0,
@@ -251,6 +277,11 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             actions: [
               IconButton(
+                icon: const Icon(Icons.calendar_today_outlined),
+                tooltip: context.l10n.jumpToDate,
+                onPressed: _showDatePicker,
+              ),
+              IconButton(
                 icon: const Icon(Icons.push_pin_outlined),
                 tooltip: context.l10n.pinnedMessages,
                 onPressed: _showPinnedMessages,
@@ -263,8 +294,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 listenWhen: (prev, curr) =>
                     prev.error != curr.error && curr.error != null,
                 listener: (context, state) {
+                  final msg = state.error == 'no_messages_on_date'
+                      ? context.l10n.noMessagesOnDate
+                      : state.error!;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(state.error!)),
+                    SnackBar(content: Text(msg)),
                   );
                 },
               ),

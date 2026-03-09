@@ -717,4 +717,33 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get switchTeam => 'Сменить команду';
+
+  @override
+  String lastSeenAt(String time) {
+    return 'Был(а) в сети $time';
+  }
+
+  @override
+  String get lastSeenJustNow => 'Был(а) в сети только что';
+
+  @override
+  String get commonChannels => 'Общие каналы';
+
+  @override
+  String get noCommonChannels => 'Нет общих каналов';
+
+  @override
+  String get jumpToDate => 'Перейти к дате';
+
+  @override
+  String get noMessagesOnDate => 'Нет сообщений за эту дату';
+
+  @override
+  String get clearImageCache => 'Очистить кэш изображений';
+
+  @override
+  String get imageCacheCleared => 'Кэш изображений очищён';
+
+  @override
+  String get imageCache => 'Кэш изображений';
 }

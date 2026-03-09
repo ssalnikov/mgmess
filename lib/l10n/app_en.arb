@@ -327,5 +327,20 @@
   "english": "English",
   "russian": "Русский",
   "team": "Team",
-  "switchTeam": "Switch Team"
+  "switchTeam": "Switch Team",
+
+  "lastSeenAt": "Last seen {time}",
+  "@lastSeenAt": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "lastSeenJustNow": "Last seen just now",
+  "commonChannels": "Common channels",
+  "noCommonChannels": "No common channels",
+  "jumpToDate": "Jump to date",
+  "noMessagesOnDate": "No messages on this date",
+  "clearImageCache": "Clear Image Cache",
+  "imageCacheCleared": "Image cache cleared",
+  "imageCache": "Image Cache"
 }

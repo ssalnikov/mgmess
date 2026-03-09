@@ -128,7 +128,8 @@ class UserRemoteDataSource {
     }
   }
 
-  Future<Map<String, String>> getUserStatuses(
+  Future<({Map<String, String> statuses, Map<String, int> lastActivity})>
+      getUserStatuses(
     List<String> userIds,
   ) async {
     try {
@@ -137,11 +138,14 @@ class UserRemoteDataSource {
         data: userIds,
       );
       final Map<String, String> statuses = {};
+      final Map<String, int> lastActivity = {};
       for (final s in response.data as List<dynamic>) {
         final map = s as Map<String, dynamic>;
-        statuses[map['user_id'] as String] = map['status'] as String;
+        final uid = map['user_id'] as String;
+        statuses[uid] = map['status'] as String;
+        lastActivity[uid] = (map['last_activity_at'] as num?)?.toInt() ?? 0;
       }
-      return statuses;
+      return (statuses: statuses, lastActivity: lastActivity);
     } catch (e) {
       throw ServerException(message: 'Failed to get user statuses: $e');
     }

@@ -247,5 +247,20 @@
   "english": "English",
   "russian": "Русский",
   "team": "Команда",
-  "switchTeam": "Сменить команду"
+  "switchTeam": "Сменить команду",
+
+  "lastSeenAt": "Был(а) в сети {time}",
+  "@lastSeenAt": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "lastSeenJustNow": "Был(а) в сети только что",
+  "commonChannels": "Общие каналы",
+  "noCommonChannels": "Нет общих каналов",
+  "jumpToDate": "Перейти к дате",
+  "noMessagesOnDate": "Нет сообщений за эту дату",
+  "clearImageCache": "Очистить кэш изображений",
+  "imageCacheCleared": "Кэш изображений очищён",
+  "imageCache": "Кэш изображений"
 }

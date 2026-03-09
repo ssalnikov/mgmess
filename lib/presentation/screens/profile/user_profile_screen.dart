@@ -7,6 +7,8 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/emoji_map.dart';
+import '../../../core/utils/date_formatter.dart';
+import '../../../domain/entities/channel.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/repositories/channel_repository.dart';
 import '../../../domain/repositories/user_repository.dart';
@@ -32,11 +34,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   User? _user;
   bool _isLoading = true;
   String? _error;
+  List<Channel>? _commonChannels;
 
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadCommonChannels();
   }
 
   Future<void> _loadUser() async {
@@ -87,6 +91,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Future<void> _loadCommonChannels() async {
+    final myId = _currentUserId;
+    if (myId.isEmpty || myId == widget.userId) return;
+    final result = await sl<ChannelRepository>()
+        .getCommonChannels(myId, widget.userId);
+    result.fold(
+      (_) {},
+      (channels) {
+        if (mounted) setState(() => _commonChannels = channels);
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -129,6 +146,39 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 Text(user.position, style: AppTextStyles.bodySmall),
           ),
         ],
+        // Last seen / online status
+        BlocBuilder<UserStatusCubit, UserStatusState>(
+          builder: (context, state) {
+            final status = state.statuses[user.id];
+            final lastActivityMs = state.lastActivity[user.id] ?? 0;
+
+            String? lastSeenText;
+            if (status == 'online') {
+              lastSeenText = context.l10n.online;
+            } else if (lastActivityMs > 0) {
+              final formatted = DateFormatter.formatLastSeen(lastActivityMs);
+              lastSeenText = formatted != null
+                  ? context.l10n.lastSeenAt(formatted)
+                  : context.l10n.lastSeenJustNow;
+            }
+
+            if (lastSeenText == null) return const SizedBox.shrink();
+
+            return Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Center(
+                child: Text(
+                  lastSeenText,
+                  style: AppTextStyles.caption.copyWith(
+                    color: status == 'online'
+                        ? AppColors.online
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
         BlocBuilder<UserStatusCubit, UserStatusState>(
           builder: (context, state) {
             final cs = state.customStatuses[user.id];
@@ -171,6 +221,46 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             leading: const Icon(Icons.email),
             title: Text(user.email),
           ),
+        ],
+        // Common channels
+        if (_currentUserId != user.id && _commonChannels != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            context.l10n.commonChannels,
+            style: AppTextStyles.heading2,
+          ),
+          const SizedBox(height: 8),
+          if (_commonChannels!.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                context.l10n.noCommonChannels,
+                style: AppTextStyles.caption,
+              ),
+            )
+          else
+            ...(_commonChannels!.map((channel) => ListTile(
+                  leading: Icon(
+                    channel.type == ChannelType.private_
+                        ? Icons.lock
+                        : channel.type == ChannelType.direct
+                            ? Icons.person
+                            : Icons.tag,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+                  title: Text(channel.displayName),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  onTap: () {
+                    context.push(
+                      RouteNames.chatPath(channel.id),
+                      extra: <String, dynamic>{
+                        'channelName': channel.displayName,
+                      },
+                    );
+                  },
+                ))),
         ],
         if (_currentUserId != user.id) ...[
           const SizedBox(height: 24),

@@ -70,6 +70,10 @@ abstract class ChannelRepository {
     String channelId,
     Map<String, dynamic> data,
   );
+  Future<Either<Failure, List<Channel>>> getCommonChannels(
+    String userId,
+    String otherUserId,
+  );
   Future<Either<Failure, List<Channel>>> autocompleteChannels(
     String teamId,
     String term,

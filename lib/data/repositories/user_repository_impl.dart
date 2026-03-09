@@ -97,13 +97,14 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<Either<Failure, Map<String, String>>> getUserStatuses(
+  Future<Either<Failure, ({Map<String, String> statuses, Map<String, int> lastActivity})>>
+      getUserStatuses(
     List<String> userIds,
   ) async {
     try {
-      final statuses =
+      final result =
           await _remoteDataSource.getUserStatuses(userIds);
-      return Right(statuses);
+      return Right(result);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

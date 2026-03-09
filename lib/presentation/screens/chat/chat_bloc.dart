@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 
 import '../../../core/network/websocket_events.dart';
 import '../../../domain/entities/post.dart';
@@ -118,6 +119,19 @@ class ScrollToMessage extends ChatEvent {
   const ScrollToMessage({required this.postId});
   @override
   List<Object?> get props => [postId];
+}
+
+class JumpToDate extends ChatEvent {
+  final DateTime date;
+  final String teamId;
+  final String channelUrlName;
+  const JumpToDate({
+    required this.date,
+    required this.teamId,
+    required this.channelUrlName,
+  });
+  @override
+  List<Object?> get props => [date, teamId, channelUrlName];
 }
 
 class ClearHighlight extends ChatEvent {
@@ -247,6 +261,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<RemoveReaction>(_onRemoveReaction);
     on<ScrollToMessage>(_onScrollToMessage);
     on<ClearHighlight>(_onClearHighlight);
+    on<JumpToDate>(_onJumpToDate);
     on<ChatWsEvent>(_onWsEvent);
   }
 
@@ -595,6 +610,36 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) {
     emit(state.copyWith(clearHighlightedPostId: true));
+  }
+
+  Future<void> _onJumpToDate(
+    JumpToDate event,
+    Emitter<ChatState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true));
+
+    final dateStr = DateFormat('yyyy-MM-dd').format(event.date);
+    final terms = 'in:${event.channelUrlName} on:$dateStr';
+    final result = await _postRepository.searchPosts(event.teamId, terms);
+
+    await result.fold(
+      (failure) async {
+        emit(state.copyWith(isLoading: false, error: failure.message));
+      },
+      (posts) async {
+        if (posts.isEmpty) {
+          emit(state.copyWith(isLoading: false, error: 'no_messages_on_date'));
+          return;
+        }
+        // Sort oldest first and pick the earliest post on that date
+        final sorted = List<Post>.from(posts)
+          ..sort((a, b) => a.createAt.compareTo(b.createAt));
+        final targetPost = sorted.first;
+        // Use ScrollToMessage logic to navigate
+        emit(state.copyWith(isLoading: false));
+        add(ScrollToMessage(postId: targetPost.id));
+      },
+    );
   }
 
   void _onWsEvent(ChatWsEvent event, Emitter<ChatState> emit) {

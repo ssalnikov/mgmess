@@ -1,5 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
@@ -119,6 +121,21 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(height: 12),
               ],
               const _BiometricToggle(),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await DefaultCacheManager().emptyCache();
+                  PaintingBinding.instance.imageCache.clear();
+                  PaintingBinding.instance.imageCache.clearLiveImages();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(context.l10n.imageCacheCleared)),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.cleaning_services_outlined),
+                label: Text(context.l10n.clearImageCache),
+              ),
               const SizedBox(height: 12),
               _ProfileItem(
                 icon: Icons.dns,

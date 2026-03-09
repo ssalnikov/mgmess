@@ -1399,6 +1399,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Switch Team'**
   String get switchTeam;
+
+  /// No description provided for @lastSeenAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen {time}'**
+  String lastSeenAt(String time);
+
+  /// No description provided for @lastSeenJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Last seen just now'**
+  String get lastSeenJustNow;
+
+  /// No description provided for @commonChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'Common channels'**
+  String get commonChannels;
+
+  /// No description provided for @noCommonChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'No common channels'**
+  String get noCommonChannels;
+
+  /// No description provided for @jumpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to date'**
+  String get jumpToDate;
+
+  /// No description provided for @noMessagesOnDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No messages on this date'**
+  String get noMessagesOnDate;
+
+  /// No description provided for @clearImageCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear Image Cache'**
+  String get clearImageCache;
+
+  /// No description provided for @imageCacheCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Image cache cleared'**
+  String get imageCacheCleared;
+
+  /// No description provided for @imageCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Image Cache'**
+  String get imageCache;
 }
 
 class _AppLocalizationsDelegate

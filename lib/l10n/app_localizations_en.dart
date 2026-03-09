@@ -714,4 +714,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get switchTeam => 'Switch Team';
+
+  @override
+  String lastSeenAt(String time) {
+    return 'Last seen $time';
+  }
+
+  @override
+  String get lastSeenJustNow => 'Last seen just now';
+
+  @override
+  String get commonChannels => 'Common channels';
+
+  @override
+  String get noCommonChannels => 'No common channels';
+
+  @override
+  String get jumpToDate => 'Jump to date';
+
+  @override
+  String get noMessagesOnDate => 'No messages on this date';
+
+  @override
+  String get clearImageCache => 'Clear Image Cache';
+
+  @override
+  String get imageCacheCleared => 'Image cache cleared';
+
+  @override
+  String get imageCache => 'Image Cache';
 }

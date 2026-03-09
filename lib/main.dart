@@ -10,6 +10,10 @@ import 'presentation/widgets/restart_widget.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Limit in-memory image cache: max 100 images or 50 MB
+  PaintingBinding.instance.imageCache.maximumSize = 100;
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024;
+
   // Firebase init is conditional — works only when native configs are present
   // (google-services.json / GoogleService-Info.plist)
   try {

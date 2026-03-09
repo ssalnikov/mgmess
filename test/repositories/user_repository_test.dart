@@ -243,7 +243,10 @@ void main() {
     group('getUserStatuses', () {
       test('returns statuses on success', () async {
         when(() => mockRemote.getUserStatuses(any())).thenAnswer(
-          (_) async => {'user1': 'online', 'user2': 'away'},
+          (_) async => (
+            statuses: {'user1': 'online', 'user2': 'away'},
+            lastActivity: {'user1': 1000, 'user2': 2000},
+          ),
         );
 
         final result =
@@ -252,9 +255,10 @@ void main() {
         expect(result.isRight(), true);
         result.fold(
           (_) => fail('Expected Right'),
-          (statuses) {
-            expect(statuses['user1'], 'online');
-            expect(statuses['user2'], 'away');
+          (data) {
+            expect(data.statuses['user1'], 'online');
+            expect(data.statuses['user2'], 'away');
+            expect(data.lastActivity['user1'], 1000);
           },
         );
       });

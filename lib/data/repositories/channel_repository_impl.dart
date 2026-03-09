@@ -349,6 +349,20 @@ class ChannelRepositoryImpl implements ChannelRepository {
   }
 
   @override
+  Future<Either<Failure, List<Channel>>> getCommonChannels(
+    String userId,
+    String otherUserId,
+  ) async {
+    try {
+      final channels =
+          await _remoteDataSource.getCommonChannels(userId, otherUserId);
+      return Right(channels);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Channel>>> autocompleteChannels(
     String teamId,
     String term,

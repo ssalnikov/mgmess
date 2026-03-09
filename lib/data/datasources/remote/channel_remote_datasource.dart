@@ -322,6 +322,22 @@ class ChannelRemoteDataSource {
     }
   }
 
+  Future<List<ChannelModel>> getCommonChannels(
+    String userId,
+    String otherUserId,
+  ) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.commonChannels(userId, otherUserId),
+      );
+      return (response.data as List<dynamic>)
+          .map((c) => ChannelModel.fromJson(c as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw ServerException(message: 'Failed to get common channels: $e');
+    }
+  }
+
   Future<List<ChannelModel>> autocompleteChannels(
     String teamId,
     String term,

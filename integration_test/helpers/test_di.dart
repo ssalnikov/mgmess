@@ -96,7 +96,10 @@ Future<TestMocks> initTestDependencies() async {
 
   // Дефолтные стабы для UserRepository (нужен UserStatusCubit и DM каналы)
   when(() => userRepo.getUserStatuses(any()))
-      .thenAnswer((_) async => const Right({}));
+      .thenAnswer((_) async => const Right((
+            statuses: <String, String>{},
+            lastActivity: <String, int>{},
+          )));
   when(() => userRepo.getUserImageUrl(any()))
       .thenReturn('https://mm.my.games/api/v4/users/fake/image');
   when(() => userRepo.getUser(any())).thenAnswer((_) async => const Right(

@@ -32,18 +32,18 @@ void main() {
         'updates statuses on success',
         build: () {
           when(() => mockUserRepository.getUserStatuses(any()))
-              .thenAnswer((_) async => const Right({
-                    'user1': 'online',
-                    'user2': 'away',
-                  }));
+              .thenAnswer((_) async => const Right((
+                    statuses: {'user1': 'online', 'user2': 'away'},
+                    lastActivity: {'user1': 0, 'user2': 0},
+                  )));
           return UserStatusCubit(userRepository: mockUserRepository);
         },
         act: (cubit) => cubit.fetchStatuses(['user1', 'user2']),
         expect: () => [
-          const UserStatusState(statuses: {
-            'user1': 'online',
-            'user2': 'away',
-          }),
+          const UserStatusState(
+            statuses: {'user1': 'online', 'user2': 'away'},
+            lastActivity: {'user1': 0, 'user2': 0},
+          ),
         ],
       );
 
@@ -78,15 +78,18 @@ void main() {
         build: () {
           when(() => mockUserRepository.getUserStatuses(any()))
               .thenAnswer((_) async =>
-                  const Right({'user2': 'dnd'}));
+                  const Right((
+                    statuses: {'user2': 'dnd'},
+                    lastActivity: {'user2': 0},
+                  )));
           return UserStatusCubit(userRepository: mockUserRepository);
         },
         act: (cubit) => cubit.fetchStatuses(['user2']),
         expect: () => [
-          const UserStatusState(statuses: {
-            'user1': 'online',
-            'user2': 'dnd',
-          }),
+          const UserStatusState(
+            statuses: {'user1': 'online', 'user2': 'dnd'},
+            lastActivity: {'user2': 0},
+          ),
         ],
       );
     });
@@ -154,10 +157,10 @@ void main() {
 
       test('refreshes all statuses on hello (WS reconnect)', () async {
         when(() => mockUserRepository.getUserStatuses(any()))
-            .thenAnswer((_) async => const Right({
-                  'user1': 'away',
-                  'user2': 'offline',
-                }));
+            .thenAnswer((_) async => const Right((
+                  statuses: {'user1': 'away', 'user2': 'offline'},
+                  lastActivity: {'user1': 0, 'user2': 0},
+                )));
 
         final wsController = StreamController<WsEvent>.broadcast();
         final cubit =
@@ -491,10 +494,10 @@ void main() {
     group('requestStatus', () {
       test('batches requests and fetches after delay', () async {
         when(() => mockUserRepository.getUserStatuses(any()))
-            .thenAnswer((_) async => const Right({
-                  'user1': 'online',
-                  'user2': 'away',
-                }));
+            .thenAnswer((_) async => const Right((
+                  statuses: {'user1': 'online', 'user2': 'away'},
+                  lastActivity: {'user1': 0, 'user2': 0},
+                )));
 
         final cubit =
             UserStatusCubit(userRepository: mockUserRepository);
@@ -519,7 +522,10 @@ void main() {
       test('skips already known statuses', () async {
         when(() => mockUserRepository.getUserStatuses(any()))
             .thenAnswer(
-                (_) async => const Right({'user2': 'online'}));
+                (_) async => const Right((
+                  statuses: {'user2': 'online'},
+                  lastActivity: {'user2': 0},
+                )));
 
         final cubit =
             UserStatusCubit(userRepository: mockUserRepository);

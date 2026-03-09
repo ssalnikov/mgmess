@@ -9,7 +9,7 @@ abstract class UserRepository {
   Future<Either<Failure, User>> updateUser(String userId, Map<String, dynamic> patch);
   Future<Either<Failure, void>> uploadUserImage(String userId, String filePath);
   Future<Either<Failure, List<User>>> autocompleteUsers(String name, {String? teamId, String? channelId});
-  Future<Either<Failure, Map<String, String>>> getUserStatuses(List<String> userIds);
+  Future<Either<Failure, ({Map<String, String> statuses, Map<String, int> lastActivity})>> getUserStatuses(List<String> userIds);
   Future<Either<Failure, void>> updateUserStatus(String userId, String status);
   Future<Either<Failure, void>> updateCustomStatus(String userId, {required String emoji, required String text});
   Future<Either<Failure, void>> deleteCustomStatus(String userId);

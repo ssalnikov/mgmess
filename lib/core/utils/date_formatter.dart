@@ -49,4 +49,25 @@ class DateFormatter {
     }
     return DateFormat('EEEE, MMMM d').format(date);
   }
+
+  /// Formats a "last seen" timestamp into a human-readable relative time.
+  /// Returns null if timestamp is 0 or user is currently online.
+  static String? formatLastSeen(int timestampMs) {
+    if (timestampMs <= 0) return null;
+    final date = DateTime.fromMillisecondsSinceEpoch(timestampMs);
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 1) return null; // "just now" handled by caller
+    if (diff.inMinutes < 60) {
+      return '${diff.inMinutes} min ago';
+    }
+    if (diff.inHours < 24) {
+      return '${diff.inHours}h ago';
+    }
+    if (diff.inDays < 7) {
+      return DateFormat('EEE HH:mm').format(date);
+    }
+    return DateFormat('dd.MM.yy HH:mm').format(date);
+  }
 }

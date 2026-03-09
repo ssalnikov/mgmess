@@ -59,6 +59,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messageInputKey = GlobalKey<MessageInputState>();
   bool _isUserScrolledUp = false;
   int? _memberCount;
+  late String _channelName = widget.channelName;
 
   @override
   void initState() {
@@ -100,12 +101,24 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _scrollController.addListener(_onScroll);
 
+    // Load channel name if not provided (e.g. navigating back from thread)
+    if (_channelName.isEmpty) {
+      _loadChannelName();
+    }
+
     // Load member count for non-DM channels
     if (widget.dmUserId == null) {
       _loadMemberCount();
     } else {
       _loadDmUserCustomStatus();
     }
+  }
+
+  Future<void> _loadChannelName() async {
+    final result = await sl<ChannelRepository>().getChannel(widget.channelId);
+    result.fold((_) {}, (channel) {
+      if (mounted) setState(() => _channelName = channel.displayName);
+    });
   }
 
   Future<void> _loadDmUserCustomStatus() async {
@@ -149,7 +162,7 @@ class _ChatScreenState extends State<ChatScreen> {
     } else {
       context.push(
         RouteNames.channelInfoPath(widget.channelId),
-        extra: {'channelName': widget.channelName},
+        extra: {'channelName': _channelName},
       );
     }
   }
@@ -252,7 +265,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         Expanded(
                           child: UserDisplayName(
                             userId: widget.dmUserId!,
-                            displayName: widget.channelName,
+                            displayName: _channelName,
                           ),
                         ),
                       ],
@@ -261,7 +274,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.channelName,
+                          _channelName,
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (_memberCount != null)
@@ -386,7 +399,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     return MessageInput(
                       key: _messageInputKey,
                       channelId: widget.channelId,
-                      channelName: widget.channelName,
+                      channelName: _channelName,
                       initialDraft: widget.initialDraft,
                       editingPost: state.editingPost,
                       onCancelEdit: () {

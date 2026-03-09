@@ -31,6 +31,8 @@ class ThreadScreen extends StatefulWidget {
 class _ThreadScreenState extends State<ThreadScreen> {
   late final ThreadBloc _threadBloc;
   final _messageInputKey = GlobalKey<MessageInputState>();
+  final _scrollController = ScrollController();
+  bool _isUserScrolledUp = false;
 
   @override
   void initState() {
@@ -46,10 +48,31 @@ class _ThreadScreenState extends State<ThreadScreen> {
       final wsBloc = context.read<WebSocketBloc>();
       _threadBloc.subscribeToWs(wsBloc.wsEvents);
     } catch (_) {}
+
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    final scrolledUp = currentScroll < maxScroll - 200;
+    if (scrolledUp != _isUserScrolledUp) {
+      setState(() => _isUserScrolledUp = scrolledUp);
+    }
+  }
+
+  void _scrollToBottom() {
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _threadBloc.close();
     super.dispose();
   }
@@ -116,7 +139,27 @@ class _ThreadScreenState extends State<ThreadScreen> {
                           ),
                         );
                       }
-                      return _buildThreadList(state);
+                      return Stack(
+                        children: [
+                          _buildThreadList(state),
+                          if (_isUserScrolledUp)
+                            Positioned(
+                              bottom: 16,
+                              right: 16,
+                              child: FloatingActionButton.small(
+                                heroTag: 'thread_scroll_to_bottom',
+                                onPressed: _scrollToBottom,
+                                backgroundColor: Theme.of(context).colorScheme.surface,
+                                elevation: 4,
+                                child: Icon(
+                                  Icons.arrow_downward,
+                                  color: Theme.of(context).colorScheme.primary,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                        ],
+                      );
                     },
                   ),
                 ),
@@ -183,6 +226,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   Widget _buildThreadList(ThreadState state) {
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       itemCount: state.posts.length,
       itemBuilder: (context, index) {

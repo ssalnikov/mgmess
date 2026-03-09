@@ -12,7 +12,7 @@
 | `integration_test` | Интеграционные тесты (Flutter SDK) |
 | `patrol` | Нативные E2E-тесты (OAuth через браузер) |
 
-**Итого: 264 теста** (239 unit + 25 integration)
+**Итого: 414 тестов** (379 unit + 35 integration)
 
 ## Структура тестов
 
@@ -49,6 +49,10 @@ test/
 │   └── api_client_test.dart         # 7 тестов — AuthInterceptor (Bearer, CSRF, 401), конфигурация
 ├── storage/                         # Unit-тесты хранилищ
 │   └── draft_storage_test.dart      # тесты DraftStorage
+├── core/                            # Тесты core-сервисов
+│   ├── crash_reporting_test.dart    # 10 тестов — CrashReporting + SentryHttpBreadcrumbInterceptor
+│   ├── analytics_service_test.dart  # 14 тестов — AnalyticsService: трекинг, хранение, opt-out
+│   └── feature_flags_test.dart      # 11 тестов — FeatureFlagService: overrides, remote config
 ├── widget_test.dart                 # Unit-тесты утилит (WsEvent, DateFormatter) — 8 тестов
 └── integration_runner_test.dart     # Runner для интеграционных тестов (без устройства)
 
@@ -467,6 +471,37 @@ void main() {
 - Физическое устройство или эмулятор
 - Запуск: `patrol test integration_test/patrol/`
 
+## Тесты Observability & Feature Flags
+
+### CrashReporting (10 тестов)
+
+Проверяют поведение `CrashReporting` и `SentryHttpBreadcrumbInterceptor` при отключенном Sentry (пустой DSN).
+
+- `isEnabled` возвращает false при пустом DSN
+- `init()` запускает appRunner даже без DSN
+- Все методы (`setUser`, `clearUser`, `addBreadcrumb`, `reportError`, `reportMessage`) — безопасный no-op при отключенном Sentry
+- `SentryHttpBreadcrumbInterceptor.onRequest/onError` — не бросают исключений
+
+### AnalyticsService (14 тестов)
+
+- Включен по умолчанию, можно отключить, состояние персистится между перезапусками
+- Каждый из 13 методов трекинга корректно сохраняет событие
+- `trackSearch` хранит `query_length`, а не содержимое запроса (приватность)
+- При `setEnabled(false)` события не сохраняются
+- `clearStoredEvents`, `storedEventCount` работают корректно
+- Лимит 500 событий соблюдается (FIFO)
+
+### FeatureFlagService (11 тестов)
+
+- Дефолтные значения из `FeatureFlag` enum
+- Оператор `[]` эквивалентен `isEnabled()`
+- Local override применяется, очищается, персистится
+- Remote config применяется
+- Local override побеждает remote config
+- `clearOverride` возвращает значение из remote config
+- `getAllFlags` возвращает все флаги с текущими значениями
+- `hasOverride` / `resetAll` работают корректно
+
 ## Покрытие по компонентам
 
 | Слой | Компонент | Тесты |
@@ -478,6 +513,7 @@ void main() {
 | Network | ApiClient (AuthInterceptor, RetryInterceptor) | ✅ |
 | Model | User, Channel, Post, FileInfo, UserThread, Draft | ✅ |
 | Storage | DraftStorage | ✅ |
+| Core | CrashReporting, AnalyticsService, FeatureFlagService | ✅ |
 | Integration | Auth, Channels, Chat, WS, Pin, Search, Threads, Edit/Delete | ✅ |
 
 ## Рекомендации по расширению

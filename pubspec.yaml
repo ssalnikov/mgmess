@@ -66,6 +66,9 @@ dependencies:
   # Biometric Auth
   local_auth: ^2.3.0
 
+  # Observability
+  sentry_flutter: ^8.12.0
+
   # Utils
   intl: ^0.20.2
   path_provider: ^2.1.5

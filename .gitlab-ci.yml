@@ -1,0 +1,135 @@
+# MGMess CI/CD Pipeline
+#
+# Stages:
+#   1. analyze  — static analysis (flutter analyze)
+#   2. test     — unit + integration tests
+#   3. build    — APK + IPA artifacts
+#   4. deploy   — (manual) distribute to testers
+
+variables:
+  FLUTTER_VERSION: "3.41.0"
+  ANDROID_SDK_VERSION: "34"
+
+stages:
+  - analyze
+  - test
+  - build
+  - deploy
+
+# ── Base templates ──────────────────────────────────────────────────
+
+.flutter_base:
+  image: ghcr.io/cirruslabs/flutter:${FLUTTER_VERSION}
+  before_script:
+    - flutter --version
+    - flutter pub get
+  cache:
+    key:
+      files:
+        - pubspec.lock
+    paths:
+      - .dart_tool/
+      - .packages
+      - build/
+
+# ── Stage 1: Analyze ───────────────────────────────────────────────
+
+lint:
+  extends: .flutter_base
+  stage: analyze
+  script:
+    - flutter analyze --no-fatal-infos
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+format_check:
+  extends: .flutter_base
+  stage: analyze
+  script:
+    - dart format --set-exit-if-changed lib/ test/
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ── Stage 2: Test ──────────────────────────────────────────────────
+
+unit_tests:
+  extends: .flutter_base
+  stage: test
+  script:
+    - flutter test test/ --reporter expanded --coverage
+  coverage: '/lines\.+: (\d+\.\d+)%/'
+  artifacts:
+    when: always
+    paths:
+      - coverage/lcov.info
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/lcov.info
+    expire_in: 30 days
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+integration_tests:
+  extends: .flutter_base
+  stage: test
+  script:
+    - flutter test test/integration_runner_test.dart --reporter expanded
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# ── Stage 3: Build ─────────────────────────────────────────────────
+
+build_apk:
+  extends: .flutter_base
+  stage: build
+  script:
+    - flutter build apk --release --split-per-abi
+  artifacts:
+    paths:
+      - build/app/outputs/flutter-apk/*.apk
+    expire_in: 14 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+
+build_ios:
+  extends: .flutter_base
+  stage: build
+  tags:
+    - macos  # requires macOS runner
+  script:
+    - flutter build ios --release --no-codesign
+  artifacts:
+    paths:
+      - build/ios/iphoneos/Runner.app
+    expire_in: 14 days
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+  allow_failure: true  # iOS builds may not have a macOS runner
+
+# ── Stage 4: Deploy (manual) ──────────────────────────────────────
+
+deploy_firebase:
+  extends: .flutter_base
+  stage: deploy
+  script:
+    - flutter build apk --release
+    - |
+      if command -v firebase &> /dev/null; then
+        firebase appdistribution:distribute \
+          build/app/outputs/flutter-apk/app-release.apk \
+          --app "$FIREBASE_APP_ID" \
+          --groups testers
+      else
+        echo "Firebase CLI not available — skipping distribution"
+      fi
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: manual
+  allow_failure: true

@@ -78,4 +78,7 @@ flutter build ios --release
 | [State Management](state_management.md) | BLoC-паттерн, список блоков, потоки данных |
 | [Тестирование](testing.md) | Стратегия, структура тестов, запуск |
 | [Push-уведомления](push_notifications.md) | Firebase Cloud Messaging: настройка, конфигурация, troubleshooting |
+| [Observability](observability.md) | Crash reporting (Sentry) + аналитика использования |
+| [CI/CD](ci_cd.md) | GitLab CI/CD pipeline: lint, test, build, deploy |
+| [Feature Flags](feature_flags.md) | Флаги функций: определение, override, remote config |
 | [Настройка сервера](server_setup.md) | Конфигурация бэкенда для работы с приложением |

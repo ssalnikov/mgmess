@@ -7,6 +7,8 @@ import 'core/auth/biometric_service.dart';
 import 'core/config/app_config.dart';
 import 'core/di/injection.dart';
 import 'core/l10n/l10n.dart';
+import 'core/observability/analytics_service.dart';
+import 'core/observability/crash_reporting.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/blocs/auth/auth_bloc.dart';
@@ -181,14 +183,21 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                 NotificationWsEvent(wsEvent: wsEvent),
               );
             });
+            // Observability: set user context
+            CrashReporting.setUser(
+              userId: state.user.id,
+              username: state.user.username,
+            );
+            sl<AnalyticsService>().trackLogin(method: 'session');
           } else if (state is AuthUnauthenticated) {
             _wsBloc!.add(const WebSocketDisconnect());
             _wsEventSub?.cancel();
             _notificationBloc!.add(const NotificationLogout());
+            CrashReporting.clearUser();
+            sl<AnalyticsService>().trackLogout();
             try {
               AppBadgePlus.updateBadge(0);
             } catch (_) {}
-
           }
         },
         child: BlocBuilder<ThemeCubit, ThemeState>(

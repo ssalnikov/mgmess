@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 import 'core/config/app_config.dart';
 import 'core/di/injection.dart';
+import 'core/feature_flags/feature_flags.dart';
 import 'core/notifications/notification_service.dart';
+import 'core/observability/analytics_service.dart';
+import 'core/observability/crash_reporting.dart';
 import 'presentation/widgets/restart_widget.dart';
 
 void main() async {
@@ -26,8 +29,17 @@ void main() async {
 
   if (AppConfig.isServerConfigured) {
     await initDependencies();
+
+    // Initialize feature flags before other services can query them
+    await sl<FeatureFlagService>().init();
+
+    await sl<AnalyticsService>().init();
     await sl<NotificationService>().init();
   }
 
-  runApp(const RestartWidget(child: App()));
+  // Sentry wraps the app runner to catch unhandled exceptions.
+  // If DSN is empty, it runs the app normally without Sentry.
+  await CrashReporting.init(
+    appRunner: () => runApp(const RestartWidget(child: App())),
+  );
 }

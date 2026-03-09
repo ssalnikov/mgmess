@@ -15,8 +15,8 @@
 │              Data Layer                 │
 │   (Models, DataSources, Repositories)   │
 ├─────────────────────────────────────────┤
-│              Core Layer                 │
-│   (Network, Storage, DI, Router, Theme) │
+│              Core Layer                      │
+│ (Network, Storage, DI, Router, Observability) │
 └─────────────────────────────────────────┘
 ```
 
@@ -53,6 +53,11 @@ lib/
 │   ├── notifications/
 │   │   ├── notification_service.dart      # FCM + flutter_local_notifications
 │   │   └── notification_channels.dart     # Android notification channel IDs
+│   ├── observability/
+│   │   ├── crash_reporting.dart           # Sentry: крешы, breadcrumbs, user context
+│   │   └── analytics_service.dart         # Трекинг событий (login, message_sent, etc.)
+│   ├── feature_flags/
+│   │   └── feature_flags.dart             # FeatureFlag enum + FeatureFlagService
 │   └── utils/
 │       └── date_formatter.dart            # Форматирование дат/времени
 │
@@ -202,11 +207,14 @@ JSON-поля (`metadataJson`, `fileIdsJson`, `filesJson`, `reactionsJson`) хр
 
 Общая инфраструктура:
 
-- **ApiClient** — Dio HTTP-клиент с тремя interceptors (auth, retry, logging)
+- **ApiClient** — Dio HTTP-клиент с тремя interceptors (auth, retry, logging + Sentry breadcrumbs)
 - **WebSocketClient** — управление WS-соединением с автоматическим reconnect
 - **SecureStorage** — безопасное хранение токенов (Keychain на iOS, EncryptedSharedPreferences на Android)
 - **AppRouter** — GoRouter с auth guard (автоматический редирект на экран авторизации)
 - **DI** — GetIt Service Locator для внедрения зависимостей
+- **CrashReporting** — Sentry SDK для перехвата крешей, breadcrumbs, user context. См. [Observability](observability.md)
+- **AnalyticsService** — легковесный трекинг событий (login, message_sent, search и др.) с хранением в SharedPreferences. См. [Observability](observability.md)
+- **FeatureFlagService** — флаги функций с 3-уровневым разрешением (local override → remote config → default). См. [Feature Flags](feature_flags.md)
 
 ## Dependency Injection
 
@@ -222,14 +230,14 @@ void main() async {
 ```
 
 Порядок регистрации:
-1. Core-сервисы (SecureStorage, DraftStorage, ApiClient, WebSocketClient, NetworkInfo, NotificationService)
+1. Core-сервисы (SecureStorage, DraftStorage, ApiClient, WebSocketClient, NetworkInfo, NotificationService, BiometricService, **AnalyticsService**, **FeatureFlagService**)
 2. Database (AppDatabase)
-3. DAOs (PostDao, ChannelDao, UserDao)
-4. Local DataSources (PostLocalDataSource, ChannelLocalDataSource, UserLocalDataSource)
+3. DAOs (PostDao, ChannelDao, UserDao, ChannelCategoryDao)
+4. Local DataSources (PostLocalDataSource, ChannelLocalDataSource, UserLocalDataSource, ChannelCategoryLocalDataSource)
 5. Remote DataSources (все remote data sources)
 6. Services (WsPostParser → WsPostParserImpl, SendQueueService)
 7. Repositories (реализации, зарегистрированные по абстрактным типам)
-8. BLoCs (AuthBloc, WebSocketBloc, ConnectivityCubit, NotificationBloc, UserStatusCubit)
+8. BLoCs (AuthBloc, WebSocketBloc, ConnectivityCubit, NotificationBloc, UserStatusCubit, ThemeCubit, LocaleCubit)
 
 Доступ к зависимостям: `sl<AuthRepository>()` (где `sl` — глобальный экземпляр GetIt).
 
@@ -274,5 +282,7 @@ void main() async {
 | `firebase_core` | Инициализация Firebase |
 | `firebase_messaging` | Firebase Cloud Messaging (push-уведомления) |
 | `flutter_local_notifications` | Локальные уведомления (foreground) |
-| `flutter_app_badger` | Бейдж на иконке приложения |
+| `app_badge_plus` | Бейдж на иконке приложения |
+| `sentry_flutter` | Crash reporting + performance monitoring (Sentry) |
 | `logger` | Структурированное логирование |
+| `local_auth` | Биометрическая аутентификация (Face ID / Touch ID) |

@@ -21,6 +21,8 @@ import 'package:mgmess/domain/repositories/user_repository.dart';
 import 'package:mgmess/domain/services/ws_post_parser.dart';
 import 'package:mgmess/data/services/ws_post_parser_impl.dart';
 import 'package:mgmess/core/auth/biometric_service.dart';
+import 'package:mgmess/core/feature_flags/feature_flags.dart';
+import 'package:mgmess/core/observability/analytics_service.dart';
 import 'package:mgmess/presentation/blocs/auth/auth_bloc.dart';
 import 'package:mgmess/presentation/blocs/connectivity/connectivity_cubit.dart';
 import 'package:mgmess/presentation/blocs/notification/notification_bloc.dart';
@@ -161,6 +163,14 @@ Future<TestMocks> initTestDependencies() async {
   sl.registerLazySingleton<NetworkInfo>(() => networkInfo);
   sl.registerLazySingleton<NotificationService>(() => notificationService);
   sl.registerLazySingleton(() => BiometricService());
+
+  // Observability & Feature Flags
+  final analyticsService = AnalyticsService();
+  await analyticsService.init();
+  sl.registerLazySingleton(() => analyticsService);
+  final featureFlagService = FeatureFlagService();
+  await featureFlagService.init();
+  sl.registerLazySingleton(() => featureFlagService);
 
   // Services
   sl.registerLazySingleton<WsPostParser>(() => WsPostParserImpl());

@@ -43,10 +43,12 @@ import '../../presentation/blocs/theme/theme_cubit.dart';
 import '../../presentation/blocs/user_status/user_status_cubit.dart';
 import '../../presentation/blocs/websocket/websocket_bloc.dart';
 import '../auth/biometric_service.dart';
+import '../feature_flags/feature_flags.dart';
 import '../network/api_client.dart';
 import '../network/network_info.dart';
 import '../network/websocket_client.dart';
 import '../notifications/notification_service.dart';
+import '../observability/analytics_service.dart';
 import '../storage/draft_storage.dart';
 import '../storage/secure_storage.dart';
 
@@ -61,6 +63,8 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => NetworkInfo());
   sl.registerLazySingleton(() => NotificationService());
   sl.registerLazySingleton(() => BiometricService());
+  sl.registerLazySingleton(() => AnalyticsService());
+  sl.registerLazySingleton(() => FeatureFlagService());
 
   // Database
   sl.registerLazySingleton(() => AppDatabase());

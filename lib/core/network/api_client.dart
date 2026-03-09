@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
 import '../config/app_config.dart';
+import '../observability/crash_reporting.dart';
 import '../storage/secure_storage.dart';
 
 class ApiClient {
@@ -96,6 +97,7 @@ class _LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     _logger.d('→ ${options.method} ${options.path}');
+    SentryHttpBreadcrumbInterceptor.onRequest(options.method, options.path);
     handler.next(options);
   }
 
@@ -108,6 +110,11 @@ class _LoggingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     _logger.e('✗ ${err.response?.statusCode} ${err.requestOptions.path}: ${err.message}');
+    SentryHttpBreadcrumbInterceptor.onError(
+      err.response?.statusCode,
+      err.requestOptions.path,
+      err.message,
+    );
     handler.next(err);
   }
 }

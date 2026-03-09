@@ -24,6 +24,7 @@ import 'package:mgmess/core/auth/biometric_service.dart';
 import 'package:mgmess/presentation/blocs/auth/auth_bloc.dart';
 import 'package:mgmess/presentation/blocs/connectivity/connectivity_cubit.dart';
 import 'package:mgmess/presentation/blocs/notification/notification_bloc.dart';
+import 'package:mgmess/presentation/blocs/locale/locale_cubit.dart';
 import 'package:mgmess/presentation/blocs/theme/theme_cubit.dart';
 import 'package:mgmess/presentation/blocs/user_status/user_status_cubit.dart';
 import 'package:mgmess/presentation/blocs/websocket/websocket_bloc.dart';
@@ -181,6 +182,7 @@ Future<TestMocks> initTestDependencies() async {
       () => NotificationBloc(repository: sl(), notificationService: sl()));
   sl.registerFactory(() => UserStatusCubit(userRepository: sl()));
   sl.registerLazySingleton(() => ThemeCubit());
+  sl.registerLazySingleton(() => LocaleCubit());
 
   return TestMocks(
     authRepository: authRepo,

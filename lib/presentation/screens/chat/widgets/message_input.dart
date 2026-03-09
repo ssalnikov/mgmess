@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/l10n/l10n.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/storage/secure_storage.dart';
+import '../../../../core/utils/custom_emoji_cache.dart';
 import '../../../../core/utils/emoji_map.dart';
 import '../../../../domain/entities/post.dart';
 import '../../../../domain/entities/slash_command.dart';
@@ -22,6 +25,7 @@ import '../../../../domain/repositories/channel_repository.dart';
 import '../../../../domain/repositories/file_repository.dart';
 import '../../../../domain/repositories/post_repository.dart';
 import '../../../../domain/repositories/user_repository.dart';
+import 'emoji_autocomplete.dart';
 import 'emoji_picker_sheet.dart';
 import 'mention_autocomplete.dart';
 import 'slash_command_autocomplete.dart';
@@ -72,13 +76,24 @@ class MessageInputState extends State<MessageInput> {
   bool _showPriorityBar = false;
 
   // Mentions
-  List<User> _mentionResults = [];
+  List<MentionItem> _mentionItems = [];
   bool _showMentions = false;
   bool _suppressMentionCheck = false;
   Timer? _mentionDebounce;
   final _userRepository = sl<UserRepository>();
   final LayerLink _mentionLayerLink = LayerLink();
   OverlayEntry? _mentionOverlay;
+  Set<String> _channelMemberIds = {};
+
+  // Emoji autocomplete
+  List<EmojiAutocompleteItem> _emojiResults = [];
+  bool _showEmojis = false;
+  bool _suppressEmojiCheck = false;
+  Timer? _emojiDebounce;
+  final LayerLink _emojiLayerLink = LayerLink();
+  OverlayEntry? _emojiOverlay;
+  Map<String, String>? _authHeaders;
+  List<String> _recentEmojis = [];
 
   // Slash commands
   List<SlashCommand> _commandResults = [];
@@ -94,8 +109,27 @@ class MessageInputState extends State<MessageInput> {
   void initState() {
     super.initState();
     _loadDraft();
+    _loadAuthHeaders();
+    _loadRecentEmojis();
+    CustomEmojiCache.ensureLoaded();
     _controller.addListener(_onTextChanged);
     _focusNode.addListener(_onFocusChanged);
+  }
+
+  Future<void> _loadAuthHeaders() async {
+    final token = await sl<SecureStorage>().getToken();
+    if (mounted) {
+      _authHeaders = {
+        if (token != null) 'Authorization': 'Bearer $token',
+      };
+    }
+  }
+
+  Future<void> _loadRecentEmojis() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      _recentEmojis = prefs.getStringList('recent_emojis') ?? [];
+    }
   }
 
   @override
@@ -130,11 +164,14 @@ class MessageInputState extends State<MessageInput> {
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       _showMentions = false;
-      _mentionResults = [];
+      _mentionItems = [];
       _updateMentionOverlay();
       _showCommands = false;
       _commandResults = [];
       _updateCommandOverlay();
+      _showEmojis = false;
+      _emojiResults = [];
+      _updateEmojiOverlay();
     }
   }
 
@@ -168,13 +205,28 @@ class MessageInputState extends State<MessageInput> {
     return query;
   }
 
+  static const _specialMentions = [
+    MentionItem.special(
+      specialMention: 'all',
+      specialDescription: 'Notify everyone in the channel',
+    ),
+    MentionItem.special(
+      specialMention: 'channel',
+      specialDescription: 'Notify everyone in the channel',
+    ),
+    MentionItem.special(
+      specialMention: 'here',
+      specialDescription: 'Notify everyone who is online',
+    ),
+  ];
+
   void _checkForMention() {
     if (_suppressMentionCheck) return;
     final query = _getMentionQuery();
     if (query == null) {
       if (_showMentions) {
         _showMentions = false;
-        _mentionResults = [];
+        _mentionItems = [];
         _updateMentionOverlay();
       }
       _mentionDebounce?.cancel();
@@ -189,24 +241,35 @@ class MessageInputState extends State<MessageInput> {
 
   Future<void> _fetchMentions(String query) async {
     if (query.isEmpty) {
+      // Empty query: show special mentions + channel members
       final result = await sl<ChannelRepository>().getChannelMembers(
         widget.channelId,
       );
       if (!mounted) return;
       result.fold(
         (failure) {
-          _showMentions = false;
-          _mentionResults = [];
+          _mentionItems = List.of(_specialMentions);
+          _channelMemberIds = {};
         },
         (members) {
-          _mentionResults = members.map((m) => m.user).toList();
-          _showMentions = _mentionResults.isNotEmpty;
+          _channelMemberIds = members.map((m) => m.user.id).toSet();
+          _mentionItems = [
+            ..._specialMentions,
+            ...members.map((m) => MentionItem.user(m.user)),
+          ];
         },
       );
+      _showMentions = _mentionItems.isNotEmpty;
       _updateMentionOverlay();
       return;
     }
 
+    // Filter special mentions by query
+    final matchingSpecials = _specialMentions
+        .where((s) => s.specialMention!.startsWith(query.toLowerCase()))
+        .toList();
+
+    // Search server-wide
     String? teamId;
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthAuthenticated) teamId = authState.teamId;
@@ -214,24 +277,37 @@ class MessageInputState extends State<MessageInput> {
     final result = await _userRepository.autocompleteUsers(
       query,
       teamId: teamId,
-      channelId: widget.channelId,
     );
     if (!mounted) return;
 
     result.fold(
       (failure) {
-        _showMentions = false;
-        _mentionResults = [];
+        _mentionItems = matchingSpecials;
+        _showMentions = matchingSpecials.isNotEmpty;
       },
       (users) {
-        _mentionResults = users;
-        _showMentions = users.isNotEmpty;
+        // Sort: channel members first, then others
+        final inChannel = <User>[];
+        final outOfChannel = <User>[];
+        for (final u in users) {
+          if (_channelMemberIds.contains(u.id)) {
+            inChannel.add(u);
+          } else {
+            outOfChannel.add(u);
+          }
+        }
+        _mentionItems = [
+          ...matchingSpecials,
+          ...inChannel.map((u) => MentionItem.user(u)),
+          ...outOfChannel.map((u) => MentionItem.user(u)),
+        ];
+        _showMentions = _mentionItems.isNotEmpty;
       },
     );
     _updateMentionOverlay();
   }
 
-  void _onMentionSelected(User user) {
+  void _onMentionSelected(MentionItem item) {
     final text = _controller.text;
     final selection = _controller.selection;
     final cursorPos = (selection.isValid && selection.isCollapsed)
@@ -242,7 +318,7 @@ class MessageInputState extends State<MessageInput> {
     if (atIndex < 0) return;
 
     final textAfterCursor = text.substring(cursorPos);
-    final replacement = '@${user.username} ';
+    final replacement = '@${item.username} ';
     final newText = text.substring(0, atIndex) + replacement + textAfterCursor;
 
     _suppressMentionCheck = true;
@@ -253,12 +329,12 @@ class MessageInputState extends State<MessageInput> {
     _suppressMentionCheck = false;
 
     _showMentions = false;
-    _mentionResults = [];
+    _mentionItems = [];
     _updateMentionOverlay();
   }
 
   void _updateMentionOverlay() {
-    if (_showMentions && _mentionResults.isNotEmpty) {
+    if (_showMentions && _mentionItems.isNotEmpty) {
       if (_mentionOverlay != null) {
         _mentionOverlay!.markNeedsBuild();
       } else {
@@ -273,7 +349,7 @@ class MessageInputState extends State<MessageInput> {
                 followerAnchor: Alignment.bottomLeft,
                 targetAnchor: Alignment.topLeft,
                 child: MentionAutocomplete(
-                  users: _mentionResults,
+                  items: _mentionItems,
                   onSelect: _onMentionSelected,
                 ),
               ),
@@ -402,6 +478,158 @@ class MessageInputState extends State<MessageInput> {
     }
   }
 
+  // ===== Emoji autocomplete =====
+
+  String? _getEmojiQuery() {
+    final text = _controller.text;
+    if (text.isEmpty) return null;
+
+    final selection = _controller.selection;
+    final cursorPos = (selection.isValid && selection.isCollapsed)
+        ? selection.baseOffset
+        : text.length;
+    if (cursorPos <= 0 || cursorPos > text.length) return null;
+
+    final textBeforeCursor = text.substring(0, cursorPos);
+
+    final colonIndex = textBeforeCursor.lastIndexOf(':');
+    if (colonIndex < 0) return null;
+    // Colon must be at start or preceded by space/newline
+    if (colonIndex > 0 &&
+        textBeforeCursor[colonIndex - 1] != ' ' &&
+        textBeforeCursor[colonIndex - 1] != '\n') {
+      return null;
+    }
+
+    final query = textBeforeCursor.substring(colonIndex + 1);
+    if (query.contains(' ') || query.contains('\n') || query.contains(':')) {
+      return null;
+    }
+    // Require at least 2 characters to start searching
+    if (query.length < 2) return null;
+
+    return query.toLowerCase();
+  }
+
+  void _checkForEmoji() {
+    if (_suppressEmojiCheck) return;
+    final query = _getEmojiQuery();
+    if (query == null) {
+      if (_showEmojis) {
+        _showEmojis = false;
+        _emojiResults = [];
+        _updateEmojiOverlay();
+      }
+      _emojiDebounce?.cancel();
+      return;
+    }
+
+    _emojiDebounce?.cancel();
+    _emojiDebounce = Timer(const Duration(milliseconds: 200), () {
+      _fetchEmojis(query);
+    });
+  }
+
+  void _fetchEmojis(String query) {
+    final results = <EmojiAutocompleteItem>[];
+    final seen = <String>{};
+    const maxResults = 20;
+
+    // 1. Recent (last used) emojis first
+    for (final name in _recentEmojis) {
+      if (results.length >= maxResults) break;
+      if (!name.contains(query) || seen.contains(name)) continue;
+      seen.add(name);
+      final unicode = emojiMap[name];
+      final url = CustomEmojiCache.getUrl(name);
+      results.add(EmojiAutocompleteItem(
+        name: name,
+        unicode: unicode,
+        imageUrl: unicode == null ? url : null,
+      ));
+    }
+
+    // 2. Custom (server) emojis
+    for (final e in CustomEmojiCache.urls.entries) {
+      if (results.length >= maxResults) break;
+      if (!e.key.contains(query) || seen.contains(e.key)) continue;
+      seen.add(e.key);
+      results.add(EmojiAutocompleteItem(name: e.key, imageUrl: e.value));
+    }
+
+    // 3. Standard emojis from all categories
+    for (final e in emojiMap.entries) {
+      if (results.length >= maxResults) break;
+      if (!e.key.contains(query) || seen.contains(e.key)) continue;
+      seen.add(e.key);
+      results.add(EmojiAutocompleteItem(name: e.key, unicode: e.value));
+    }
+
+    _emojiResults = results;
+    _showEmojis = results.isNotEmpty;
+    _updateEmojiOverlay();
+  }
+
+  void _onEmojiAutocompleteSelected(EmojiAutocompleteItem item) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final cursorPos = (selection.isValid && selection.isCollapsed)
+        ? selection.baseOffset
+        : text.length;
+    final textBeforeCursor = text.substring(0, cursorPos);
+    final colonIndex = textBeforeCursor.lastIndexOf(':');
+    if (colonIndex < 0) return;
+
+    final textAfterCursor = text.substring(cursorPos);
+    // Use unicode if available, otherwise :name: format
+    final replacement = item.unicode ?? ':${item.name}: ';
+    final newText =
+        text.substring(0, colonIndex) + replacement + textAfterCursor;
+
+    _suppressEmojiCheck = true;
+    _controller.text = newText;
+    _controller.selection = TextSelection.collapsed(
+      offset: colonIndex + replacement.length,
+    );
+    _suppressEmojiCheck = false;
+
+    _showEmojis = false;
+    _emojiResults = [];
+    _updateEmojiOverlay();
+  }
+
+  void _updateEmojiOverlay() {
+    if (_showEmojis && _emojiResults.isNotEmpty) {
+      if (_emojiOverlay != null) {
+        _emojiOverlay!.markNeedsBuild();
+      } else {
+        _emojiOverlay = OverlayEntry(
+          builder: (context) {
+            return Positioned(
+              width: MediaQuery.of(this.context).size.width,
+              child: CompositedTransformFollower(
+                link: _emojiLayerLink,
+                showWhenUnlinked: false,
+                offset: const Offset(0, 0),
+                followerAnchor: Alignment.bottomLeft,
+                targetAnchor: Alignment.topLeft,
+                child: EmojiAutocomplete(
+                  items: _emojiResults,
+                  onSelect: _onEmojiAutocompleteSelected,
+                  authHeaders: _authHeaders,
+                ),
+              ),
+            );
+          },
+        );
+        Overlay.of(this.context).insert(_emojiOverlay!);
+      }
+    } else {
+      _emojiOverlay?.remove();
+      _emojiOverlay = null;
+    }
+  }
+
   // ===== Actions =====
 
   Future<void> _saveDraft() async {
@@ -420,9 +648,12 @@ class MessageInputState extends State<MessageInput> {
     _mentionOverlay = null;
     _commandOverlay?.remove();
     _commandOverlay = null;
+    _emojiOverlay?.remove();
+    _emojiOverlay = null;
     _draftTimer?.cancel();
     _mentionDebounce?.cancel();
     _commandDebounce?.cancel();
+    _emojiDebounce?.cancel();
     _saveDraft();
     _controller.removeListener(_onTextChanged);
     _focusNode.removeListener(_onFocusChanged);
@@ -599,6 +830,7 @@ class MessageInputState extends State<MessageInput> {
   void _onInputChanged(String _) {
     _checkForMention();
     _checkForCommand();
+    _checkForEmoji();
   }
 
   // ===== Build =====
@@ -609,9 +841,11 @@ class MessageInputState extends State<MessageInput> {
       link: _mentionLayerLink,
       child: CompositedTransformTarget(
         link: _commandLayerLink,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: CompositedTransformTarget(
+          link: _emojiLayerLink,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             // File previews
             if (!_isEditing && _pendingFileNames.isNotEmpty)
               Container(
@@ -680,93 +914,95 @@ class MessageInputState extends State<MessageInput> {
                   ),
                 ],
               ),
-              child: SafeArea(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Text field
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        maxLines: 4,
-                        minLines: 1,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration(
-                          hintText: context.l10n.writeAMessage,
-                          border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 4),
-                        ),
-                        onChanged: _onInputChanged,
-                        onSubmitted: (_) => _send(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Text field
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      maxLines: 4,
+                      minLines: 1,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(
+                        hintText: context.l10n.writeAMessage,
+                        border: InputBorder.none,
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 4),
                       ),
+                      onChanged: _onInputChanged,
+                      onSubmitted: (_) => _send(),
                     ),
-                    // Toolbar row
-                    Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                      child: Row(
-                        children: [
-                          if (!_isEditing) ...[
-                            // Attach (+)
-                            _ToolbarButton(
-                              icon: Icons.add,
-                              onPressed:
-                                  _isUploading ? null : _showAttachMenu,
-                            ),
-                            // Mention (@)
-                            _ToolbarButton(
-                              icon: Icons.alternate_email,
-                              onPressed: _insertMention,
-                            ),
-                            // Slash command (/)
-                            _ToolbarButton(
-                              icon: Icons.data_object,
-                              onPressed: _insertSlashCommand,
-                            ),
-                            // Emoji
-                            _ToolbarButton(
-                              icon: Icons.emoji_emotions_outlined,
-                              onPressed: _openEmojiPicker,
-                            ),
-                            // Priority (flag)
-                            _ToolbarButton(
-                              icon: _selectedPriority == null
-                                  ? Icons.flag_outlined
-                                  : Icons.flag,
-                              color: _priorityColor,
-                              onPressed: _togglePriorityBar,
-                            ),
-                          ],
-                          if (_isEditing) const SizedBox(width: 8),
-                          const Spacer(),
-                          // Upload progress or Send button
-                          if (_isUploading)
-                            const Padding(
-                              padding: EdgeInsets.all(8),
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2),
-                              ),
-                            )
-                          else
-                            _ToolbarButton(
-                              icon: _isEditing ? Icons.check : Icons.send,
-                              color: AppColors.accent,
-                              onPressed: _send,
-                            ),
+                  ),
+                  // Toolbar row — pushed to the very bottom
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: MediaQuery.of(context).padding.bottom * 0.6 + 6,
+                      right: MediaQuery.of(context).padding.bottom * 0.6 + 6,
+                      top: 2,
+                    ),
+                    child: Row(
+                      children: [
+                        if (!_isEditing) ...[
+                          // Attach (+)
+                          _ToolbarButton(
+                            icon: Icons.add,
+                            onPressed:
+                                _isUploading ? null : _showAttachMenu,
+                          ),
+                          // Mention (@)
+                          _ToolbarButton(
+                            icon: Icons.alternate_email,
+                            onPressed: _insertMention,
+                          ),
+                          // Slash command (/)
+                          _ToolbarButton(
+                            icon: Icons.data_object,
+                            onPressed: _insertSlashCommand,
+                          ),
+                          // Emoji
+                          _ToolbarButton(
+                            icon: Icons.emoji_emotions_outlined,
+                            onPressed: _openEmojiPicker,
+                          ),
+                          // Priority (flag)
+                          _ToolbarButton(
+                            icon: _selectedPriority == null
+                                ? Icons.flag_outlined
+                                : Icons.flag,
+                            color: _priorityColor,
+                            onPressed: _togglePriorityBar,
+                          ),
                         ],
-                      ),
+                        if (_isEditing) const SizedBox(width: 8),
+                        const Spacer(),
+                        // Upload progress or Send button
+                        if (_isUploading)
+                          const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2),
+                            ),
+                          )
+                        else
+                          _ToolbarButton(
+                            icon: _isEditing ? Icons.check : Icons.send,
+                            color: AppColors.accent,
+                            onPressed: _send,
+                          ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -886,10 +1122,10 @@ class _ToolbarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 36,
-      height: 36,
+      width: 54,
+      height: 54,
       child: IconButton(
-        icon: Icon(icon, size: 20),
+        icon: Icon(icon, size: 30),
         color: color ?? AppColors.textSecondary,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),

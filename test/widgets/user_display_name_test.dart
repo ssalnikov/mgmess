@@ -175,11 +175,10 @@ void main() {
 /// Minimal User for testing that carries custom status fields.
 class _FakeUser extends User {
   const _FakeUser({
-    required String id,
+    required super.id,
     String emoji = '',
     String text = '',
   }) : super(
-          id: id,
           username: 'test',
           customStatusEmoji: emoji,
           customStatusText: text,

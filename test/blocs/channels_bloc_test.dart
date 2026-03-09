@@ -106,7 +106,7 @@ void main() {
     blocTest<ChannelsBloc, ChannelsState>(
       'SearchChannels filters channels by name',
       build: () => ChannelsBloc(channelRepository: mockRepo, userRepository: mockUserRepo),
-      seed: () => ChannelsState(
+      seed: () => const ChannelsState(
         channels: channels,
         filteredChannels: channels,
       ),

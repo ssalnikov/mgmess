@@ -94,7 +94,7 @@ void main() {
       });
 
       test('does not replace emoji inside fenced code block', () {
-        final text = '```\n:smile:\n```';
+        const text = '```\n:smile:\n```';
         expect(replaceEmojis(text), text);
       });
 
@@ -110,7 +110,7 @@ void main() {
       });
 
       test('does not replace emoji inside fenced code block with language', () {
-        final text = '```dart\nString s = ":smile:";\n```';
+        const text = '```dart\nString s = ":smile:";\n```';
         expect(replaceEmojis(text), text);
       });
     });

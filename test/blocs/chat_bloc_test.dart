@@ -76,7 +76,7 @@ void main() {
             ));
         return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
-      seed: () => ChatState(channelId: 'ch1', posts: posts),
+      seed: () => const ChatState(channelId: 'ch1', posts: posts),
       act: (bloc) => bloc.add(const SendMessage(message: 'New')),
       expect: () => [
         isA<ChatState>().having((s) => s.isSending, 'isSending', true),
@@ -94,7 +94,7 @@ void main() {
             .thenAnswer((_) async => const Right(null));
         return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
-      seed: () => ChatState(channelId: 'ch1', posts: posts),
+      seed: () => const ChatState(channelId: 'ch1', posts: posts),
       act: (bloc) => bloc.add(const DeleteMessage(postId: 'p1')),
       expect: () => [
         isA<ChatState>()
@@ -110,7 +110,7 @@ void main() {
             .thenAnswer((_) async => const Right(null));
         return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
-      seed: () => ChatState(channelId: 'ch1', posts: posts),
+      seed: () => const ChatState(channelId: 'ch1', posts: posts),
       act: (bloc) => bloc.add(const AddReaction(postId: 'p1', emojiName: 'heart')),
       expect: () => [
         isA<ChatState>().having(
@@ -132,7 +132,7 @@ void main() {
         return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
       seed: () => ChatState(channelId: 'ch1', posts: [
-        Post(
+        const Post(
           id: 'p1',
           channelId: 'ch1',
           userId: 'u1',
@@ -158,7 +158,7 @@ void main() {
     blocTest<ChatBloc, ChatState>(
       'LoadMorePosts does nothing when already loading more',
       build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1'),
-      seed: () => ChatState(
+      seed: () => const ChatState(
         channelId: 'ch1',
         posts: posts,
         isLoadingMore: true,
@@ -170,7 +170,7 @@ void main() {
     blocTest<ChatBloc, ChatState>(
       'LoadMorePosts does nothing when no more posts',
       build: () => ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1'),
-      seed: () => ChatState(
+      seed: () => const ChatState(
         channelId: 'ch1',
         posts: posts,
         hasMore: false,
@@ -188,7 +188,7 @@ void main() {
         return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
       seed: () => const ChatState(channelId: 'ch1', posts: posts),
-      act: (bloc) => bloc.add(ChatWsEvent(
+      act: (bloc) => bloc.add(const ChatWsEvent(
         wsEvent: WsEvent(
           event: WsEventType.posted,
           data: {'post': '{"id":"ws1","channel_id":"ch1","user_id":"u2","message":"Hi","create_at":5000}'},
@@ -211,7 +211,7 @@ void main() {
         return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
       },
       seed: () => const ChatState(channelId: 'ch1', posts: posts),
-      act: (bloc) => bloc.add(ChatWsEvent(
+      act: (bloc) => bloc.add(const ChatWsEvent(
         wsEvent: WsEvent(
           event: WsEventType.posted,
           data: {'post': '{"id":"ws2","channel_id":"ch1","user_id":"u1","message":"My msg","create_at":5000}'},
@@ -234,7 +234,7 @@ void main() {
         newMessagesCount: 5,
         firstUnreadId: 'p1',
       ),
-      act: (bloc) => bloc.add(ChatWsEvent(
+      act: (bloc) => bloc.add(const ChatWsEvent(
         wsEvent: WsEvent(
           event: WsEventType.channelViewed,
           data: {'channel_id': 'ch1'},

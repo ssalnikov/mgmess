@@ -43,6 +43,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _listenForDeepLinks() {
     _linkSub = _appLinks.uriLinkStream.listen((uri) {
+      if (!mounted) return;
       if (uri.scheme == AppConfig.callbackScheme) {
         final token = uri.queryParameters['MMAUTHTOKEN'];
         final csrf = uri.queryParameters['MMCSRF'];

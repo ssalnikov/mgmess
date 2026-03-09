@@ -413,7 +413,7 @@ class _ChannelNotificationSheetState extends State<_ChannelNotificationSheet> {
     setState(() => _filter = value);
 
     // Update the notification bloc with the new per-channel settings
-    if (context.mounted) {
+    if (mounted) {
       try {
         context.read<NotificationBloc>().add(
               NotificationChannelSettingChanged(
@@ -460,17 +460,24 @@ class _ChannelNotificationSheetState extends State<_ChannelNotificationSheet> {
             style: AppTextStyles.heading2,
           ),
           const SizedBox(height: 8),
-          for (final option in _getOptions(context))
-            RadioListTile<String>(
-              value: option.value,
-              groupValue: _filter,
-              title: Text(option.label),
-              subtitle: Text(option.subtitle, style: AppTextStyles.caption),
-              secondary: Icon(option.icon, color: AppColors.accent),
-              onChanged: (v) {
-                if (v != null) _setFilter(v);
-              },
+          RadioGroup<String>(
+            groupValue: _filter,
+            onChanged: (v) {
+              if (v != null) _setFilter(v);
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final option in _getOptions(context))
+                  RadioListTile<String>(
+                    value: option.value,
+                    title: Text(option.label),
+                    subtitle: Text(option.subtitle, style: AppTextStyles.caption),
+                    secondary: Icon(option.icon, color: AppColors.accent),
+                  ),
+              ],
             ),
+          ),
           const SizedBox(height: 16),
         ],
       ),

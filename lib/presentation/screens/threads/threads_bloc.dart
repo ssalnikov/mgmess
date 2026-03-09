@@ -116,7 +116,9 @@ class ThreadsBloc extends Bloc<ThreadsEvent, ThreadsState> {
     if (state.isLoadingMore ||
         !state.hasMore ||
         state.userId == null ||
-        state.teamId == null) return;
+        state.teamId == null) {
+      return;
+    }
 
     emit(state.copyWith(isLoadingMore: true));
 

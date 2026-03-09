@@ -25,7 +25,7 @@ class SlashCommandAutocomplete extends StatelessWidget {
           shrinkWrap: true,
           padding: EdgeInsets.zero,
           itemCount: commands.length,
-          separatorBuilder: (_, __) =>
+          separatorBuilder: (_, _) =>
               const Divider(height: 1, color: AppColors.divider),
           itemBuilder: (context, index) {
             final cmd = commands[index];

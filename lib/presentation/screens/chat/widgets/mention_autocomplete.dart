@@ -46,7 +46,7 @@ class MentionAutocomplete extends StatelessWidget {
           shrinkWrap: true,
           padding: EdgeInsets.zero,
           itemCount: items.length,
-          separatorBuilder: (_, __) =>
+          separatorBuilder: (_, _) =>
               const Divider(height: 1, color: AppColors.divider),
           itemBuilder: (context, index) {
             final item = items[index];

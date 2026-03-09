@@ -125,6 +125,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       imageQuality: 85,
     );
     if (image == null) return;
+    if (!mounted) return;
 
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) return;

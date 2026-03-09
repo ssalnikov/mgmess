@@ -77,12 +77,12 @@ class _UserAvatarState extends State<UserAvatar> {
                         width: widget.radius * 2,
                         height: widget.radius * 2,
                         fit: BoxFit.cover,
-                        placeholder: (_, __) => Icon(
+                        placeholder: (_, _) => Icon(
                           Icons.person,
                           size: widget.radius,
                           color: AppColors.textSecondary,
                         ),
-                        errorWidget: (_, __, ___) => Icon(
+                        errorWidget: (_, _, _) => Icon(
                           Icons.person,
                           size: widget.radius,
                           color: AppColors.textSecondary,

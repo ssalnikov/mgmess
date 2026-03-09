@@ -56,7 +56,7 @@ class _DraftsScreenState extends State<DraftsScreen> {
               ? Center(child: Text(context.l10n.noDrafts))
               : ListView.separated(
                   itemCount: _drafts.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final draft = _drafts[index];
                     return _DraftTile(

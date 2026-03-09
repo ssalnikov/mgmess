@@ -70,13 +70,13 @@ class _ImageAttachment extends StatelessWidget {
                   imageUrl: thumbnailUrl,
                   httpHeaders: headers,
                   fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(
+                  placeholder: (_, _) => Container(
                     width: 100,
                     height: 100,
                     color: AppColors.divider,
                     child: const Icon(Icons.image),
                   ),
-                  errorWidget: (_, __, ___) => Container(
+                  errorWidget: (_, _, _) => Container(
                     width: 100,
                     height: 100,
                     color: AppColors.divider,

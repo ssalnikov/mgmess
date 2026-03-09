@@ -356,7 +356,7 @@ class MessageInputState extends State<MessageInput> {
             );
           },
         );
-        Overlay.of(this.context).insert(_mentionOverlay!);
+        Overlay.of(context).insert(_mentionOverlay!);
       }
     } else {
       _mentionOverlay?.remove();
@@ -470,7 +470,7 @@ class MessageInputState extends State<MessageInput> {
             );
           },
         );
-        Overlay.of(this.context).insert(_commandOverlay!);
+        Overlay.of(context).insert(_commandOverlay!);
       }
     } else {
       _commandOverlay?.remove();
@@ -622,7 +622,7 @@ class MessageInputState extends State<MessageInput> {
             );
           },
         );
-        Overlay.of(this.context).insert(_emojiOverlay!);
+        Overlay.of(context).insert(_emojiOverlay!);
       }
     } else {
       _emojiOverlay?.remove();

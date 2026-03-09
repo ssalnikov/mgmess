@@ -75,7 +75,7 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
               onRefresh: () async => _load(),
               child: ListView.separated(
                 itemCount: state.posts.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   return _SavedPostTile(post: state.posts[index]);
                 },

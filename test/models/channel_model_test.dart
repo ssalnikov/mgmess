@@ -49,7 +49,7 @@ void main() {
     });
 
     test('unreadCount calculates correctly', () {
-      final channel = ChannelModel(
+      const channel = ChannelModel(
         id: 'ch1',
         totalMsgCount: 50,
         msgCount: 30,
@@ -61,7 +61,7 @@ void main() {
     });
 
     test('hasUnread returns false when caught up', () {
-      final channel = ChannelModel(
+      const channel = ChannelModel(
         id: 'ch1',
         totalMsgCount: 50,
         msgCount: 50,
@@ -72,7 +72,7 @@ void main() {
     });
 
     test('hasMention returns true with mention count', () {
-      final channel = ChannelModel(id: 'ch1', mentionCount: 3, mentionCountRoot: 2);
+      const channel = ChannelModel(id: 'ch1', mentionCount: 3, mentionCountRoot: 2);
       expect(channel.hasMention, true);
     });
 

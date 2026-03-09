@@ -121,9 +121,9 @@ class _CustomEmojiIconState extends State<_CustomEmojiIcon> {
           width: widget.size,
           height: widget.size,
           fit: BoxFit.contain,
-          placeholder: (_, __) =>
+          placeholder: (_, _) =>
               SizedBox(width: widget.size, height: widget.size),
-          errorWidget: (_, __, ___) =>
+          errorWidget: (_, _, _) =>
               SizedBox(width: widget.size, height: widget.size),
         );
       },

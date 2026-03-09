@@ -15,6 +15,7 @@ import 'presentation/blocs/auth/auth_state.dart';
 import 'presentation/blocs/connectivity/connectivity_cubit.dart';
 import 'presentation/blocs/notification/notification_bloc.dart';
 import 'presentation/blocs/notification/notification_event.dart';
+import 'presentation/blocs/locale/locale_cubit.dart';
 import 'presentation/blocs/theme/theme_cubit.dart';
 import 'presentation/blocs/user_status/user_status_cubit.dart';
 import 'presentation/blocs/websocket/websocket_bloc.dart';
@@ -38,6 +39,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   NotificationBloc? _notificationBloc;
   UserStatusCubit? _userStatusCubit;
   late ThemeCubit _themeCubit;
+  late LocaleCubit _localeCubit;
   AppRouter? _appRouter;
   StreamSubscription? _wsEventSub;
 
@@ -51,6 +53,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     _themeCubit = AppConfig.isServerConfigured
         ? sl<ThemeCubit>()
         : ThemeCubit();
+    _localeCubit = AppConfig.isServerConfigured
+        ? sl<LocaleCubit>()
+        : LocaleCubit();
     _serverReady = AppConfig.isServerConfigured;
     if (_serverReady) {
       _initBlocs();
@@ -79,9 +84,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
 
   void _onServerConfigured() {
     _themeCubit.close();
+    _localeCubit.close();
     setState(() {
       _serverReady = true;
       _themeCubit = sl<ThemeCubit>();
+      _localeCubit = sl<LocaleCubit>();
       _initBlocs();
       _checkBiometricOnLaunch();
     });
@@ -122,19 +129,27 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     if (!_serverReady) {
-      return BlocProvider.value(
-        value: _themeCubit,
+      return MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: _themeCubit),
+          BlocProvider.value(value: _localeCubit),
+        ],
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, themeState) {
-            return MaterialApp(
-              title: 'MGMess',
-              theme: AppTheme.light,
-              darkTheme: AppTheme.dark,
-              themeMode: themeState.themeMode,
-              debugShowCheckedModeBanner: false,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              home: ServerUrlScreen(onServerConfigured: _onServerConfigured),
+            return BlocBuilder<LocaleCubit, LocaleState>(
+              builder: (context, localeState) {
+                return MaterialApp(
+                  title: 'MGMess',
+                  theme: AppTheme.light,
+                  darkTheme: AppTheme.dark,
+                  themeMode: themeState.themeMode,
+                  locale: localeState.locale,
+                  debugShowCheckedModeBanner: false,
+                  localizationsDelegates: AppLocalizations.localizationsDelegates,
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  home: ServerUrlScreen(onServerConfigured: _onServerConfigured),
+                );
+              },
             );
           },
         ),
@@ -149,6 +164,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         BlocProvider.value(value: _notificationBloc!),
         BlocProvider.value(value: _userStatusCubit!),
         BlocProvider.value(value: _themeCubit),
+        BlocProvider.value(value: _localeCubit),
       ],
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -177,24 +193,29 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         },
         child: BlocBuilder<ThemeCubit, ThemeState>(
           builder: (context, themeState) {
-            return MaterialApp.router(
-              title: 'MGMess',
-              theme: AppTheme.light,
-              darkTheme: AppTheme.dark,
-              themeMode: themeState.themeMode,
-              routerConfig: _appRouter!.router,
-              debugShowCheckedModeBanner: false,
-              localizationsDelegates: AppLocalizations.localizationsDelegates,
-              supportedLocales: AppLocalizations.supportedLocales,
-              builder: (context, child) {
-                if (_biometricLocked) {
-                  return BiometricLockScreen(
-                    onAuthenticated: () {
-                      setState(() => _biometricLocked = false);
-                    },
-                  );
-                }
-                return child ?? const SizedBox.shrink();
+            return BlocBuilder<LocaleCubit, LocaleState>(
+              builder: (context, localeState) {
+                return MaterialApp.router(
+                  title: 'MGMess',
+                  theme: AppTheme.light,
+                  darkTheme: AppTheme.dark,
+                  themeMode: themeState.themeMode,
+                  locale: localeState.locale,
+                  routerConfig: _appRouter!.router,
+                  debugShowCheckedModeBanner: false,
+                  localizationsDelegates: AppLocalizations.localizationsDelegates,
+                  supportedLocales: AppLocalizations.supportedLocales,
+                  builder: (context, child) {
+                    if (_biometricLocked) {
+                      return BiometricLockScreen(
+                        onAuthenticated: () {
+                          setState(() => _biometricLocked = false);
+                        },
+                      );
+                    }
+                    return child ?? const SizedBox.shrink();
+                  },
+                );
               },
             );
           },

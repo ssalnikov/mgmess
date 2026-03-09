@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../domain/entities/team.dart';
 import '../../../domain/entities/user.dart';
 
 abstract class AuthState extends Equatable {
@@ -21,15 +22,31 @@ class AuthAuthenticated extends AuthState {
   final User user;
   final String teamId;
   final String teamName;
+  final List<Team> teams;
 
   const AuthAuthenticated({
     required this.user,
     this.teamId = '',
     this.teamName = '',
+    this.teams = const [],
   });
 
+  AuthAuthenticated copyWith({
+    User? user,
+    String? teamId,
+    String? teamName,
+    List<Team>? teams,
+  }) {
+    return AuthAuthenticated(
+      user: user ?? this.user,
+      teamId: teamId ?? this.teamId,
+      teamName: teamName ?? this.teamName,
+      teams: teams ?? this.teams,
+    );
+  }
+
   @override
-  List<Object?> get props => [user, teamId, teamName];
+  List<Object?> get props => [user, teamId, teamName, teams];
 }
 
 class AuthUnauthenticated extends AuthState {

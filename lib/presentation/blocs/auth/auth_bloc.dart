@@ -1,11 +1,14 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../domain/entities/team.dart';
 import '../../../domain/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
+  static const _selectedTeamKey = 'selected_team_id';
 
   AuthBloc({required AuthRepository authRepository})
       : _authRepository = authRepository,
@@ -14,16 +17,35 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthOAuthCompleted>(_onOAuthCompleted);
     on<AuthLoginRequested>(_onLoginRequested);
     on<AuthLoadConfig>(_onLoadConfig);
+    on<AuthTeamSwitched>(_onTeamSwitched);
     on<AuthLogoutRequested>(_onLogoutRequested);
   }
 
-  Future<({String id, String name})> _fetchTeamInfo() async {
+  Future<({String id, String name, List<Team> teams})> _fetchTeamInfo() async {
     final result = await _authRepository.getMyTeams();
     return result.fold(
-      (_) => (id: '', name: ''),
-      (teams) => teams.isNotEmpty
-          ? (id: teams.first.id, name: teams.first.name)
-          : (id: '', name: ''),
+      (_) => (id: '', name: '', teams: <Team>[]),
+      (teams) async {
+        if (teams.isEmpty) return (id: '', name: '', teams: <Team>[]);
+
+        // Try to restore previously selected team
+        final prefs = await SharedPreferences.getInstance();
+        final savedTeamId = prefs.getString(_selectedTeamKey);
+
+        if (savedTeamId != null) {
+          final saved = teams.where((t) => t.id == savedTeamId);
+          if (saved.isNotEmpty) {
+            final t = saved.first;
+            return (id: t.id, name: t.name, teams: teams);
+          }
+        }
+
+        return (
+          id: teams.first.id,
+          name: teams.first.name,
+          teams: teams,
+        );
+      },
     );
   }
 
@@ -44,6 +66,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             user: user,
             teamId: team.id,
             teamName: team.name,
+            teams: team.teams,
           ));
         },
       );
@@ -74,6 +97,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           user: user,
           teamId: team.id,
           teamName: team.name,
+          teams: team.teams,
         ));
       },
     );
@@ -96,6 +120,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           user: user,
           teamId: team.id,
           teamName: team.name,
+          teams: team.teams,
         ));
       },
     );
@@ -120,11 +145,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  Future<void> _onTeamSwitched(
+    AuthTeamSwitched event,
+    Emitter<AuthState> emit,
+  ) async {
+    final current = state;
+    if (current is! AuthAuthenticated) return;
+
+    // Persist selected team
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_selectedTeamKey, event.teamId);
+
+    emit(current.copyWith(
+      teamId: event.teamId,
+      teamName: event.teamName,
+    ));
+  }
+
   Future<void> _onLogoutRequested(
     AuthLogoutRequested event,
     Emitter<AuthState> emit,
   ) async {
     await _authRepository.logout();
+    // Clear saved team on logout
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_selectedTeamKey);
     emit(const AuthUnauthenticated());
   }
 }

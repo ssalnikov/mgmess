@@ -320,5 +320,12 @@
     "placeholders": {
       "channelName": {"type": "String"}
     }
-  }
+  },
+
+  "language": "Language",
+  "systemLanguage": "System",
+  "english": "English",
+  "russian": "Русский",
+  "team": "Team",
+  "switchTeam": "Switch Team"
 }

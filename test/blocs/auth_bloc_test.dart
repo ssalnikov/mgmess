@@ -2,6 +2,7 @@ import 'package:bloc_test/bloc_test.dart';
 import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mgmess/core/error/failures.dart';
 import 'package:mgmess/domain/entities/team.dart';
 import 'package:mgmess/domain/entities/user.dart';
@@ -16,6 +17,7 @@ void main() {
   late MockAuthRepository mockAuthRepository;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     mockAuthRepository = MockAuthRepository();
   });
 
@@ -45,7 +47,7 @@ void main() {
         act: (bloc) => bloc.add(const AuthCheckSession()),
         expect: () => [
           const AuthLoading(),
-          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team'),
+          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team', teams: [testTeam]),
         ],
       );
 
@@ -102,7 +104,7 @@ void main() {
         )),
         expect: () => [
           const AuthLoading(),
-          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team'),
+          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team', teams: [testTeam]),
         ],
       );
 
@@ -146,7 +148,7 @@ void main() {
         )),
         expect: () => [
           const AuthLoading(),
-          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team'),
+          const AuthAuthenticated(user: testUser, teamId: 'team1', teamName: 'test-team', teams: [testTeam]),
         ],
       );
 

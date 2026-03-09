@@ -35,6 +35,16 @@ class AuthLoadConfig extends AuthEvent {
   const AuthLoadConfig();
 }
 
+class AuthTeamSwitched extends AuthEvent {
+  final String teamId;
+  final String teamName;
+
+  const AuthTeamSwitched({required this.teamId, required this.teamName});
+
+  @override
+  List<Object?> get props => [teamId, teamName];
+}
+
 class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();
 }

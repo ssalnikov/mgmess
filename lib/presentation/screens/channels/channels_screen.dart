@@ -84,7 +84,22 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
   Widget build(BuildContext context) {
     return BlocProvider.value(
       value: _channelsBloc,
-      child: Scaffold(
+      child: BlocListener<AuthBloc, AuthState>(
+        listenWhen: (prev, curr) {
+          if (prev is AuthAuthenticated && curr is AuthAuthenticated) {
+            return prev.teamId != curr.teamId;
+          }
+          return false;
+        },
+        listener: (context, state) {
+          if (state is AuthAuthenticated) {
+            _channelsBloc.add(LoadChannels(
+              userId: state.user.id,
+              teamId: state.teamId,
+            ));
+          }
+        },
+        child: Scaffold(
         appBar: AppBar(
           title: Text(context.l10n.channels),
           actions: [
@@ -134,6 +149,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

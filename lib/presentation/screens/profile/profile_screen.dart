@@ -15,6 +15,7 @@ import '../../../core/utils/emoji_map.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
+import '../../blocs/locale/locale_cubit.dart';
 import '../../blocs/theme/theme_cubit.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
 import '../../widgets/restart_widget.dart';
@@ -108,6 +109,15 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _ThemeSelector(),
               const SizedBox(height: 12),
+              _LocaleSelector(),
+              const SizedBox(height: 12),
+              if (state.teams.length > 1) ...[
+                _TeamSelector(
+                  teams: state.teams,
+                  currentTeamId: state.teamId,
+                ),
+                const SizedBox(height: 12),
+              ],
               const _BiometricToggle(),
               const SizedBox(height: 12),
               _ProfileItem(
@@ -676,6 +686,137 @@ class _ThemeSelector extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _LocaleSelector extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<LocaleCubit, LocaleState>(
+      builder: (context, state) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.divider),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.language, size: 20, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  Text(context.l10n.language, style: AppTextStyles.body),
+                ],
+              ),
+              const SizedBox(height: 8),
+              SegmentedButton<String>(
+                segments: [
+                  ButtonSegment<String>(
+                    value: 'system',
+                    label: Text(context.l10n.systemLanguage, style: const TextStyle(fontSize: 12)),
+                    icon: const Icon(Icons.settings, size: 16),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'en',
+                    label: Text(context.l10n.english, style: const TextStyle(fontSize: 12)),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'ru',
+                    label: Text(context.l10n.russian, style: const TextStyle(fontSize: 12)),
+                  ),
+                ],
+                selected: {state.locale?.languageCode ?? 'system'},
+                onSelectionChanged: (selected) {
+                  final value = selected.first;
+                  context.read<LocaleCubit>().setLocale(
+                    value == 'system' ? null : Locale(value),
+                  );
+                },
+                showSelectedIcon: false,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TeamSelector extends StatelessWidget {
+  final List<dynamic> teams;
+  final String currentTeamId;
+
+  const _TeamSelector({
+    required this.teams,
+    required this.currentTeamId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.divider),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.groups, size: 20, color: AppColors.textSecondary),
+              const SizedBox(width: 8),
+              Text(context.l10n.team, style: AppTextStyles.body),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...teams.map((team) {
+            final isSelected = team.id == currentTeamId;
+            final displayName = team.displayName.isNotEmpty
+                ? team.displayName
+                : team.name;
+            return ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                radius: 16,
+                backgroundColor: isSelected
+                    ? AppColors.accent
+                    : AppColors.primary.withValues(alpha: 0.1),
+                child: Text(
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              title: Text(
+                displayName,
+                style: AppTextStyles.body.copyWith(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              trailing: isSelected
+                  ? const Icon(Icons.check, color: AppColors.accent, size: 20)
+                  : null,
+              onTap: isSelected
+                  ? null
+                  : () {
+                      HapticFeedback.selectionClick();
+                      context.read<AuthBloc>().add(AuthTeamSwitched(
+                        teamId: team.id,
+                        teamName: team.name,
+                      ));
+                    },
+            );
+          }),
+        ],
+      ),
     );
   }
 }

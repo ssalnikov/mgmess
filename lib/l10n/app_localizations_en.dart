@@ -696,4 +696,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String notificationsChannelTitle(String channelName) {
     return 'Notifications — $channelName';
   }
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get systemLanguage => 'System';
+
+  @override
+  String get english => 'English';
+
+  @override
+  String get russian => 'Русский';
+
+  @override
+  String get team => 'Team';
+
+  @override
+  String get switchTeam => 'Switch Team';
 }

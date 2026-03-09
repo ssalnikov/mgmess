@@ -240,5 +240,12 @@
   "onlyWhenMentioned": "Только при упоминании",
   "nothing": "Ничего",
   "neverNotify": "Никогда не уведомлять для этого канала",
-  "notificationsChannelTitle": "Уведомления — {channelName}"
+  "notificationsChannelTitle": "Уведомления — {channelName}",
+
+  "language": "Язык",
+  "systemLanguage": "Системный",
+  "english": "English",
+  "russian": "Русский",
+  "team": "Команда",
+  "switchTeam": "Сменить команду"
 }

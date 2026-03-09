@@ -1363,6 +1363,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications — {channelName}'**
   String notificationsChannelTitle(String channelName);
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @systemLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemLanguage;
+
+  /// No description provided for @english.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get english;
+
+  /// No description provided for @russian.
+  ///
+  /// In en, this message translates to:
+  /// **'Русский'**
+  String get russian;
+
+  /// No description provided for @team.
+  ///
+  /// In en, this message translates to:
+  /// **'Team'**
+  String get team;
+
+  /// No description provided for @switchTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch Team'**
+  String get switchTeam;
 }
 
 class _AppLocalizationsDelegate

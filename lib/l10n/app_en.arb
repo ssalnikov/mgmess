@@ -342,5 +342,14 @@
   "noMessagesOnDate": "No messages on this date",
   "clearImageCache": "Clear Image Cache",
   "imageCacheCleared": "Image cache cleared",
-  "imageCache": "Image Cache"
+  "imageCache": "Image Cache",
+
+  "slashCommands": "Slash Commands",
+  "noCommandsAvailable": "No commands available",
+  "commandFailed": "Command failed: {message}",
+  "@commandFailed": {
+    "placeholders": {
+      "message": {"type": "String"}
+    }
+  }
 }

@@ -746,4 +746,15 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get imageCache => 'Кэш изображений';
+
+  @override
+  String get slashCommands => 'Слэш-команды';
+
+  @override
+  String get noCommandsAvailable => 'Нет доступных команд';
+
+  @override
+  String commandFailed(String message) {
+    return 'Ошибка команды: $message';
+  }
 }

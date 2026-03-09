@@ -138,6 +138,13 @@ class ClearHighlight extends ChatEvent {
   const ClearHighlight();
 }
 
+class ExecuteCommand extends ChatEvent {
+  final String command;
+  const ExecuteCommand({required this.command});
+  @override
+  List<Object?> get props => [command];
+}
+
 class ChatWsEvent extends ChatEvent {
   final WsEvent wsEvent;
   const ChatWsEvent({required this.wsEvent});
@@ -262,6 +269,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ScrollToMessage>(_onScrollToMessage);
     on<ClearHighlight>(_onClearHighlight);
     on<JumpToDate>(_onJumpToDate);
+    on<ExecuteCommand>(_onExecuteCommand);
     on<ChatWsEvent>(_onWsEvent);
   }
 
@@ -354,6 +362,17 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     SendMessage event,
     Emitter<ChatState> emit,
   ) async {
+    // Auto-detect slash commands (only when no files/rootId/priority)
+    if (event.message.startsWith('/') &&
+        event.fileIds == null &&
+        event.rootId == null &&
+        event.priority == null) {
+      return _onExecuteCommand(
+        ExecuteCommand(command: event.message),
+        emit,
+      );
+    }
+
     emit(state.copyWith(isSending: true));
 
     final result = await _postRepository.createPost(
@@ -638,6 +657,45 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
         // Use ScrollToMessage logic to navigate
         emit(state.copyWith(isLoading: false));
         add(ScrollToMessage(postId: targetPost.id));
+      },
+    );
+  }
+
+  Future<void> _onExecuteCommand(
+    ExecuteCommand event,
+    Emitter<ChatState> emit,
+  ) async {
+    emit(state.copyWith(isSending: true));
+
+    final result = await _postRepository.executeCommand(
+      channelId: state.channelId,
+      command: event.command,
+    );
+
+    result.fold(
+      (failure) => emit(state.copyWith(
+        isSending: false,
+        error: failure.message,
+      )),
+      (response) {
+        if (response.isEphemeral && response.text.isNotEmpty) {
+          // Show ephemeral response as a local-only post
+          final ephemeralPost = Post(
+            id: 'ephemeral_${DateTime.now().millisecondsSinceEpoch}',
+            channelId: state.channelId,
+            userId: userId,
+            message: response.text,
+            createAt: DateTime.now().millisecondsSinceEpoch,
+            type: 'system_ephemeral',
+          );
+          emit(state.copyWith(
+            isSending: false,
+            posts: [ephemeralPost, ...state.posts],
+          ));
+        } else {
+          // "in_channel" — the post will arrive via WS
+          emit(state.copyWith(isSending: false));
+        }
       },
     );
   }

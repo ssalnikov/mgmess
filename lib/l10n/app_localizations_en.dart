@@ -743,4 +743,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get imageCache => 'Image Cache';
+
+  @override
+  String get slashCommands => 'Slash Commands';
+
+  @override
+  String get noCommandsAvailable => 'No commands available';
+
+  @override
+  String commandFailed(String message) {
+    return 'Command failed: $message';
+  }
 }

@@ -262,5 +262,9 @@
   "noMessagesOnDate": "Нет сообщений за эту дату",
   "clearImageCache": "Очистить кэш изображений",
   "imageCacheCleared": "Кэш изображений очищён",
-  "imageCache": "Кэш изображений"
+  "imageCache": "Кэш изображений",
+
+  "slashCommands": "Слэш-команды",
+  "noCommandsAvailable": "Нет доступных команд",
+  "commandFailed": "Ошибка команды: {message}"
 }

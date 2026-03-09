@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 
 import '../../core/error/failures.dart';
 import '../entities/post.dart';
+import '../entities/slash_command.dart';
 import '../entities/user_thread.dart';
 
 abstract class PostRepository {
@@ -43,5 +44,12 @@ abstract class PostRepository {
     String teamId, {
     int perPage,
     String? before,
+  });
+  Future<Either<Failure, List<SlashCommand>>> getAutocompleteCommands(
+    String channelId,
+  );
+  Future<Either<Failure, CommandResponse>> executeCommand({
+    required String channelId,
+    required String command,
   });
 }

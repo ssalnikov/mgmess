@@ -4,6 +4,7 @@ import 'package:mgmess/core/error/exceptions.dart';
 import 'package:mgmess/core/error/failures.dart';
 import 'package:mgmess/core/network/network_info.dart';
 import 'package:mgmess/data/datasources/local/post_local_datasource.dart';
+import 'package:mgmess/data/datasources/remote/command_remote_datasource.dart';
 import 'package:mgmess/data/datasources/remote/post_remote_datasource.dart';
 import 'package:mgmess/data/models/post_model.dart';
 import 'package:mgmess/data/models/user_thread_model.dart';
@@ -16,19 +17,25 @@ class MockPostLocalDataSource extends Mock implements PostLocalDataSource {}
 
 class MockNetworkInfo extends Mock implements NetworkInfo {}
 
+class MockCommandRemoteDataSource extends Mock
+    implements CommandRemoteDataSource {}
+
 void main() {
   late MockPostRemoteDataSource mockRemote;
   late MockPostLocalDataSource mockLocal;
+  late MockCommandRemoteDataSource mockCommand;
   late MockNetworkInfo mockNetworkInfo;
   late PostRepositoryImpl repository;
 
   setUp(() {
     mockRemote = MockPostRemoteDataSource();
     mockLocal = MockPostLocalDataSource();
+    mockCommand = MockCommandRemoteDataSource();
     mockNetworkInfo = MockNetworkInfo();
     repository = PostRepositoryImpl(
       remoteDataSource: mockRemote,
       localDataSource: mockLocal,
+      commandDataSource: mockCommand,
       networkInfo: mockNetworkInfo,
     );
   });

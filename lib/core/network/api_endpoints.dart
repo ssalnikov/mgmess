@@ -96,6 +96,10 @@ class ApiEndpoints {
   static const String customEmojis = '/emoji';
   static String customEmojiImage(String emojiId) => '/emoji/$emojiId/image';
 
+  // Commands
+  static const String commandsAutocomplete = '/commands/autocomplete';
+  static const String commandsExecute = '/commands/execute';
+
   // Config
   static const String clientConfig = '/config/client';
 }

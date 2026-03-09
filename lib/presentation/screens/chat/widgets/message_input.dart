@@ -9,7 +9,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/l10n/l10n.dart';
 import '../../../../core/di/injection.dart';
+import '../../../../core/utils/emoji_map.dart';
 import '../../../../domain/entities/post.dart';
+import '../../../../domain/entities/slash_command.dart';
 import '../../../../core/storage/draft_storage.dart';
 import '../../../blocs/auth/auth_bloc.dart';
 import '../../../blocs/auth/auth_state.dart';
@@ -18,8 +20,11 @@ import '../../../../domain/entities/draft.dart';
 import '../../../../domain/entities/user.dart';
 import '../../../../domain/repositories/channel_repository.dart';
 import '../../../../domain/repositories/file_repository.dart';
+import '../../../../domain/repositories/post_repository.dart';
 import '../../../../domain/repositories/user_repository.dart';
+import 'emoji_picker_sheet.dart';
 import 'mention_autocomplete.dart';
+import 'slash_command_autocomplete.dart';
 
 class MessageInput extends StatefulWidget {
   final String channelId;
@@ -64,6 +69,7 @@ class MessageInputState extends State<MessageInput> {
 
   // Priority
   String? _selectedPriority;
+  bool _showPriorityBar = false;
 
   // Mentions
   List<User> _mentionResults = [];
@@ -73,6 +79,16 @@ class MessageInputState extends State<MessageInput> {
   final _userRepository = sl<UserRepository>();
   final LayerLink _mentionLayerLink = LayerLink();
   OverlayEntry? _mentionOverlay;
+
+  // Slash commands
+  List<SlashCommand> _commandResults = [];
+  bool _showCommands = false;
+  bool _suppressCommandCheck = false;
+  Timer? _commandDebounce;
+  final _postRepository = sl<PostRepository>();
+  final LayerLink _commandLayerLink = LayerLink();
+  OverlayEntry? _commandOverlay;
+  List<SlashCommand>? _cachedCommands;
 
   @override
   void initState() {
@@ -116,15 +132,19 @@ class MessageInputState extends State<MessageInput> {
       _showMentions = false;
       _mentionResults = [];
       _updateMentionOverlay();
+      _showCommands = false;
+      _commandResults = [];
+      _updateCommandOverlay();
     }
   }
+
+  // ===== Mention autocomplete =====
 
   String? _getMentionQuery() {
     final text = _controller.text;
     if (text.isEmpty) return null;
 
     final selection = _controller.selection;
-    // Use cursor position if valid, otherwise assume end of text
     final cursorPos = (selection.isValid && selection.isCollapsed)
         ? selection.baseOffset
         : text.length;
@@ -132,15 +152,15 @@ class MessageInputState extends State<MessageInput> {
 
     final textBeforeCursor = text.substring(0, cursorPos);
 
-    // Find last @ that starts a mention (preceded by space/start of string)
     final atIndex = textBeforeCursor.lastIndexOf('@');
     if (atIndex < 0) return null;
-    if (atIndex > 0 && textBeforeCursor[atIndex - 1] != ' ' && textBeforeCursor[atIndex - 1] != '\n') {
+    if (atIndex > 0 &&
+        textBeforeCursor[atIndex - 1] != ' ' &&
+        textBeforeCursor[atIndex - 1] != '\n') {
       return null;
     }
 
     final query = textBeforeCursor.substring(atIndex + 1);
-    // No spaces in mention query
     if (query.contains(' ') || query.contains('\n')) {
       return null;
     }
@@ -169,7 +189,6 @@ class MessageInputState extends State<MessageInput> {
 
   Future<void> _fetchMentions(String query) async {
     if (query.isEmpty) {
-      // autocomplete API requires non-empty name, use channel members instead
       final result = await sl<ChannelRepository>().getChannelMembers(
         widget.channelId,
       );
@@ -238,16 +257,6 @@ class MessageInputState extends State<MessageInput> {
     _updateMentionOverlay();
   }
 
-  Future<void> _saveDraft() async {
-    final text = _controller.text.trim();
-    await _draftStorage.saveDraft(Draft(
-      channelId: widget.channelId,
-      channelName: widget.channelName,
-      message: text,
-      updatedAt: DateTime.now(),
-    ));
-  }
-
   void _updateMentionOverlay() {
     if (_showMentions && _mentionResults.isNotEmpty) {
       if (_mentionOverlay != null) {
@@ -279,12 +288,141 @@ class MessageInputState extends State<MessageInput> {
     }
   }
 
+  // ===== Slash command autocomplete =====
+
+  String? _getCommandQuery() {
+    final text = _controller.text;
+    if (text.isEmpty || !text.startsWith('/')) return null;
+
+    final selection = _controller.selection;
+    final cursorPos = (selection.isValid && selection.isCollapsed)
+        ? selection.baseOffset
+        : text.length;
+
+    // Only show autocomplete if cursor is in the command part (before first space)
+    final firstSpace = text.indexOf(' ');
+    if (firstSpace >= 0 && cursorPos > firstSpace) return null;
+
+    // Extract the command trigger typed so far (without the leading /)
+    final query = text.substring(1, cursorPos);
+    if (query.contains('\n')) return null;
+
+    return query;
+  }
+
+  void _checkForCommand() {
+    if (_suppressCommandCheck) return;
+    final query = _getCommandQuery();
+    if (query == null) {
+      if (_showCommands) {
+        _showCommands = false;
+        _commandResults = [];
+        _updateCommandOverlay();
+      }
+      _commandDebounce?.cancel();
+      return;
+    }
+
+    _commandDebounce?.cancel();
+    _commandDebounce = Timer(const Duration(milliseconds: 200), () {
+      _fetchCommands(query);
+    });
+  }
+
+  Future<void> _fetchCommands(String query) async {
+    // Load commands once and cache
+    if (_cachedCommands == null) {
+      final result =
+          await _postRepository.getAutocompleteCommands(widget.channelId);
+      if (!mounted) return;
+      result.fold(
+        (failure) {
+          _cachedCommands = [];
+        },
+        (commands) {
+          _cachedCommands = commands;
+        },
+      );
+    }
+
+    final all = _cachedCommands ?? [];
+    final filtered = query.isEmpty
+        ? all
+        : all
+            .where((c) => c.trigger.startsWith(query.toLowerCase()))
+            .toList();
+
+    _commandResults = filtered;
+    _showCommands = filtered.isNotEmpty;
+    _updateCommandOverlay();
+  }
+
+  void _onCommandSelected(SlashCommand command) {
+    _suppressCommandCheck = true;
+    _controller.text = '/${command.trigger} ';
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    _suppressCommandCheck = false;
+
+    _showCommands = false;
+    _commandResults = [];
+    _updateCommandOverlay();
+    _focusNode.requestFocus();
+  }
+
+  void _updateCommandOverlay() {
+    if (_showCommands && _commandResults.isNotEmpty) {
+      if (_commandOverlay != null) {
+        _commandOverlay!.markNeedsBuild();
+      } else {
+        _commandOverlay = OverlayEntry(
+          builder: (context) {
+            return Positioned(
+              width: MediaQuery.of(this.context).size.width,
+              child: CompositedTransformFollower(
+                link: _commandLayerLink,
+                showWhenUnlinked: false,
+                offset: const Offset(0, 0),
+                followerAnchor: Alignment.bottomLeft,
+                targetAnchor: Alignment.topLeft,
+                child: SlashCommandAutocomplete(
+                  commands: _commandResults,
+                  onSelect: _onCommandSelected,
+                ),
+              ),
+            );
+          },
+        );
+        Overlay.of(this.context).insert(_commandOverlay!);
+      }
+    } else {
+      _commandOverlay?.remove();
+      _commandOverlay = null;
+    }
+  }
+
+  // ===== Actions =====
+
+  Future<void> _saveDraft() async {
+    final text = _controller.text.trim();
+    await _draftStorage.saveDraft(Draft(
+      channelId: widget.channelId,
+      channelName: widget.channelName,
+      message: text,
+      updatedAt: DateTime.now(),
+    ));
+  }
+
   @override
   void dispose() {
     _mentionOverlay?.remove();
     _mentionOverlay = null;
+    _commandOverlay?.remove();
+    _commandOverlay = null;
     _draftTimer?.cancel();
     _mentionDebounce?.cancel();
+    _commandDebounce?.cancel();
     _saveDraft();
     _controller.removeListener(_onTextChanged);
     _focusNode.removeListener(_onFocusChanged);
@@ -318,6 +456,7 @@ class MessageInputState extends State<MessageInput> {
       _pendingFileIds.clear();
       _pendingFileNames.clear();
       _selectedPriority = null;
+      _showPriorityBar = false;
     });
   }
 
@@ -330,6 +469,86 @@ class MessageInputState extends State<MessageInput> {
       offset: _controller.text.length,
     );
     _focusNode.requestFocus();
+  }
+
+  void _insertMention() {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final cursorPos = (selection.isValid && selection.isCollapsed)
+        ? selection.baseOffset
+        : text.length;
+
+    // Insert @ at cursor position
+    final before = text.substring(0, cursorPos);
+    final after = text.substring(cursorPos);
+    final needsSpace = before.isNotEmpty && !before.endsWith(' ') && !before.endsWith('\n');
+    final insert = '${needsSpace ? ' ' : ''}@';
+
+    _controller.text = '$before$insert$after';
+    _controller.selection = TextSelection.collapsed(
+      offset: cursorPos + insert.length,
+    );
+    _focusNode.requestFocus();
+
+    // Trigger mention search
+    Future.microtask(() => _checkForMention());
+  }
+
+  void _insertSlashCommand() {
+    // If text is not empty and doesn't start with /, put cursor at start
+    if (_controller.text.isNotEmpty && !_controller.text.startsWith('/')) {
+      _controller.text = '/${_controller.text}';
+      _controller.selection = const TextSelection.collapsed(offset: 1);
+    } else if (_controller.text.isEmpty) {
+      _controller.text = '/';
+      _controller.selection = const TextSelection.collapsed(offset: 1);
+    }
+    _focusNode.requestFocus();
+
+    // Trigger command search
+    Future.microtask(() => _checkForCommand());
+  }
+
+  void _openEmojiPicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => EmojiPickerSheet(
+        onEmojiSelected: (emojiName) {
+          _insertEmoji(emojiName);
+        },
+      ),
+    );
+  }
+
+  void _insertEmoji(String emojiName) {
+    // Convert emoji name to unicode character, or use :name: format for custom emojis
+    final unicode = emojiMap[emojiName];
+    final emojiText = unicode ?? ':$emojiName: ';
+
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final cursorPos = (selection.isValid && selection.isCollapsed)
+        ? selection.baseOffset
+        : text.length;
+
+    final before = text.substring(0, cursorPos);
+    final after = text.substring(cursorPos);
+
+    _controller.text = '$before$emojiText$after';
+    _controller.selection = TextSelection.collapsed(
+      offset: cursorPos + emojiText.length,
+    );
+    _focusNode.requestFocus();
+  }
+
+  void _togglePriorityBar() {
+    setState(() {
+      _showPriorityBar = !_showPriorityBar;
+      if (!_showPriorityBar) {
+        _selectedPriority = null;
+      }
+    });
   }
 
   Future<void> _pickImage() async {
@@ -377,122 +596,191 @@ class MessageInputState extends State<MessageInput> {
     setState(() => _isUploading = false);
   }
 
+  void _onInputChanged(String _) {
+    _checkForMention();
+    _checkForCommand();
+  }
+
+  // ===== Build =====
+
   @override
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _mentionLayerLink,
-      child: Column(
-        children: [
-        if (!_isEditing && _pendingFileNames.isNotEmpty)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            color: AppColors.backgroundLight,
-            child: Wrap(
-              spacing: 8,
-              children: _pendingFileNames.asMap().entries.map((entry) {
-                return Chip(
-                  label: Text(
-                    entry.value,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  onDeleted: () {
-                    setState(() {
-                      _pendingFileIds.removeAt(entry.key);
-                      _pendingFileNames.removeAt(entry.key);
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-        if (!_isEditing) _buildPriorityBar(),
-        if (_isEditing)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            color: AppColors.accent.withValues(alpha: 0.1),
-            child: Row(
-              children: [
-                const Icon(Icons.edit_outlined, size: 16, color: AppColors.accent),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    context.l10n.editingMessage,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+      child: CompositedTransformTarget(
+        link: _commandLayerLink,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // File previews
+            if (!_isEditing && _pendingFileNames.isNotEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                color: AppColors.backgroundLight,
+                child: Wrap(
+                  spacing: 8,
+                  children:
+                      _pendingFileNames.asMap().entries.map((entry) {
+                    return Chip(
+                      label: Text(
+                        entry.value,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                      onDeleted: () {
+                        setState(() {
+                          _pendingFileIds.removeAt(entry.key);
+                          _pendingFileNames.removeAt(entry.key);
+                        });
+                      },
+                    );
+                  }).toList(),
                 ),
-                GestureDetector(
-                  onTap: widget.onCancelEdit,
-                  child: const Icon(Icons.close, size: 18, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 4,
-                offset: const Offset(0, -2),
               ),
-            ],
-          ),
-          child: SafeArea(
-            child: Row(
-              children: [
-                if (!_isEditing)
-                  IconButton(
-                    icon: const Icon(Icons.add, color: AppColors.accent),
-                    onPressed: _isUploading ? null : _showAttachMenu,
-                  ),
-                if (_isEditing) const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    maxLines: 4,
-                    minLines: 1,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      hintText: context.l10n.writeAMessage,
-                      border: InputBorder.none,
-                      contentPadding:
-                          const EdgeInsets.symmetric(horizontal: 12),
+            // Priority bar (toggleable)
+            if (!_isEditing && _showPriorityBar) _buildPriorityBar(),
+            // Edit indicator
+            if (_isEditing)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                color: AppColors.accent.withValues(alpha: 0.1),
+                child: Row(
+                  children: [
+                    const Icon(Icons.edit_outlined,
+                        size: 16, color: AppColors.accent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        context.l10n.editingMessage,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
-                    onChanged: (_) => _checkForMention(),
-                    onSubmitted: (_) => _send(),
-                  ),
+                    GestureDetector(
+                      onTap: widget.onCancelEdit,
+                      child: const Icon(Icons.close,
+                          size: 18, color: AppColors.textSecondary),
+                    ),
+                  ],
                 ),
-                if (_isUploading)
-                  const Padding(
-                    padding: EdgeInsets.all(8),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                else
-                  IconButton(
-                    icon: Icon(
-                      _isEditing ? Icons.check : Icons.send,
-                      color: AppColors.accent,
-                    ),
-                    onPressed: _send,
+              ),
+            // Main input area
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, -2),
                   ),
-              ],
+                ],
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Text field
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        maxLines: 4,
+                        minLines: 1,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: context.l10n.writeAMessage,
+                          border: InputBorder.none,
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        onChanged: _onInputChanged,
+                        onSubmitted: (_) => _send(),
+                      ),
+                    ),
+                    // Toolbar row
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        children: [
+                          if (!_isEditing) ...[
+                            // Attach (+)
+                            _ToolbarButton(
+                              icon: Icons.add,
+                              onPressed:
+                                  _isUploading ? null : _showAttachMenu,
+                            ),
+                            // Mention (@)
+                            _ToolbarButton(
+                              icon: Icons.alternate_email,
+                              onPressed: _insertMention,
+                            ),
+                            // Slash command (/)
+                            _ToolbarButton(
+                              icon: Icons.data_object,
+                              onPressed: _insertSlashCommand,
+                            ),
+                            // Emoji
+                            _ToolbarButton(
+                              icon: Icons.emoji_emotions_outlined,
+                              onPressed: _openEmojiPicker,
+                            ),
+                            // Priority (flag)
+                            _ToolbarButton(
+                              icon: _selectedPriority == null
+                                  ? Icons.flag_outlined
+                                  : Icons.flag,
+                              color: _priorityColor,
+                              onPressed: _togglePriorityBar,
+                            ),
+                          ],
+                          if (_isEditing) const SizedBox(width: 8),
+                          const Spacer(),
+                          // Upload progress or Send button
+                          if (_isUploading)
+                            const Padding(
+                              padding: EdgeInsets.all(8),
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2),
+                              ),
+                            )
+                          else
+                            _ToolbarButton(
+                              icon: _isEditing ? Icons.check : Icons.send,
+                              color: AppColors.accent,
+                              onPressed: _send,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-      ],
       ),
     );
+  }
+
+  Color get _priorityColor {
+    switch (_selectedPriority) {
+      case 'important':
+        return AppColors.priorityImportant;
+      case 'urgent':
+        return AppColors.priorityUrgent;
+      default:
+        return AppColors.textSecondary;
+    }
   }
 
   Widget _buildPriorityBar() {
@@ -501,7 +789,8 @@ class MessageInputState extends State<MessageInput> {
       color: AppColors.backgroundLight,
       child: Row(
         children: [
-          const Icon(Icons.flag_outlined, size: 16, color: AppColors.textSecondary),
+          const Icon(Icons.flag_outlined,
+              size: 16, color: AppColors.textSecondary),
           const SizedBox(width: 8),
           ChoiceChip(
             label: Text(context.l10n.standard),
@@ -509,7 +798,9 @@ class MessageInputState extends State<MessageInput> {
             onSelected: (_) => setState(() => _selectedPriority = null),
             labelStyle: TextStyle(
               fontSize: 12,
-              color: _selectedPriority == null ? Colors.white : AppColors.textSecondary,
+              color: _selectedPriority == null
+                  ? Colors.white
+                  : AppColors.textSecondary,
             ),
             selectedColor: AppColors.textSecondary,
             backgroundColor: Colors.white,
@@ -519,7 +810,8 @@ class MessageInputState extends State<MessageInput> {
           ChoiceChip(
             label: Text(context.l10n.important),
             selected: _selectedPriority == 'important',
-            onSelected: (_) => setState(() => _selectedPriority = 'important'),
+            onSelected: (_) =>
+                setState(() => _selectedPriority = 'important'),
             labelStyle: TextStyle(
               fontSize: 12,
               color: _selectedPriority == 'important'
@@ -534,7 +826,8 @@ class MessageInputState extends State<MessageInput> {
           ChoiceChip(
             label: Text(context.l10n.urgent),
             selected: _selectedPriority == 'urgent',
-            onSelected: (_) => setState(() => _selectedPriority = 'urgent'),
+            onSelected: (_) =>
+                setState(() => _selectedPriority = 'urgent'),
             labelStyle: TextStyle(
               fontSize: 12,
               color: _selectedPriority == 'urgent'
@@ -574,6 +867,33 @@ class MessageInputState extends State<MessageInput> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ToolbarButton extends StatelessWidget {
+  final IconData icon;
+  final Color? color;
+  final VoidCallback? onPressed;
+
+  const _ToolbarButton({
+    required this.icon,
+    this.color,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        icon: Icon(icon, size: 20),
+        color: color ?? AppColors.textSecondary,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+        onPressed: onPressed,
       ),
     );
   }

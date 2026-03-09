@@ -5,22 +5,27 @@ import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/network_info.dart';
 import '../../domain/entities/post.dart';
+import '../../domain/entities/slash_command.dart';
 import '../../domain/entities/user_thread.dart';
 import '../../domain/repositories/post_repository.dart';
 import '../datasources/local/post_local_datasource.dart';
+import '../datasources/remote/command_remote_datasource.dart';
 import '../datasources/remote/post_remote_datasource.dart';
 
 class PostRepositoryImpl implements PostRepository {
   final PostRemoteDataSource _remoteDataSource;
   final PostLocalDataSource _localDataSource;
+  final CommandRemoteDataSource _commandDataSource;
   final NetworkInfo _networkInfo;
 
   PostRepositoryImpl({
     required PostRemoteDataSource remoteDataSource,
     required PostLocalDataSource localDataSource,
+    required CommandRemoteDataSource commandDataSource,
     required NetworkInfo networkInfo,
   })  : _remoteDataSource = remoteDataSource,
         _localDataSource = localDataSource,
+        _commandDataSource = commandDataSource,
         _networkInfo = networkInfo;
 
   @override
@@ -305,6 +310,35 @@ class PostRepositoryImpl implements PostRepository {
     try {
       await _remoteDataSource.unflagPost(userId, postId);
       return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<SlashCommand>>> getAutocompleteCommands(
+    String channelId,
+  ) async {
+    try {
+      final commands =
+          await _commandDataSource.getAutocompleteCommands(channelId);
+      return Right(commands);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, CommandResponse>> executeCommand({
+    required String channelId,
+    required String command,
+  }) async {
+    try {
+      final response = await _commandDataSource.executeCommand(
+        channelId: channelId,
+        command: command,
+      );
+      return Right(response);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
     }

@@ -1453,6 +1453,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Image Cache'**
   String get imageCache;
+
+  /// No description provided for @slashCommands.
+  ///
+  /// In en, this message translates to:
+  /// **'Slash Commands'**
+  String get slashCommands;
+
+  /// No description provided for @noCommandsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No commands available'**
+  String get noCommandsAvailable;
+
+  /// No description provided for @commandFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Command failed: {message}'**
+  String commandFailed(String message);
 }
 
 class _AppLocalizationsDelegate

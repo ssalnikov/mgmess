@@ -141,6 +141,8 @@ Future<TestMocks> initTestDependencies() async {
       .thenAnswer((_) async => const Right(<ChannelCategory>[]));
   when(() => channelRepo.updateChannelCategory(any(), any(), any(), any()))
       .thenAnswer((_) async => const Right(null));
+  when(() => channelRepo.canUserPost(any(), any()))
+      .thenAnswer((_) async => const Right(true));
 
   // Дефолтные стабы для NotificationRepository
   when(() => notificationRepo.registerDeviceToken(any()))
@@ -155,6 +157,9 @@ Future<TestMocks> initTestDependencies() async {
       .thenReturn('https://mm.my.games/api/v4/files/fake/thumbnail');
   when(() => fileRepo.getPreviewUrl(any()))
       .thenReturn('https://mm.my.games/api/v4/files/fake/preview');
+  when(() => fileRepo.getChannelFiles(any(),
+          page: any(named: 'page'), perPage: any(named: 'perPage')))
+      .thenAnswer((_) async => const Right([]));
 
   // Core
   sl.registerLazySingleton<SecureStorage>(() => secureStorage);

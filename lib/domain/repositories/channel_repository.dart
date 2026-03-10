@@ -88,4 +88,8 @@ abstract class ChannelRepository {
     String categoryId,
     Map<String, dynamic> data,
   );
+  Future<Either<Failure, bool>> canUserPost(
+    String channelId,
+    String userId,
+  );
 }

@@ -28,6 +28,9 @@ class Channel extends Equatable {
   final int lastViewedAt;
   final bool isMuted;
 
+  // Scheme
+  final String schemeId;
+
   const Channel({
     required this.id,
     this.teamId = '',
@@ -49,6 +52,7 @@ class Channel extends Equatable {
     this.mentionCount = 0,
     this.lastViewedAt = 0,
     this.isMuted = false,
+    this.schemeId = '',
   });
 
   int get unreadCount => isMuted ? 0 : totalMsgCountRoot - msgCountRoot;
@@ -59,6 +63,7 @@ class Channel extends Equatable {
   bool get isDirect => type == ChannelType.direct;
   bool get isGroup => type == ChannelType.group;
   bool get isPrivate => type == ChannelType.private_;
+  bool get isArchived => deleteAt > 0;
 
   Channel copyWith({
     int? totalMsgCount,
@@ -75,6 +80,7 @@ class Channel extends Equatable {
     String? purpose,
     String? name,
     bool? isMuted,
+    String? schemeId,
   }) {
     return Channel(
       id: id,
@@ -97,6 +103,7 @@ class Channel extends Equatable {
       mentionCount: mentionCount ?? this.mentionCount,
       lastViewedAt: lastViewedAt ?? this.lastViewedAt,
       isMuted: isMuted ?? this.isMuted,
+      schemeId: schemeId ?? this.schemeId,
     );
   }
 

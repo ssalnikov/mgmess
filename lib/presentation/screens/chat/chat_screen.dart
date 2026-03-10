@@ -60,6 +60,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isUserScrolledUp = false;
   int? _memberCount;
   late String _channelName = widget.channelName;
+  bool _canPost = true;
 
   @override
   void initState() {
@@ -112,6 +113,9 @@ class _ChatScreenState extends State<ChatScreen> {
     } else {
       _loadDmUserCustomStatus();
     }
+
+    // Check if user can post in this channel
+    _checkCanPost();
   }
 
   Future<void> _loadChannelName() async {
@@ -127,6 +131,18 @@ class _ChatScreenState extends State<ChatScreen> {
     result.fold((_) {}, (users) {
       if (users.isNotEmpty && mounted) {
         context.read<UserStatusCubit>().setCustomStatusFromUser(users.first);
+      }
+    });
+  }
+
+  Future<void> _checkCanPost() async {
+    final userId = _currentUserId;
+    if (userId.isEmpty) return;
+    final result =
+        await sl<ChannelRepository>().canUserPost(widget.channelId, userId);
+    result.fold((_) {}, (canPost) {
+      if (mounted && canPost != _canPost) {
+        setState(() => _canPost = canPost);
       }
     });
   }
@@ -392,35 +408,38 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 _buildTypingIndicator(),
-                BlocBuilder<ChatBloc, ChatState>(
-                  buildWhen: (prev, curr) =>
-                      prev.editingPost != curr.editingPost,
-                  builder: (context, state) {
-                    return MessageInput(
-                      key: _messageInputKey,
-                      channelId: widget.channelId,
-                      channelName: _channelName,
-                      initialDraft: widget.initialDraft,
-                      editingPost: state.editingPost,
-                      onCancelEdit: () {
-                        _chatBloc.add(const CancelEditMessage());
-                      },
-                      onSaveEdit: (postId, message) {
-                        _chatBloc.add(EditMessage(
-                          postId: postId,
-                          message: message,
-                        ));
-                      },
-                      onSend: (message, {fileIds, priority}) {
-                        _chatBloc.add(SendMessage(
-                          message: message,
-                          fileIds: fileIds,
-                          priority: priority,
-                        ));
-                      },
-                    );
-                  },
-                ),
+                if (_canPost)
+                  BlocBuilder<ChatBloc, ChatState>(
+                    buildWhen: (prev, curr) =>
+                        prev.editingPost != curr.editingPost,
+                    builder: (context, state) {
+                      return MessageInput(
+                        key: _messageInputKey,
+                        channelId: widget.channelId,
+                        channelName: _channelName,
+                        initialDraft: widget.initialDraft,
+                        editingPost: state.editingPost,
+                        onCancelEdit: () {
+                          _chatBloc.add(const CancelEditMessage());
+                        },
+                        onSaveEdit: (postId, message) {
+                          _chatBloc.add(EditMessage(
+                            postId: postId,
+                            message: message,
+                          ));
+                        },
+                        onSend: (message, {fileIds, priority}) {
+                          _chatBloc.add(SendMessage(
+                            message: message,
+                            fileIds: fileIds,
+                            priority: priority,
+                          ));
+                        },
+                      );
+                    },
+                  )
+                else
+                  _buildReadOnlyBanner(),
               ],
             ),
           ),
@@ -569,6 +588,36 @@ class _ChatScreenState extends State<ChatScreen> {
               _chatBloc.add(DeleteMessage(postId: post.id));
             },
             child: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline, size: 18, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              context.l10n.readOnlyChannel,
+              style: AppTextStyles.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
           ),
         ],
       ),

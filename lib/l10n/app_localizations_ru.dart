@@ -757,4 +757,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String commandFailed(String message) {
     return 'Ошибка команды: $message';
   }
+
+  @override
+  String get readOnlyChannel => 'Этот канал доступен только для чтения';
+
+  @override
+  String get channelFiles => 'Файлы';
+
+  @override
+  String get noFiles => 'Нет файлов в этом канале';
+
+  @override
+  String get allFiles => 'Все';
+
+  @override
+  String get documents => 'Документы';
 }

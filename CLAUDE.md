@@ -124,6 +124,18 @@ API `GET /channels/{id}/pinned` returns PostList `{order, posts}`. Pin/unpin via
 
 ThreadScreen has a "Show in channel" button (`Icons.open_in_new`) that navigates to ChatScreen with `scrollToPostId`. ChatBloc handles `ScrollToMessage` event (loads surrounding posts if target not in view) and `ClearHighlight` (auto-clears after 3s). MessageBubble animates highlight via `TweenAnimationBuilder`.
 
+### Read-Only Channels
+
+Channels can be read-only based on Mattermost channel schemes. `ChatScreen` calls `ChannelRepository.canUserPost(channelId, userId)` on init. The check: if channel is archived (`deleteAt > 0`) → read-only; if user is `scheme_admin` → can post; if channel has no custom `scheme_id` → can post (default); otherwise fetches scheme's `default_channel_user_role` and checks for `create_post` permission. When `canPost` is false, a read-only banner replaces `MessageInput`.
+
+- `Channel.schemeId` — parsed from `scheme_id` in Mattermost API response
+- `ChannelRemoteDataSource.getSchemeUserRoleName()` / `getRolePermissions()` — fetch scheme and role data
+- API endpoints: `GET /schemes/{id}`, `GET /roles/name/{name}`
+
+### Channel Files
+
+`ChannelFilesScreen` (`/channel/:channelId/files`) shows all files shared in a channel. Entry point: ListTile in `ChannelInfoScreen`. Uses `FileRepository.getChannelFiles()` which scans channel posts via pagination and extracts file attachments from post metadata. `ChannelFilesCubit` manages state with filter tabs (All / Images / Documents) and infinite scroll.
+
 ### Custom Backend: Seens (Read Receipts)
 
 MyGames extension endpoints: `GET /api/v4/channels/{id}/seens`, `GET /api/v4/posts/{id}/seens`. WS events: `channel_seens_updated`, `thread_seens_updated`. Mobile marker constant: `WebsocketMessagePropertySeensMark = "its_need_to_mark_seen_for_mobile"`.

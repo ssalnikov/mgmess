@@ -12,6 +12,7 @@ import '../../presentation/screens/profile/notification_settings_screen.dart';
 import '../../presentation/screens/profile/profile_screen.dart';
 import '../../presentation/screens/channel_info/channel_info_screen.dart';
 import '../../presentation/screens/channel_info/channel_members_screen.dart';
+import '../../presentation/screens/channel_info/channel_files_screen.dart';
 import '../../presentation/screens/channel_info/edit_channel_screen.dart';
 import '../../presentation/screens/profile/user_profile_screen.dart';
 import '../../presentation/screens/saved_messages/saved_messages_screen.dart';
@@ -188,6 +189,17 @@ class AppRouter {
         builder: (context, state) {
           final channelId = state.pathParameters['channelId']!;
           return EditChannelScreen(channelId: channelId);
+        },
+      ),
+      GoRoute(
+        path: RouteNames.channelFiles,
+        builder: (context, state) {
+          final channelId = state.pathParameters['channelId']!;
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          return ChannelFilesScreen(
+            channelId: channelId,
+            channelName: extra['channelName'] as String? ?? '',
+          );
         },
       ),
       GoRoute(

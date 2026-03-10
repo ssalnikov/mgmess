@@ -351,5 +351,11 @@
     "placeholders": {
       "message": {"type": "String"}
     }
-  }
+  },
+
+  "readOnlyChannel": "This channel is read-only",
+  "channelFiles": "Files",
+  "noFiles": "No files in this channel",
+  "allFiles": "All",
+  "documents": "Documents"
 }

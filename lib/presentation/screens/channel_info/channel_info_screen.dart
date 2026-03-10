@@ -138,6 +138,20 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
               : null,
           onTap: () => Navigator.pop(context),
         ),
+        const Divider(height: 1),
+
+        // Files
+        ListTile(
+          leading: const Icon(Icons.attach_file),
+          title: Text(context.l10n.channelFiles),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () {
+            context.push(
+              RouteNames.channelFilesPath(widget.channelId),
+              extra: {'channelName': channel.displayName},
+            );
+          },
+        ),
 
         if (!isDm) ...[
           const Divider(height: 32),

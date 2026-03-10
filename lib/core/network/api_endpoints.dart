@@ -100,6 +100,12 @@ class ApiEndpoints {
   static const String commandsAutocomplete = '/commands/autocomplete';
   static const String commandsExecute = '/commands/execute';
 
+  // Schemes
+  static String scheme(String id) => '/schemes/$id';
+
+  // Roles
+  static String roleByName(String name) => '/roles/name/$name';
+
   // Config
   static const String clientConfig = '/config/client';
 }

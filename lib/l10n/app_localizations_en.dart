@@ -754,4 +754,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String commandFailed(String message) {
     return 'Command failed: $message';
   }
+
+  @override
+  String get readOnlyChannel => 'This channel is read-only';
+
+  @override
+  String get channelFiles => 'Files';
+
+  @override
+  String get noFiles => 'No files in this channel';
+
+  @override
+  String get allFiles => 'All';
+
+  @override
+  String get documents => 'Documents';
 }

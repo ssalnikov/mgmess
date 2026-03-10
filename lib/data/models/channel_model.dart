@@ -22,6 +22,7 @@ class ChannelModel extends Channel {
     super.mentionCount,
     super.lastViewedAt,
     super.isMuted,
+    super.schemeId,
   });
 
   factory ChannelModel.fromJson(Map<String, dynamic> json) {
@@ -39,6 +40,7 @@ class ChannelModel extends Channel {
       totalMsgCount: json['total_msg_count'] as int? ?? 0,
       lastPostAt: json['last_post_at'] as int? ?? 0,
       totalMsgCountRoot: json['total_msg_count_root'] as int? ?? 0,
+      schemeId: json['scheme_id'] as String? ?? '',
     );
   }
 
@@ -76,6 +78,7 @@ class ChannelModel extends Channel {
       mentionCount: memberJson['mention_count'] as int? ?? 0,
       lastViewedAt: memberJson['last_viewed_at'] as int? ?? 0,
       isMuted: muted,
+      schemeId: channel.schemeId,
     );
   }
 
@@ -93,6 +96,7 @@ class ChannelModel extends Channel {
         'total_msg_count': totalMsgCount,
         'last_post_at': lastPostAt,
         'total_msg_count_root': totalMsgCountRoot,
+        'scheme_id': schemeId,
       };
 
   static String _typeToString(ChannelType type) {

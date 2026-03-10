@@ -424,4 +424,38 @@ class ChannelRepositoryImpl implements ChannelRepository {
       return Left(ServerFailure(message: e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, bool>> canUserPost(
+    String channelId,
+    String userId,
+  ) async {
+    try {
+      // 1. Get channel info
+      final channel = await _remoteDataSource.getChannel(channelId);
+      if (channel.deleteAt > 0) return const Right(false); // Archived
+
+      // 2. Get member info
+      final memberData =
+          await _remoteDataSource.getChannelMember(channelId, userId);
+      final schemeAdmin = memberData['scheme_admin'] as bool? ?? false;
+      if (schemeAdmin) return const Right(true); // Admin can always post
+
+      // 3. No custom scheme → default permissions (users can post)
+      if (channel.schemeId.isEmpty) return const Right(true);
+
+      // 4. Fetch scheme user role and check create_post permission
+      final userRoleName =
+          await _remoteDataSource.getSchemeUserRoleName(channel.schemeId);
+      if (userRoleName.isEmpty) return const Right(true);
+
+      final permissions =
+          await _remoteDataSource.getRolePermissions(userRoleName);
+      return Right(permissions.contains('create_post'));
+    } on ServerException catch (e) {
+      // On error, default to allowing posting
+      debugPrint('canUserPost check failed: ${e.message}');
+      return const Right(true);
+    }
+  }
 }

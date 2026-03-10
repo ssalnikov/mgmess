@@ -338,6 +338,33 @@ class ChannelRemoteDataSource {
     }
   }
 
+  /// Returns the default_channel_user_role name from the scheme.
+  Future<String> getSchemeUserRoleName(String schemeId) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.scheme(schemeId),
+      );
+      final data = response.data as Map<String, dynamic>;
+      return data['default_channel_user_role'] as String? ?? '';
+    } catch (e) {
+      throw ServerException(message: 'Failed to get scheme: $e');
+    }
+  }
+
+  /// Returns the list of permissions for a given role name.
+  Future<List<String>> getRolePermissions(String roleName) async {
+    try {
+      final response = await _apiClient.dio.get(
+        ApiEndpoints.roleByName(roleName),
+      );
+      final data = response.data as Map<String, dynamic>;
+      final permissions = data['permissions'] as List<dynamic>? ?? [];
+      return permissions.cast<String>();
+    } catch (e) {
+      throw ServerException(message: 'Failed to get role: $e');
+    }
+  }
+
   Future<List<ChannelModel>> autocompleteChannels(
     String teamId,
     String term,

@@ -1471,6 +1471,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Command failed: {message}'**
   String commandFailed(String message);
+
+  /// No description provided for @readOnlyChannel.
+  ///
+  /// In en, this message translates to:
+  /// **'This channel is read-only'**
+  String get readOnlyChannel;
+
+  /// No description provided for @channelFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Files'**
+  String get channelFiles;
+
+  /// No description provided for @noFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'No files in this channel'**
+  String get noFiles;
+
+  /// No description provided for @allFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allFiles;
+
+  /// No description provided for @documents.
+  ///
+  /// In en, this message translates to:
+  /// **'Documents'**
+  String get documents;
 }
 
 class _AppLocalizationsDelegate

@@ -41,6 +41,24 @@ class FileRepositoryImpl implements FileRepository {
   }
 
   @override
+  Future<Either<Failure, List<({FileInfo file, int createAt})>>> getChannelFiles(
+    String channelId, {
+    int page = 0,
+    int perPage = 20,
+  }) async {
+    try {
+      final files = await _remoteDataSource.getChannelFiles(
+        channelId,
+        page: page,
+        perPage: perPage,
+      );
+      return Right(files.map((f) => (file: f.file as FileInfo, createAt: f.createAt)).toList());
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   String getFileUrl(String fileId) =>
       '${AppConfig.baseUrl}${ApiEndpoints.file(fileId)}';
 

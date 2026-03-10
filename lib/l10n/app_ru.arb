@@ -266,5 +266,11 @@
 
   "slashCommands": "Слэш-команды",
   "noCommandsAvailable": "Нет доступных команд",
-  "commandFailed": "Ошибка команды: {message}"
+  "commandFailed": "Ошибка команды: {message}",
+
+  "readOnlyChannel": "Этот канал доступен только для чтения",
+  "channelFiles": "Файлы",
+  "noFiles": "Нет файлов в этом канале",
+  "allFiles": "Все",
+  "documents": "Документы"
 }

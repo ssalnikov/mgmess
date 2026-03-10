@@ -9,6 +9,11 @@ abstract class FileRepository {
     required List<String> filePaths,
   });
   Future<Either<Failure, FileInfo>> getFileInfo(String fileId);
+  Future<Either<Failure, List<({FileInfo file, int createAt})>>> getChannelFiles(
+    String channelId, {
+    int page,
+    int perPage,
+  });
   String getFileUrl(String fileId);
   String getThumbnailUrl(String fileId);
   String getPreviewUrl(String fileId);

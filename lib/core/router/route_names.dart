@@ -15,6 +15,7 @@ class RouteNames {
   static const String channelInfo = '/channel/:channelId/info';
   static const String channelMembers = '/channel/:channelId/members';
   static const String channelEdit = '/channel/:channelId/edit';
+  static const String channelFiles = '/channel/:channelId/files';
 
   static String chatPath(String channelId) => '/chat/$channelId';
   static String userProfilePath(String userId) => '/user/$userId';
@@ -25,6 +26,8 @@ class RouteNames {
       '/channel/$channelId/members';
   static String channelEditPath(String channelId) =>
       '/channel/$channelId/edit';
+  static String channelFilesPath(String channelId) =>
+      '/channel/$channelId/files';
 
   static const String createChannel = '/create-channel';
   static const String createGroupDm = '/create-group-dm';

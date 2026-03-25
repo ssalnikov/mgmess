@@ -195,6 +195,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
   final UserRepository _userRepository;
   String _userId = '';
   String _teamId = '';
+  bool _readOnlyChecked = false;
   StreamSubscription<WsEvent>? _wsSub;
   Timer? _searchDebounce;
 
@@ -260,8 +261,11 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
         ));
         _updateAppBadge(sorted);
 
-        // Check read-only status for channels with schemes (non-blocking)
-        _checkReadOnlyChannels(sorted, event.userId, event.teamId);
+        // Check read-only status once per session (schemes rarely change)
+        if (!_readOnlyChecked) {
+          _readOnlyChecked = true;
+          _checkReadOnlyChannels(sorted, event.userId, event.teamId);
+        }
       },
     );
   }

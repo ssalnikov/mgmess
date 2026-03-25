@@ -568,33 +568,21 @@ class _ChannelListTileState extends State<_ChannelListTile> {
     );
   }
 
+  static const _lockIcon = Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary);
+
   Widget? _buildTrailing() {
+    Widget? badge;
+
     if (channel.isMuted) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.isReadOnly)
-            const Padding(
-              padding: EdgeInsets.only(right: 4),
-              child: Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
-            ),
-          const Icon(
-            Icons.notifications_off,
-            size: 18,
-            color: AppColors.textSecondary,
-          ),
-        ],
+      badge = const Icon(
+        Icons.notifications_off,
+        size: 18,
+        color: AppColors.textSecondary,
       );
-    }
-    if (channel.hasMention) {
-      return Row(
+    } else if (channel.hasMention) {
+      badge = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (widget.isReadOnly)
-            const Padding(
-              padding: EdgeInsets.only(right: 4),
-              child: Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
-            ),
           if (channel.hasUrgent)
             Padding(
               padding: const EdgeInsets.only(right: 4),
@@ -621,31 +609,30 @@ class _ChannelListTileState extends State<_ChannelListTile> {
           ),
         ],
       );
-    }
-    if (channel.hasUnread) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.isReadOnly)
-            const Padding(
-              padding: EdgeInsets.only(right: 4),
-              child: Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
-            ),
-          Container(
-            width: 10,
-            height: 10,
-            decoration: const BoxDecoration(
-              color: AppColors.accent,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
+    } else if (channel.hasUnread) {
+      badge = Container(
+        width: 10,
+        height: 10,
+        decoration: const BoxDecoration(
+          color: AppColors.accent,
+          shape: BoxShape.circle,
+        ),
       );
     }
-    if (widget.isReadOnly) {
-      return const Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary);
-    }
-    return null;
+
+    if (!widget.isReadOnly) return badge;
+    if (badge == null) return _lockIcon;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(right: 4),
+          child: _lockIcon,
+        ),
+        badge,
+      ],
+    );
   }
 }
 

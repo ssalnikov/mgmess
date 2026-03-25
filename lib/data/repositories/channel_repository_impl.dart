@@ -454,27 +454,10 @@ class ChannelRepositoryImpl implements ChannelRepository {
       }
 
       if (ch.deleteAt > 0) return const Right(false); // Archived
-
-      final schemeAdmin = memberData['scheme_admin'] as bool? ?? false;
-      if (schemeAdmin) return const Right(true); // Admin can always post
-
       if (ch.schemeId.isEmpty) return const Right(true);
 
-      // Get effective roles from channel member (includes scheme-derived roles)
-      // and check create_post permission via /roles/name/{role} (no admin required)
-      final rolesStr = memberData['roles'] as String? ?? '';
-      if (rolesStr.isEmpty) return const Right(true);
-
-      final roleNames = rolesStr.split(' ').where((r) => r.isNotEmpty);
-      final allPermissions =
-          await Future.wait(roleNames.map(_getCachedRolePermissions));
-
-      for (final permissions in allPermissions) {
-        if (permissions.contains('create_post')) {
-          return const Right(true);
-        }
-      }
-      return const Right(false);
+      final canPost = await _canMemberPost(memberData);
+      return Right(canPost);
     } on ServerException catch (e) {
       // On error, default to allowing posting
       debugPrint('canUserPost check failed: ${e.message}');
@@ -502,35 +485,39 @@ class ChannelRepositoryImpl implements ChannelRepository {
         if (chId != null) memberMap[chId] = m;
       }
 
-      final readOnlyIds = <String>{};
-      final futures = withScheme.map((ch) async {
+      final results = await Future.wait(withScheme.map((ch) async {
         final member = memberMap[ch.id];
-        if (member == null) return;
-
-        final schemeAdmin = member['scheme_admin'] as bool? ?? false;
-        if (schemeAdmin) return; // Admin can always post
-
-        final rolesStr = member['roles'] as String? ?? '';
-        if (rolesStr.isEmpty) return;
-
-        final roleNames = rolesStr.split(' ').where((r) => r.isNotEmpty);
-        final allPermissions =
-            await Future.wait(roleNames.map(_getCachedRolePermissions));
-
-        final canPost = allPermissions.any((p) => p.contains('create_post'));
-        if (!canPost) readOnlyIds.add(ch.id);
-      });
-
-      await Future.wait(futures);
-      return readOnlyIds;
+        if (member == null) return null;
+        final canPost = await _canMemberPost(member);
+        return canPost ? null : ch.id;
+      }));
+      return results.whereType<String>().toSet();
     } catch (e) {
       debugPrint('getReadOnlyChannelIds failed: $e');
       return const {};
     }
   }
 
+  /// Check if a channel member has create_post permission based on their roles.
+  Future<bool> _canMemberPost(Map<String, dynamic> memberData) async {
+    final schemeAdmin = memberData['scheme_admin'] as bool? ?? false;
+    if (schemeAdmin) return true;
+
+    final rolesStr = memberData['roles'] as String? ?? '';
+    if (rolesStr.isEmpty) return true;
+
+    final roleNames = rolesStr.split(' ').where((r) => r.isNotEmpty);
+    final allPermissions =
+        await Future.wait(roleNames.map(_getCachedRolePermissions));
+    return allPermissions.any((p) => p.contains('create_post'));
+  }
+
   Future<List<String>> _getCachedRolePermissions(String roleName) {
-    return _rolePermissionsCache[roleName] ??=
-        _remoteDataSource.getRolePermissions(roleName);
+    return _rolePermissionsCache[roleName] ??= _remoteDataSource
+        .getRolePermissions(roleName)
+        .catchError((Object e) {
+      _rolePermissionsCache.remove(roleName);
+      throw e;
+    });
   }
 }

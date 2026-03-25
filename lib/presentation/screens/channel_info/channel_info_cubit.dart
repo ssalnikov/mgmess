@@ -67,26 +67,30 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
   }) async {
     emit(const ChannelInfoLoading());
 
-    final futures = <Future>[
-      _channelRepository.getChannel(channelId),
-      _channelRepository.getChannelStats(channelId),
-      _channelRepository.getChannelMembers(channelId, page: 0, perPage: 5),
-      if (currentUserId.isNotEmpty)
-        _channelRepository.getChannelMemberInfo(channelId, currentUserId),
-      if (currentUserId.isNotEmpty)
-        _channelRepository.canUserPost(channelId, currentUserId),
-    ];
+    final channelFuture = _channelRepository.getChannel(channelId);
+    final statsFuture = _channelRepository.getChannelStats(channelId);
+    final membersFuture =
+        _channelRepository.getChannelMembers(channelId, page: 0, perPage: 5);
+    final memberInfoFuture = currentUserId.isNotEmpty
+        ? _channelRepository.getChannelMemberInfo(channelId, currentUserId)
+        : null;
 
-    final results = await Future.wait(futures);
+    final results = await Future.wait([
+      channelFuture,
+      statsFuture,
+      membersFuture,
+      ?memberInfoFuture,
+    ]);
 
     final channelResult = results[0];
     final statsResult = results[1];
     final membersResult = results[2];
+    final memberInfoResult = memberInfoFuture != null ? results[3] : null;
 
     // Channel is required
     channelResult.fold(
       (failure) => emit(ChannelInfoError(message: failure.message)),
-      (channel) {
+      (channel) async {
         var ch = channel as Channel;
         final stats = statsResult.fold(
           (_) => ChannelStats(channelId: channelId),
@@ -97,9 +101,8 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
           (m) => m as List<ChannelMember>,
         );
         var isAdmin = false;
-        var isReadOnly = false;
-        if (currentUserId.isNotEmpty && results.length > 3) {
-          results[3].fold(
+        if (memberInfoResult != null) {
+          memberInfoResult.fold(
             (_) {},
             (info) {
               final memberInfo =
@@ -109,14 +112,21 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
             },
           );
         }
-        if (currentUserId.isNotEmpty && results.length > 4) {
-          results[4].fold(
+
+        // canUserPost needs the channel object to avoid re-fetching it
+        var isReadOnly = false;
+        if (currentUserId.isNotEmpty) {
+          final canPostResult = await _channelRepository.canUserPost(
+            channelId,
+            currentUserId,
+            channel: ch,
+          );
+          canPostResult.fold(
             (_) {},
-            (canPost) {
-              isReadOnly = canPost == false;
-            },
+            (canPost) => isReadOnly = canPost == false,
           );
         }
+
         emit(ChannelInfoLoaded(
           channel: ch,
           stats: stats,

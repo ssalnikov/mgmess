@@ -1,9 +1,14 @@
+import 'package:dartz/dartz.dart' show Either;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/l10n/l10n.dart';
 import '../../../core/di/injection.dart';
+import '../../../domain/entities/channel.dart';
+import '../../../domain/entities/channel_stats.dart';
+import '../../../domain/entities/user.dart';
+import '../../../core/error/failures.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -111,51 +116,55 @@ class _ChatScreenState extends State<ChatScreen> {
     final userId = _currentUserId;
 
     // Launch all requests in parallel
-    final futures = <String, Future>{};
+    Future<Either<Failure, Channel>>? channelFuture;
+    Future<Either<Failure, ChannelStats>>? statsFuture;
+    Future<Either<Failure, List<User>>>? dmUserFuture;
+    Future<Either<Failure, bool>>? canPostFuture;
 
     if (_channelName.isEmpty) {
-      futures['channel'] = channelRepo.getChannel(widget.channelId);
+      channelFuture = channelRepo.getChannel(widget.channelId);
     }
     if (widget.dmUserId == null) {
-      futures['stats'] = channelRepo.getChannelStats(widget.channelId);
+      statsFuture = channelRepo.getChannelStats(widget.channelId);
     } else {
-      sl<UserRepository>().getUsersByIds([widget.dmUserId!]).then((result) {
-        result.fold((_) {}, (users) {
-          if (users.isNotEmpty && mounted) {
-            context.read<UserStatusCubit>().setCustomStatusFromUser(users.first);
-          }
-        });
-      });
+      dmUserFuture = sl<UserRepository>().getUsersByIds([widget.dmUserId!]);
     }
     if (userId.isNotEmpty) {
-      futures['canPost'] = channelRepo.canUserPost(widget.channelId, userId);
+      canPostFuture = channelRepo.canUserPost(widget.channelId, userId);
     }
 
-    final results = await Future.wait(
-      futures.values,
-      eagerError: false,
-    );
+    await Future.wait([
+      ?channelFuture,
+      ?statsFuture,
+      ?dmUserFuture,
+      ?canPostFuture,
+    ]);
 
     if (!mounted) return;
-
-    final resultMap = Map.fromIterables(futures.keys, results);
 
     String? newChannelName;
     int? newMemberCount;
     bool? newCanPost;
 
-    if (resultMap['channel'] != null) {
-      (resultMap['channel'] as dynamic).fold((_) {}, (channel) {
+    if (channelFuture != null) {
+      (await channelFuture).fold((_) {}, (channel) {
         newChannelName = channel.displayName;
       });
     }
-    if (resultMap['stats'] != null) {
-      (resultMap['stats'] as dynamic).fold((_) {}, (stats) {
+    if (statsFuture != null) {
+      (await statsFuture).fold((_) {}, (stats) {
         newMemberCount = stats.memberCount;
       });
     }
-    if (resultMap['canPost'] != null) {
-      (resultMap['canPost'] as dynamic).fold((_) {}, (canPost) {
+    if (dmUserFuture != null) {
+      (await dmUserFuture).fold((_) {}, (users) {
+        if (users.isNotEmpty) {
+          context.read<UserStatusCubit>().setCustomStatusFromUser(users.first);
+        }
+      });
+    }
+    if (canPostFuture != null) {
+      (await canPostFuture).fold((_) {}, (canPost) {
         if (canPost != _canPost) newCanPost = canPost;
       });
     }

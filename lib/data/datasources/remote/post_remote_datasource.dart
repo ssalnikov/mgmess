@@ -21,6 +21,7 @@ class PostRemoteDataSource {
       final queryParams = <String, dynamic>{
         'page': page,
         'per_page': perPage,
+        'collapsedThreads': true,
       };
       if (before != null) queryParams['before'] = before;
       if (after != null) queryParams['after'] = after;

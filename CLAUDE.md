@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MGMess is a Flutter mobile Mattermost client for MyGames corporate server (`https://mm.my.games`). It supports GitLab OAuth authentication, real-time messaging via WebSocket, file sharing, read receipts ("seens" — custom MyGames backend extension), saved messages, mentions, push notifications (FCM), pinned messages, haptic feedback, and offline mode with local database (Drift/SQLite). Targets iOS and Android.
+MGMess is a Flutter mobile Mattermost client for MyGames corporate server (`https://mm.corp.my.games`). It supports GitLab OAuth authentication, real-time messaging via WebSocket, file sharing, read receipts ("seens" — custom MyGames backend extension), saved messages, mentions, push notifications (FCM), pinned messages, haptic feedback, and offline mode with local database (Drift/SQLite). Targets iOS and Android.
 
 ## Commands
 
@@ -79,12 +79,12 @@ GetIt service locator in `lib/core/di/injection.dart`. Registration order: Core 
 ### Networking
 
 - `ApiClient` (Dio) with three interceptors: `_AuthInterceptor` (Bearer token + CSRF, clears storage on 401), `_RetryInterceptor` (retries 5xx up to 3 times, linear backoff), `_LoggingInterceptor`
-- `WebSocketClient` — connects to `wss://mm.my.games/api/v4/websocket`, sends `authentication_challenge`, handles `hello`, reconnects with exponential backoff (1s->2s->4s->8s->16s->30s max)
+- `WebSocketClient` — connects to `wss://mm.corp.my.games/api/v4/websocket`, sends `authentication_challenge`, handles `hello`, reconnects with exponential backoff (1s->2s->4s->8s->16s->30s max)
 - WS event `data.post` fields for `posted`/`post_edited`/`post_deleted` are **JSON strings** requiring `jsonDecode`
 
 ### Auth Flow
 
-GitLab OAuth via system browser: open `https://mm.my.games/oauth/gitlab/mobile_login?redirect_to=mgmess://oauth/callback` -> GitLab auth -> server redirects to `mgmess://oauth/callback?MMAUTHTOKEN=...&MMCSRF=...` -> app intercepts via `app_links`, stores tokens in `flutter_secure_storage`.
+GitLab OAuth via system browser: open `https://mm.corp.my.games/oauth/gitlab/mobile_login?redirect_to=mgmess://oauth/callback` -> GitLab auth -> server redirects to `mgmess://oauth/callback?MMAUTHTOKEN=...&MMCSRF=...` -> app intercepts via `app_links`, stores tokens in `flutter_secure_storage`.
 
 Server must have `"mgmess://"` in `NativeAppSettings.AppCustomURLSchemes`.
 

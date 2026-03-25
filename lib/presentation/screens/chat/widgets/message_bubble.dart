@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
@@ -130,13 +131,6 @@ class MessageBubble extends StatelessWidget {
                               ),
                             )
                           : null,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 2,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,12 +441,13 @@ class _CustomReactionEmojiState extends State<_CustomReactionEmoji> {
   @override
   Widget build(BuildContext context) {
     if (_headers == null) return const SizedBox(width: 16, height: 16);
-    return Image.network(
-      widget.url,
+    return CachedNetworkImage(
+      imageUrl: widget.url,
       width: 16,
       height: 16,
-      headers: _headers,
-      errorBuilder: (_, _, _) => const SizedBox(width: 16, height: 16),
+      httpHeaders: _headers!,
+      errorWidget: (_, _, _) => const SizedBox(width: 16, height: 16),
+      placeholder: (_, _) => const SizedBox(width: 16, height: 16),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -42,7 +43,7 @@ class AppRouter {
 
   late final GoRouter router = GoRouter(
     initialLocation: RouteNames.channels,
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: kDebugMode,
     refreshListenable: GoRouterRefreshStream(_authBloc.stream),
     redirect: (context, state) {
       final authState = _authBloc.state;

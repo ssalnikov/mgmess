@@ -297,15 +297,34 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
       isLoading: true,
     ));
 
+    // Phase 1: show cached posts immediately
+    final cachedResult = await _postRepository.getCachedChannelPosts(
+      event.channelId,
+    );
+    cachedResult.fold((_) {}, (cached) {
+      if (cached.isNotEmpty) {
+        final rootPosts = _filterAndCountReplies(cached);
+        emit(state.copyWith(posts: rootPosts, isLoading: true));
+      }
+    });
+
+    // Phase 2: load fresh posts from network
     final result = await _postRepository.getChannelPosts(
       event.channelId,
     );
 
     result.fold(
-      (failure) => emit(state.copyWith(
-        isLoading: false,
-        error: failure.message,
-      )),
+      (failure) {
+        // If we already have cached posts, just stop loading
+        if (state.posts.isNotEmpty) {
+          emit(state.copyWith(isLoading: false));
+        } else {
+          emit(state.copyWith(
+            isLoading: false,
+            error: failure.message,
+          ));
+        }
+      },
       (posts) {
         final rootPosts = _filterAndCountReplies(posts);
         // Determine firstUnreadId

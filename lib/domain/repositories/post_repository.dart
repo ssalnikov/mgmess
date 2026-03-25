@@ -13,6 +13,10 @@ abstract class PostRepository {
     String? before,
     String? after,
   });
+  Future<Either<Failure, List<Post>>> getCachedChannelPosts(
+    String channelId, {
+    int perPage,
+  });
   Future<Either<Failure, Post>> createPost({
     required String channelId,
     required String message,

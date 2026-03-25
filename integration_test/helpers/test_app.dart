@@ -66,6 +66,10 @@ void setupChannelPosts(
   List<Post>? posts,
   String? channelId,
 }) {
+  when(() => mocks.postRepository.getCachedChannelPosts(
+        channelId ?? any(),
+        perPage: any(named: 'perPage'),
+      )).thenAnswer((_) async => const Right(<Post>[]));
   when(() => mocks.postRepository.getChannelPosts(
         channelId ?? any(),
         page: any(named: 'page'),

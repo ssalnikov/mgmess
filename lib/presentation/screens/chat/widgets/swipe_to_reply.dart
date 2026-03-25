@@ -87,15 +87,15 @@ class _SwipeToReplyState extends State<SwipeToReply>
               alignment: Alignment.centerLeft,
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
-                child: Opacity(
-                  opacity: progress,
-                  child: Transform.scale(
-                    scale: 0.5 + progress * 0.5,
-                    child: Icon(
-                      Icons.reply,
-                      color: progress >= 1.0 ? Theme.of(context).primaryColor : Colors.grey,
-                      size: 24,
-                    ),
+                child: Transform.scale(
+                  scale: 0.5 + progress * 0.5,
+                  child: Icon(
+                    Icons.reply,
+                    color: (progress >= 1.0
+                            ? Theme.of(context).primaryColor
+                            : Colors.grey)
+                        .withValues(alpha: progress),
+                    size: 24,
                   ),
                 ),
               ),

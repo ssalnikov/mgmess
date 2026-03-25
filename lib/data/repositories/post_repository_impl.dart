@@ -29,6 +29,22 @@ class PostRepositoryImpl implements PostRepository {
         _networkInfo = networkInfo;
 
   @override
+  Future<Either<Failure, List<Post>>> getCachedChannelPosts(
+    String channelId, {
+    int perPage = 60,
+  }) async {
+    try {
+      final cached = await _localDataSource.getChannelPosts(
+        channelId,
+        limit: perPage,
+      );
+      return Right(cached);
+    } on CacheException {
+      return const Right([]);
+    }
+  }
+
+  @override
   Future<Either<Failure, List<Post>>> getChannelPosts(
     String channelId, {
     int page = 0,

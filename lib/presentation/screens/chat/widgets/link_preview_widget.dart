@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -37,11 +38,17 @@ class LinkPreviewWidget extends StatelessWidget {
                   borderRadius: const BorderRadius.only(
                     topRight: Radius.circular(8),
                   ),
-                  child: Image.network(
-                    preview.imageUrl!,
+                  child: CachedNetworkImage(
+                    imageUrl: preview.imageUrl!,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    errorWidget: (_, _, _) => const SizedBox.shrink(),
+                    placeholder: (_, _) => const SizedBox(
+                      height: 80,
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
                   ),
                 ),
               ),

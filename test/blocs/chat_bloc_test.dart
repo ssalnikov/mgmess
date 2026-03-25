@@ -31,6 +31,8 @@ void main() {
     blocTest<ChatBloc, ChatState>(
       'emits [loading, loaded] when LoadPosts succeeds',
       build: () {
+        when(() => mockRepo.getCachedChannelPosts(any(), perPage: any(named: 'perPage')))
+            .thenAnswer((_) async => const Right(<Post>[]));
         when(() => mockRepo.getChannelPosts(any()))
             .thenAnswer((_) async => const Right(posts));
         return ChatBloc(postRepository: mockRepo, wsPostParser: mockParser, userId: 'u1');
@@ -49,6 +51,8 @@ void main() {
     blocTest<ChatBloc, ChatState>(
       'emits [loading, error] when LoadPosts fails',
       build: () {
+        when(() => mockRepo.getCachedChannelPosts(any(), perPage: any(named: 'perPage')))
+            .thenAnswer((_) async => const Right(<Post>[]));
         when(() => mockRepo.getChannelPosts(any()))
             .thenAnswer((_) async =>
                 const Left(ServerFailure(message: 'Failed')));

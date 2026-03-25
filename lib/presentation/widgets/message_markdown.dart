@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
@@ -75,12 +76,13 @@ class _CustomEmojiImageState extends State<_CustomEmojiImage> {
     if (_headers == null) {
       return const SizedBox(width: 20, height: 20);
     }
-    return Image.network(
-      widget.url,
+    return CachedNetworkImage(
+      imageUrl: widget.url,
       width: 20,
       height: 20,
-      headers: _headers,
-      errorBuilder: (_, _, _) => const SizedBox(width: 20, height: 20),
+      httpHeaders: _headers!,
+      errorWidget: (_, _, _) => const SizedBox(width: 20, height: 20),
+      placeholder: (_, _) => const SizedBox(width: 20, height: 20),
     );
   }
 }

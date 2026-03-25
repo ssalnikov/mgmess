@@ -102,59 +102,71 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _scrollController.addListener(_onScroll);
 
-    // Load channel name if not provided (e.g. navigating back from thread)
-    if (_channelName.isEmpty) {
-      _loadChannelName();
-    }
-
-    // Load member count for non-DM channels
-    if (widget.dmUserId == null) {
-      _loadMemberCount();
-    } else {
-      _loadDmUserCustomStatus();
-    }
-
-    // Check if user can post in this channel
-    _checkCanPost();
+    // Load channel metadata in parallel, apply with single setState
+    _loadChannelMetadata();
   }
 
-  Future<void> _loadChannelName() async {
-    final result = await sl<ChannelRepository>().getChannel(widget.channelId);
-    result.fold((_) {}, (channel) {
-      if (mounted) setState(() => _channelName = channel.displayName);
-    });
-  }
-
-  Future<void> _loadDmUserCustomStatus() async {
-    final result =
-        await sl<UserRepository>().getUsersByIds([widget.dmUserId!]);
-    result.fold((_) {}, (users) {
-      if (users.isNotEmpty && mounted) {
-        context.read<UserStatusCubit>().setCustomStatusFromUser(users.first);
-      }
-    });
-  }
-
-  Future<void> _checkCanPost() async {
+  Future<void> _loadChannelMetadata() async {
+    final channelRepo = sl<ChannelRepository>();
     final userId = _currentUserId;
-    if (userId.isEmpty) return;
-    final result =
-        await sl<ChannelRepository>().canUserPost(widget.channelId, userId);
-    result.fold((_) {}, (canPost) {
-      if (mounted && canPost != _canPost) {
-        setState(() => _canPost = canPost);
-      }
-    });
-  }
 
-  Future<void> _loadMemberCount() async {
-    final result = await sl<ChannelRepository>().getChannelStats(widget.channelId);
-    result.fold(
-      (_) {},
-      (stats) {
-        if (mounted) setState(() => _memberCount = stats.memberCount);
-      },
+    // Launch all requests in parallel
+    final futures = <String, Future>{};
+
+    if (_channelName.isEmpty) {
+      futures['channel'] = channelRepo.getChannel(widget.channelId);
+    }
+    if (widget.dmUserId == null) {
+      futures['stats'] = channelRepo.getChannelStats(widget.channelId);
+    } else {
+      sl<UserRepository>().getUsersByIds([widget.dmUserId!]).then((result) {
+        result.fold((_) {}, (users) {
+          if (users.isNotEmpty && mounted) {
+            context.read<UserStatusCubit>().setCustomStatusFromUser(users.first);
+          }
+        });
+      });
+    }
+    if (userId.isNotEmpty) {
+      futures['canPost'] = channelRepo.canUserPost(widget.channelId, userId);
+    }
+
+    final results = await Future.wait(
+      futures.values,
+      eagerError: false,
     );
+
+    if (!mounted) return;
+
+    final resultMap = Map.fromIterables(futures.keys, results);
+
+    String? newChannelName;
+    int? newMemberCount;
+    bool? newCanPost;
+
+    if (resultMap['channel'] != null) {
+      (resultMap['channel'] as dynamic).fold((_) {}, (channel) {
+        newChannelName = channel.displayName;
+      });
+    }
+    if (resultMap['stats'] != null) {
+      (resultMap['stats'] as dynamic).fold((_) {}, (stats) {
+        newMemberCount = stats.memberCount;
+      });
+    }
+    if (resultMap['canPost'] != null) {
+      (resultMap['canPost'] as dynamic).fold((_) {}, (canPost) {
+        if (canPost != _canPost) newCanPost = canPost;
+      });
+    }
+
+    if (newChannelName != null || newMemberCount != null || newCanPost != null) {
+      setState(() {
+        if (newChannelName != null) _channelName = newChannelName!;
+        if (newMemberCount != null) _memberCount = newMemberCount;
+        if (newCanPost != null) _canPost = newCanPost!;
+      });
+    }
   }
 
   void _onScroll() {

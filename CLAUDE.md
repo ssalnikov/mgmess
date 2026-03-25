@@ -173,6 +173,10 @@ When adding a new integration test scenario:
 3. Use `createTestApp()` + `setupXxx()` helpers from `test_app.dart`
 4. Use `when(() => mocks.xxxRepository.method(...))` for scenario-specific stubs
 
+## Related Repositories
+
+- Mattermost backend & WebApp (forked, with custom extensions like seens): `~/my.games/gitlab/adsadvisor/mattermost/mattermost`
+
 ## Key Configuration
 
 - Server URL: `lib/core/config/app_config.dart` — `AppConfig.serverUrl`

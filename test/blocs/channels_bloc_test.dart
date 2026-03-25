@@ -26,6 +26,9 @@ void main() {
     // Default stub for categories (always returns empty)
     when(() => mockRepo.getChannelCategories(any(), any()))
         .thenAnswer((_) async => const Right(<ChannelCategory>[]));
+    // Default stub for read-only check (no read-only channels)
+    when(() => mockRepo.getReadOnlyChannelIds(any(), any(), any()))
+        .thenAnswer((_) async => const <String>{});
   });
 
   const channels = [

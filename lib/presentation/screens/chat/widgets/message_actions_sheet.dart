@@ -11,6 +11,7 @@ const _quickReactionNames = ['+1', 'heart', 'grinning', 'white_check_mark', 'eye
 class MessageActionsSheet extends StatelessWidget {
   final Post post;
   final bool isOwn;
+  final bool canPost;
   final VoidCallback? onQuote;
   final VoidCallback? onForward;
   final VoidCallback? onEdit;
@@ -23,6 +24,7 @@ class MessageActionsSheet extends StatelessWidget {
     super.key,
     required this.post,
     required this.isOwn,
+    this.canPost = true,
     this.onQuote,
     this.onForward,
     this.onEdit,
@@ -38,7 +40,7 @@ class MessageActionsSheet extends StatelessWidget {
       child: SingleChildScrollView(
         child: Wrap(
         children: [
-          if (onReaction != null) _buildQuickReactions(context),
+          if (canPost && onReaction != null) _buildQuickReactions(context),
           if (post.message.isNotEmpty)
             ListTile(
               leading: const Icon(Icons.copy),
@@ -55,7 +57,7 @@ class MessageActionsSheet extends StatelessWidget {
                 );
               },
             ),
-          if (post.message.isNotEmpty && onQuote != null)
+          if (canPost && post.message.isNotEmpty && onQuote != null)
             ListTile(
               leading: const Icon(Icons.format_quote),
               title: Text(context.l10n.quote),
@@ -75,7 +77,7 @@ class MessageActionsSheet extends StatelessWidget {
                 onForward!();
               },
             ),
-          if (!post.isPinned && onPin != null)
+          if (canPost && !post.isPinned && onPin != null)
             ListTile(
               leading: const Icon(Icons.push_pin_outlined),
               title: Text(context.l10n.pin),
@@ -85,7 +87,7 @@ class MessageActionsSheet extends StatelessWidget {
                 onPin!();
               },
             ),
-          if (post.isPinned && onUnpin != null)
+          if (canPost && post.isPinned && onUnpin != null)
             ListTile(
               leading: const Icon(Icons.push_pin),
               title: Text(context.l10n.unpin),
@@ -95,7 +97,7 @@ class MessageActionsSheet extends StatelessWidget {
                 onUnpin!();
               },
             ),
-          if (isOwn && post.message.isNotEmpty && onEdit != null)
+          if (canPost && isOwn && post.message.isNotEmpty && onEdit != null)
             ListTile(
               leading: const Icon(Icons.edit_outlined),
               title: Text(context.l10n.edit),
@@ -105,7 +107,7 @@ class MessageActionsSheet extends StatelessWidget {
                 onEdit!();
               },
             ),
-          if (isOwn && onDelete != null)
+          if (canPost && isOwn && onDelete != null)
             ListTile(
               leading: const Icon(Icons.delete_outline, color: Colors.red),
               title: Text(context.l10n.delete, style: const TextStyle(color: Colors.red)),

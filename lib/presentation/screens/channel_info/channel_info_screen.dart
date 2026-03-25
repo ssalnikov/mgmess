@@ -100,6 +100,12 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
         _buildHeader(channel),
         const SizedBox(height: 24),
 
+        // Read-only indicator
+        if (state.isReadOnly) ...[
+          _buildReadOnlyIndicator(),
+          const SizedBox(height: 16),
+        ],
+
         // Quick actions
         _buildQuickActions(channel, canEdit: canEdit),
         const Divider(height: 32),
@@ -199,6 +205,30 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
         const SizedBox(height: 4),
         Text(typeLabel, style: AppTextStyles.bodySmall),
       ],
+    );
+  }
+
+  Widget _buildReadOnlyIndicator() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.textSecondary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.lock_outline, size: 16, color: AppColors.textSecondary),
+          const SizedBox(width: 8),
+          Text(
+            context.l10n.readOnlyChannel,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

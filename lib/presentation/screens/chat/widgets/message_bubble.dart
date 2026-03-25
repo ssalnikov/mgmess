@@ -38,6 +38,7 @@ class MessageBubble extends StatelessWidget {
   final void Function(Post post, String emojiName)? onRemoveReaction;
   final String? currentUserId;
   final bool isHighlighted;
+  final bool canPost;
 
   const MessageBubble({
     super.key,
@@ -55,6 +56,7 @@ class MessageBubble extends StatelessWidget {
     this.onRemoveReaction,
     this.currentUserId,
     this.isHighlighted = false,
+    this.canPost = true,
   });
 
   @override
@@ -65,7 +67,7 @@ class MessageBubble extends StatelessWidget {
 
     return SwipeToReply(
       onReply: () => onQuote?.call(post),
-      enabled: !post.isSystemMessage && onQuote != null,
+      enabled: canPost && !post.isSystemMessage && onQuote != null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
@@ -356,6 +358,7 @@ class MessageBubble extends StatelessWidget {
       builder: (_) => MessageActionsSheet(
         post: post,
         isOwn: isOwn,
+        canPost: canPost,
         onQuote: onQuote != null ? () => onQuote!(post) : null,
         onForward: onForward != null ? () => onForward!(post) : null,
         onEdit: onEdit != null ? () => onEdit!(post) : null,

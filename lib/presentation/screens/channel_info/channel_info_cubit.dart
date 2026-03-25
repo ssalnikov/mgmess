@@ -28,16 +28,18 @@ class ChannelInfoLoaded extends ChannelInfoState {
   final ChannelStats stats;
   final List<ChannelMember> memberPreview;
   final bool isCurrentUserAdmin;
+  final bool isReadOnly;
 
   const ChannelInfoLoaded({
     required this.channel,
     required this.stats,
     this.memberPreview = const [],
     this.isCurrentUserAdmin = false,
+    this.isReadOnly = false,
   });
 
   @override
-  List<Object?> get props => [channel, stats, memberPreview, isCurrentUserAdmin];
+  List<Object?> get props => [channel, stats, memberPreview, isCurrentUserAdmin, isReadOnly];
 }
 
 class ChannelInfoError extends ChannelInfoState {
@@ -71,6 +73,8 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
       _channelRepository.getChannelMembers(channelId, page: 0, perPage: 5),
       if (currentUserId.isNotEmpty)
         _channelRepository.getChannelMemberInfo(channelId, currentUserId),
+      if (currentUserId.isNotEmpty)
+        _channelRepository.canUserPost(channelId, currentUserId),
     ];
 
     final results = await Future.wait(futures);
@@ -93,6 +97,7 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
           (m) => m as List<ChannelMember>,
         );
         var isAdmin = false;
+        var isReadOnly = false;
         if (currentUserId.isNotEmpty && results.length > 3) {
           results[3].fold(
             (_) {},
@@ -104,11 +109,20 @@ class ChannelInfoCubit extends Cubit<ChannelInfoState> {
             },
           );
         }
+        if (currentUserId.isNotEmpty && results.length > 4) {
+          results[4].fold(
+            (_) {},
+            (canPost) {
+              isReadOnly = canPost == false;
+            },
+          );
+        }
         emit(ChannelInfoLoaded(
           channel: ch,
           stats: stats,
           memberPreview: members,
           isCurrentUserAdmin: isAdmin,
+          isReadOnly: isReadOnly,
         ));
       },
     );

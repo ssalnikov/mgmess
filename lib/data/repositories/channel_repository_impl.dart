@@ -33,6 +33,11 @@ class ChannelRepositoryImpl implements ChannelRepository {
         _networkInfo = networkInfo,
         _userRemoteDataSource = userRemoteDataSource;
 
+  /// In-memory cache for role permissions futures to avoid repeated API calls
+  /// for the same role (e.g. all channels sharing one scheme).
+  /// Caches the Future itself to prevent race conditions.
+  final Map<String, Future<List<String>>> _rolePermissionsCache = {};
+
   @override
   Future<Either<Failure, List<Channel>>> getChannelsForUser(
     String userId,
@@ -428,36 +433,104 @@ class ChannelRepositoryImpl implements ChannelRepository {
   @override
   Future<Either<Failure, bool>> canUserPost(
     String channelId,
-    String userId,
-  ) async {
+    String userId, {
+    Channel? channel,
+  }) async {
     try {
-      // Fetch channel and member info in parallel
-      final results = await Future.wait([
-        _remoteDataSource.getChannel(channelId),
-        _remoteDataSource.getChannelMember(channelId, userId),
-      ]);
-      final channel = results[0] as Channel;
-      final memberData = results[1] as Map<String, dynamic>;
+      // If channel not provided, fetch it along with member info
+      late final Channel ch;
+      late final Map<String, dynamic> memberData;
 
-      if (channel.deleteAt > 0) return const Right(false); // Archived
+      if (channel != null) {
+        ch = channel;
+        memberData = await _remoteDataSource.getChannelMember(channelId, userId);
+      } else {
+        final results = await Future.wait([
+          _remoteDataSource.getChannel(channelId),
+          _remoteDataSource.getChannelMember(channelId, userId),
+        ]);
+        ch = results[0] as Channel;
+        memberData = results[1] as Map<String, dynamic>;
+      }
+
+      if (ch.deleteAt > 0) return const Right(false); // Archived
 
       final schemeAdmin = memberData['scheme_admin'] as bool? ?? false;
       if (schemeAdmin) return const Right(true); // Admin can always post
 
-      if (channel.schemeId.isEmpty) return const Right(true);
+      if (ch.schemeId.isEmpty) return const Right(true);
 
-      // Fetch scheme user role and check create_post permission
-      final userRoleName =
-          await _remoteDataSource.getSchemeUserRoleName(channel.schemeId);
-      if (userRoleName.isEmpty) return const Right(true);
+      // Get effective roles from channel member (includes scheme-derived roles)
+      // and check create_post permission via /roles/name/{role} (no admin required)
+      final rolesStr = memberData['roles'] as String? ?? '';
+      if (rolesStr.isEmpty) return const Right(true);
 
-      final permissions =
-          await _remoteDataSource.getRolePermissions(userRoleName);
-      return Right(permissions.contains('create_post'));
+      final roleNames = rolesStr.split(' ').where((r) => r.isNotEmpty);
+      final allPermissions =
+          await Future.wait(roleNames.map(_getCachedRolePermissions));
+
+      for (final permissions in allPermissions) {
+        if (permissions.contains('create_post')) {
+          return const Right(true);
+        }
+      }
+      return const Right(false);
     } on ServerException catch (e) {
       // On error, default to allowing posting
       debugPrint('canUserPost check failed: ${e.message}');
       return const Right(true);
     }
+  }
+
+  @override
+  Future<Set<String>> getReadOnlyChannelIds(
+    List<Channel> channels,
+    String userId,
+    String teamId,
+  ) async {
+    final withScheme =
+        channels.where((c) => c.schemeId.isNotEmpty && c.deleteAt == 0);
+    if (withScheme.isEmpty) return const {};
+
+    try {
+      // Single batch call for all channel members
+      final allMembers =
+          await _remoteDataSource.getChannelMembersForUser(userId, teamId);
+      final memberMap = <String, Map<String, dynamic>>{};
+      for (final m in allMembers) {
+        final chId = m['channel_id'] as String?;
+        if (chId != null) memberMap[chId] = m;
+      }
+
+      final readOnlyIds = <String>{};
+      final futures = withScheme.map((ch) async {
+        final member = memberMap[ch.id];
+        if (member == null) return;
+
+        final schemeAdmin = member['scheme_admin'] as bool? ?? false;
+        if (schemeAdmin) return; // Admin can always post
+
+        final rolesStr = member['roles'] as String? ?? '';
+        if (rolesStr.isEmpty) return;
+
+        final roleNames = rolesStr.split(' ').where((r) => r.isNotEmpty);
+        final allPermissions =
+            await Future.wait(roleNames.map(_getCachedRolePermissions));
+
+        final canPost = allPermissions.any((p) => p.contains('create_post'));
+        if (!canPost) readOnlyIds.add(ch.id);
+      });
+
+      await Future.wait(futures);
+      return readOnlyIds;
+    } catch (e) {
+      debugPrint('getReadOnlyChannelIds failed: $e');
+      return const {};
+    }
+  }
+
+  Future<List<String>> _getCachedRolePermissions(String roleName) {
+    return _rolePermissionsCache[roleName] ??=
+        _remoteDataSource.getRolePermissions(roleName);
   }
 }

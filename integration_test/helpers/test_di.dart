@@ -141,8 +141,10 @@ Future<TestMocks> initTestDependencies() async {
       .thenAnswer((_) async => const Right(<ChannelCategory>[]));
   when(() => channelRepo.updateChannelCategory(any(), any(), any(), any()))
       .thenAnswer((_) async => const Right(null));
-  when(() => channelRepo.canUserPost(any(), any()))
+  when(() => channelRepo.canUserPost(any(), any(), channel: any(named: 'channel')))
       .thenAnswer((_) async => const Right(true));
+  when(() => channelRepo.getReadOnlyChannelIds(any(), any(), any()))
+      .thenAnswer((_) async => const <String>{});
 
   // Дефолтные стабы для NotificationRepository
   when(() => notificationRepo.registerDeviceToken(any()))

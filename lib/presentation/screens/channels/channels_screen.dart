@@ -248,10 +248,15 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final channel = section.channels[index];
-                  return _ChannelListTile(
-                    key: ValueKey(channel.id),
-                    channel: channel,
-                    currentUserId: _currentUserId,
+                  return BlocSelector<ChannelsBloc, ChannelsState, bool>(
+                    selector: (state) =>
+                        state.readOnlyChannelIds.contains(channel.id),
+                    builder: (context, isReadOnly) => _ChannelListTile(
+                      key: ValueKey(channel.id),
+                      channel: channel,
+                      currentUserId: _currentUserId,
+                      isReadOnly: isReadOnly,
+                    ),
                   );
                 },
                 childCount: section.channels.length,
@@ -277,6 +282,7 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
           key: ValueKey(channel.id),
           channel: channel,
           currentUserId: _currentUserId,
+          isReadOnly: state.readOnlyChannelIds.contains(channel.id),
         ));
       }
     }
@@ -380,11 +386,13 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
 class _ChannelListTile extends StatefulWidget {
   final Channel channel;
   final String currentUserId;
+  final bool isReadOnly;
 
   const _ChannelListTile({
     super.key,
     required this.channel,
     required this.currentUserId,
+    this.isReadOnly = false,
   });
 
   @override
@@ -562,16 +570,31 @@ class _ChannelListTileState extends State<_ChannelListTile> {
 
   Widget? _buildTrailing() {
     if (channel.isMuted) {
-      return const Icon(
-        Icons.notifications_off,
-        size: 18,
-        color: AppColors.textSecondary,
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.isReadOnly)
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
+            ),
+          const Icon(
+            Icons.notifications_off,
+            size: 18,
+            color: AppColors.textSecondary,
+          ),
+        ],
       );
     }
     if (channel.hasMention) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (widget.isReadOnly)
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
+            ),
           if (channel.hasUrgent)
             Padding(
               padding: const EdgeInsets.only(right: 4),
@@ -600,14 +623,27 @@ class _ChannelListTileState extends State<_ChannelListTile> {
       );
     }
     if (channel.hasUnread) {
-      return Container(
-        width: 10,
-        height: 10,
-        decoration: const BoxDecoration(
-          color: AppColors.accent,
-          shape: BoxShape.circle,
-        ),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.isReadOnly)
+            const Padding(
+              padding: EdgeInsets.only(right: 4),
+              child: Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary),
+            ),
+          Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ],
       );
+    }
+    if (widget.isReadOnly) {
+      return const Icon(Icons.lock_outline, size: 14, color: AppColors.textSecondary);
     }
     return null;
   }

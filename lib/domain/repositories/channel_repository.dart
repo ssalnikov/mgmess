@@ -90,6 +90,15 @@ abstract class ChannelRepository {
   );
   Future<Either<Failure, bool>> canUserPost(
     String channelId,
+    String userId, {
+    Channel? channel,
+  });
+
+  /// Returns the set of channel IDs that are read-only for the given user.
+  /// Uses a single batch member fetch instead of per-channel calls.
+  Future<Set<String>> getReadOnlyChannelIds(
+    List<Channel> channels,
     String userId,
+    String teamId,
   );
 }

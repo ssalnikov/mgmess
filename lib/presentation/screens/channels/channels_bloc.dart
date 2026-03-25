@@ -80,6 +80,13 @@ class ToggleCategoryCollapsed extends ChannelsEvent {
   List<Object?> get props => [categoryId];
 }
 
+class _ReadOnlyChannelsLoaded extends ChannelsEvent {
+  final Set<String> readOnlyChannelIds;
+  const _ReadOnlyChannelsLoaded({required this.readOnlyChannelIds});
+  @override
+  List<Object?> get props => [readOnlyChannelIds];
+}
+
 // Grouped section for UI
 class ChannelSection extends Equatable {
   final String id;
@@ -114,6 +121,7 @@ class ChannelsState extends Equatable {
   final String searchQuery;
   final List<ChannelSection> sections;
   final List<ChannelCategory> categories;
+  final Set<String> readOnlyChannelIds;
 
   const ChannelsState({
     this.channels = const [],
@@ -126,6 +134,7 @@ class ChannelsState extends Equatable {
     this.searchQuery = '',
     this.sections = const [],
     this.categories = const [],
+    this.readOnlyChannelIds = const {},
   });
 
   bool get hasSearchQuery => searchQuery.isNotEmpty;
@@ -141,6 +150,7 @@ class ChannelsState extends Equatable {
     String? searchQuery,
     List<ChannelSection>? sections,
     List<ChannelCategory>? categories,
+    Set<String>? readOnlyChannelIds,
   }) {
     return ChannelsState(
       channels: channels ?? this.channels,
@@ -153,6 +163,7 @@ class ChannelsState extends Equatable {
       searchQuery: searchQuery ?? this.searchQuery,
       sections: sections ?? this.sections,
       categories: categories ?? this.categories,
+      readOnlyChannelIds: readOnlyChannelIds ?? this.readOnlyChannelIds,
     );
   }
 
@@ -168,6 +179,7 @@ class ChannelsState extends Equatable {
         searchQuery,
         sections,
         categories,
+        readOnlyChannelIds,
       ];
 }
 
@@ -200,6 +212,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     on<ToggleMuteChannel>(_onToggleMuteChannel);
     on<ChannelWsEvent>(_onWsEvent);
     on<ToggleCategoryCollapsed>(_onToggleCategoryCollapsed);
+    on<_ReadOnlyChannelsLoaded>(_onReadOnlyChannelsLoaded);
   }
 
   void subscribeToWs(Stream<WsEvent> wsEvents) {
@@ -246,6 +259,9 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
           isLoading: false,
         ));
         _updateAppBadge(sorted);
+
+        // Check read-only status for channels with schemes (non-blocking)
+        _checkReadOnlyChannels(sorted, event.userId, event.teamId);
       },
     );
   }
@@ -466,6 +482,31 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
           <String, dynamic>{'collapsed': category.collapsed},
         );
       }
+    }
+  }
+
+  void _onReadOnlyChannelsLoaded(
+    _ReadOnlyChannelsLoaded event,
+    Emitter<ChannelsState> emit,
+  ) {
+    emit(state.copyWith(readOnlyChannelIds: event.readOnlyChannelIds));
+  }
+
+  /// Check read-only status for channels with schemes (fire-and-forget).
+  /// Uses a single batch member fetch instead of per-channel calls.
+  Future<void> _checkReadOnlyChannels(
+    List<Channel> channels,
+    String userId,
+    String teamId,
+  ) async {
+    final readOnlyIds = await _channelRepository.getReadOnlyChannelIds(
+      channels,
+      userId,
+      teamId,
+    );
+
+    if (readOnlyIds.isNotEmpty) {
+      add(_ReadOnlyChannelsLoaded(readOnlyChannelIds: readOnlyIds));
     }
   }
 

@@ -500,6 +500,7 @@ class _ChatScreenState extends State<ChatScreen> {
               showAvatar: showAvatar,
               isHighlighted: post.id == state.highlightedPostId,
               currentUserId: _currentUserId,
+              canPost: _canPost,
               onThreadTap: (postId) =>
                   context.push(RouteNames.threadPath(postId)),
               onQuote: (post) {

@@ -510,5 +510,158 @@ void main() {
         expect(result.isLeft(), true);
       });
     });
+
+    group('canUserPost', () {
+      const archivedChannel = ChannelModel(
+        id: 'archived_ch',
+        teamId: 'team1',
+        name: 'archived',
+        displayName: 'Archived',
+        type: ChannelType.open,
+        deleteAt: 1700000000000,
+      );
+
+      const channelWithScheme = ChannelModel(
+        id: 'scheme_ch',
+        teamId: 'team1',
+        name: 'readonly',
+        displayName: 'ReadOnly',
+        type: ChannelType.open,
+        schemeId: 'scheme1',
+      );
+
+      const channelNoScheme = ChannelModel(
+        id: 'no_scheme_ch',
+        teamId: 'team1',
+        name: 'normal',
+        displayName: 'Normal',
+        type: ChannelType.open,
+      );
+
+      test('returns false for archived channel', () async {
+        when(() => mockRemote.getChannel(any()))
+            .thenAnswer((_) async => archivedChannel);
+        when(() => mockRemote.getChannelMember(any(), any()))
+            .thenAnswer((_) async => <String, dynamic>{
+                  'scheme_admin': false,
+                  'roles': 'channel_user',
+                });
+
+        final result = await repository.canUserPost('archived_ch', 'user1');
+
+        result.fold(
+          (_) => fail('Expected Right'),
+          (canPost) => expect(canPost, false),
+        );
+      });
+
+      test('returns true for scheme_admin even with restrictive scheme', () async {
+        when(() => mockRemote.getChannel(any()))
+            .thenAnswer((_) async => channelWithScheme);
+        when(() => mockRemote.getChannelMember(any(), any()))
+            .thenAnswer((_) async => <String, dynamic>{
+                  'scheme_admin': true,
+                  'roles': 'channel_admin',
+                });
+
+        final result = await repository.canUserPost('scheme_ch', 'user1');
+
+        result.fold(
+          (_) => fail('Expected Right'),
+          (canPost) => expect(canPost, true),
+        );
+        verifyNever(() => mockRemote.getRolePermissions(any()));
+      });
+
+      test('returns true for channel without scheme', () async {
+        when(() => mockRemote.getChannel(any()))
+            .thenAnswer((_) async => channelNoScheme);
+        when(() => mockRemote.getChannelMember(any(), any()))
+            .thenAnswer((_) async => <String, dynamic>{
+                  'scheme_admin': false,
+                  'roles': 'channel_user',
+                });
+
+        final result = await repository.canUserPost('no_scheme_ch', 'user1');
+
+        result.fold(
+          (_) => fail('Expected Right'),
+          (canPost) => expect(canPost, true),
+        );
+        verifyNever(() => mockRemote.getRolePermissions(any()));
+      });
+
+      test('returns false when member roles lack create_post permission', () async {
+        when(() => mockRemote.getChannel(any()))
+            .thenAnswer((_) async => channelWithScheme);
+        when(() => mockRemote.getChannelMember(any(), any()))
+            .thenAnswer((_) async => <String, dynamic>{
+                  'scheme_admin': false,
+                  'roles': 'readonly_role',
+                });
+        when(() => mockRemote.getRolePermissions('readonly_role'))
+            .thenAnswer((_) async => ['read_channel', 'read_public_channel']);
+
+        final result = await repository.canUserPost('scheme_ch', 'user1');
+
+        result.fold(
+          (_) => fail('Expected Right'),
+          (canPost) => expect(canPost, false),
+        );
+      });
+
+      test('returns true when any member role has create_post permission', () async {
+        when(() => mockRemote.getChannel(any()))
+            .thenAnswer((_) async => channelWithScheme);
+        when(() => mockRemote.getChannelMember(any(), any()))
+            .thenAnswer((_) async => <String, dynamic>{
+                  'scheme_admin': false,
+                  'roles': 'readonly_role channel_user',
+                });
+        when(() => mockRemote.getRolePermissions('readonly_role'))
+            .thenAnswer((_) async => ['read_channel']);
+        when(() => mockRemote.getRolePermissions('channel_user'))
+            .thenAnswer((_) async => ['create_post', 'read_channel']);
+
+        final result = await repository.canUserPost('scheme_ch', 'user1');
+
+        result.fold(
+          (_) => fail('Expected Right'),
+          (canPost) => expect(canPost, true),
+        );
+      });
+
+      test('returns true (default) when server throws an error', () async {
+        when(() => mockRemote.getChannel(any()))
+            .thenThrow(const ServerException(message: 'Network error'));
+        when(() => mockRemote.getChannelMember(any(), any()))
+            .thenThrow(const ServerException(message: 'Network error'));
+
+        final result = await repository.canUserPost('ch1', 'user1');
+
+        result.fold(
+          (_) => fail('Expected Right'),
+          (canPost) => expect(canPost, true),
+        );
+      });
+
+      test('returns true when member has empty roles', () async {
+        when(() => mockRemote.getChannel(any()))
+            .thenAnswer((_) async => channelWithScheme);
+        when(() => mockRemote.getChannelMember(any(), any()))
+            .thenAnswer((_) async => <String, dynamic>{
+                  'scheme_admin': false,
+                  'roles': '',
+                });
+
+        final result = await repository.canUserPost('scheme_ch', 'user1');
+
+        result.fold(
+          (_) => fail('Expected Right'),
+          (canPost) => expect(canPost, true),
+        );
+        verifyNever(() => mockRemote.getRolePermissions(any()));
+      });
+    });
   });
 }

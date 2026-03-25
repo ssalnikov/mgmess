@@ -63,7 +63,6 @@ class ChannelFilesState extends Equatable {
 class ChannelFilesCubit extends Cubit<ChannelFilesState> {
   final FileRepository _fileRepository;
   final String channelId;
-  int _currentPage = 0;
   static const _perPage = 20;
 
   ChannelFilesCubit({
@@ -74,7 +73,6 @@ class ChannelFilesCubit extends Cubit<ChannelFilesState> {
 
   Future<void> loadFiles() async {
     emit(state.copyWith(isLoading: true, error: null));
-    _currentPage = 0;
 
     final result = await _fileRepository.getChannelFiles(
       channelId,
@@ -99,11 +97,11 @@ class ChannelFilesCubit extends Cubit<ChannelFilesState> {
     if (state.isLoadingMore || !state.hasMore) return;
 
     emit(state.copyWith(isLoadingMore: true));
-    _currentPage++;
+    final nextPage = state.files.length ~/ _perPage;
 
     final result = await _fileRepository.getChannelFiles(
       channelId,
-      page: _currentPage,
+      page: nextPage,
       perPage: _perPage,
     );
 

@@ -5,6 +5,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/file_info.dart';
 import '../../../domain/repositories/file_repository.dart';
 import '../../widgets/file_icon.dart';
@@ -222,10 +223,7 @@ class _FileListItem extends StatelessWidget {
       );
     }
 
-    final date = DateTime.fromMillisecondsSinceEpoch(createAt);
-    final dateStr = '${date.day.toString().padLeft(2, '0')}.'
-        '${date.month.toString().padLeft(2, '0')}.'
-        '${date.year}';
+    final dateStr = DateFormatter.formatShortDate(createAt);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -241,10 +239,8 @@ class _FileListItem extends StatelessWidget {
           '${fileInfo.sizeFormatted} · $dateStr',
           style: AppTextStyles.caption,
         ),
-        onTap: () {
-          // Open file using FileAttachmentWidget's logic
-          // For non-image files, download or preview isn't implemented yet
-        },
+        // TODO: download/preview for non-image files
+        onTap: () {},
       ),
     );
   }

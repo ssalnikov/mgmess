@@ -64,12 +64,13 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messageInputKey = GlobalKey<MessageInputState>();
   bool _isUserScrolledUp = false;
   int? _memberCount;
-  late String _channelName = widget.channelName;
+  String _channelName = '';
   bool _canPost = true;
 
   @override
   void initState() {
     super.initState();
+    _channelName = widget.channelName;
     _chatBloc = ChatBloc(
       postRepository: sl<PostRepository>(),
       wsPostParser: sl<WsPostParser>(),
@@ -133,7 +134,7 @@ class _ChatScreenState extends State<ChatScreen> {
       canPostFuture = channelRepo.canUserPost(widget.channelId, userId);
     }
 
-    await Future.wait([
+    final results = await Future.wait([
       ?channelFuture,
       ?statsFuture,
       ?dmUserFuture,
@@ -146,26 +147,22 @@ class _ChatScreenState extends State<ChatScreen> {
     int? newMemberCount;
     bool? newCanPost;
 
-    if (channelFuture != null) {
-      (await channelFuture).fold((_) {}, (channel) {
-        newChannelName = channel.displayName;
-      });
-    }
-    if (statsFuture != null) {
-      (await statsFuture).fold((_) {}, (stats) {
-        newMemberCount = stats.memberCount;
-      });
-    }
-    if (dmUserFuture != null) {
-      (await dmUserFuture).fold((_) {}, (users) {
-        if (users.isNotEmpty) {
-          context.read<UserStatusCubit>().setCustomStatusFromUser(users.first);
+    for (final result in results) {
+      result.fold((_) {}, (value) {
+        switch (value) {
+          case final Channel channel:
+            newChannelName = channel.displayName;
+          case final ChannelStats stats:
+            newMemberCount = stats.memberCount;
+          case final List<User> users:
+            if (users.isNotEmpty) {
+              context
+                  .read<UserStatusCubit>()
+                  .setCustomStatusFromUser(users.first);
+            }
+          case final bool canPost:
+            if (canPost != _canPost) newCanPost = canPost;
         }
-      });
-    }
-    if (canPostFuture != null) {
-      (await canPostFuture).fold((_) {}, (canPost) {
-        if (canPost != _canPost) newCanPost = canPost;
       });
     }
 

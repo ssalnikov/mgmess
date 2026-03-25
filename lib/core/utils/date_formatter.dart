@@ -50,6 +50,12 @@ class DateFormatter {
     return DateFormat('EEEE, MMMM d').format(date);
   }
 
+  static String formatShortDate(int timestampMs) {
+    if (timestampMs == 0) return '';
+    final date = DateTime.fromMillisecondsSinceEpoch(timestampMs);
+    return DateFormat('dd.MM.yyyy').format(date);
+  }
+
   /// Formats a "last seen" timestamp into a human-readable relative time.
   /// Returns null if timestamp is 0 or user is currently online.
   static String? formatLastSeen(int timestampMs) {

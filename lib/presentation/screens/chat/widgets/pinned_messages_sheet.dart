@@ -10,7 +10,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/date_formatter.dart';
 import '../../../../domain/entities/post.dart';
-import '../../../../domain/repositories/post_repository.dart';
 import '../../../widgets/user_avatar.dart';
 import 'pinned_messages_bloc.dart';
 
@@ -35,7 +34,7 @@ class _PinnedMessagesSheetState extends State<PinnedMessagesSheet> {
   void initState() {
     super.initState();
     _bloc = PinnedMessagesBloc(
-      postRepository: sl<PostRepository>(),
+      postRepository: currentSession.postRepository,
     );
     _bloc.add(LoadPinnedMessages(channelId: widget.channelId));
   }

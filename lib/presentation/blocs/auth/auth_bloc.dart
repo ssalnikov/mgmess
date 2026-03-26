@@ -8,10 +8,15 @@ import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
-  static const _selectedTeamKey = 'selected_team_id';
+  final String? _accountId;
 
-  AuthBloc({required AuthRepository authRepository})
+  String get _selectedTeamKey => _accountId != null
+      ? 'selected_team_id_$_accountId'
+      : 'selected_team_id';
+
+  AuthBloc({required AuthRepository authRepository, String? accountId})
       : _authRepository = authRepository,
+        _accountId = accountId,
         super(const AuthInitial()) {
     on<AuthCheckSession>(_onCheckSession);
     on<AuthOAuthCompleted>(_onOAuthCompleted);

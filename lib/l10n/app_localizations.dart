@@ -1501,6 +1501,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Documents'**
   String get documents;
+
+  /// No description provided for @servers.
+  ///
+  /// In en, this message translates to:
+  /// **'Servers'**
+  String get servers;
+
+  /// No description provided for @addServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Server'**
+  String get addServer;
+
+  /// No description provided for @removeServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove Server'**
+  String get removeServer;
+
+  /// No description provided for @removeServerConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove server {serverName}? Your data on this server will not be deleted.'**
+  String removeServerConfirm(String serverName);
+
+  /// No description provided for @activeServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get activeServer;
+
+  /// No description provided for @noOtherServers.
+  ///
+  /// In en, this message translates to:
+  /// **'No other servers'**
+  String get noOtherServers;
+
+  /// No description provided for @serverAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Server added'**
+  String get serverAdded;
+
+  /// No description provided for @serverRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Server removed'**
+  String get serverRemoved;
+
+  /// No description provided for @cannotRemoveLastServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot remove the only server'**
+  String get cannotRemoveLastServer;
 }
 
 class _AppLocalizationsDelegate

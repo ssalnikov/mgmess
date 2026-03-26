@@ -62,6 +62,16 @@ class NotificationUpdateMutedChannels extends NotificationEvent {
   List<Object?> get props => [mutedChannelIds];
 }
 
+/// Lightweight init for background sessions — skips FCM registration.
+class NotificationInitBackground extends NotificationEvent {
+  final String userId;
+
+  const NotificationInitBackground({required this.userId});
+
+  @override
+  List<Object?> get props => [userId];
+}
+
 class NotificationChannelSettingChanged extends NotificationEvent {
   final String channelId;
   final String filter;

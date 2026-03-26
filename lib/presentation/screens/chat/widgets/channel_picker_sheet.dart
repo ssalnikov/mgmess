@@ -4,8 +4,6 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/l10n/l10n.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../domain/entities/channel.dart';
-import '../../../../domain/repositories/channel_repository.dart';
-import '../../../../domain/repositories/user_repository.dart';
 
 class ChannelPickerSheet extends StatefulWidget {
   final String userId;
@@ -43,7 +41,7 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
   }
 
   Future<void> _loadChannels() async {
-    final result = await sl<ChannelRepository>().getChannelsForUser(
+    final result = await currentSession.channelRepository.getChannelsForUser(
       widget.userId,
       widget.teamId,
     );
@@ -66,7 +64,7 @@ class _ChannelPickerSheetState extends State<ChannelPickerSheet> {
   }
 
   Future<void> _resolveDmNames(List<Channel> channels) async {
-    final userRepo = sl<UserRepository>();
+    final userRepo = currentSession.userRepository;
     for (final ch in channels) {
       if (!ch.isDirect) continue;
       final parts = ch.name.split('__');

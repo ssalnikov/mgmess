@@ -11,18 +11,21 @@ import '../datasources/remote/auth_remote_datasource.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
   final SecureStorage _secureStorage;
+  final String? _accountId;
 
   AuthRepositoryImpl({
     required AuthRemoteDataSource remoteDataSource,
     required SecureStorage secureStorage,
+    String? accountId,
   })  : _remoteDataSource = remoteDataSource,
-        _secureStorage = secureStorage;
+        _secureStorage = secureStorage,
+        _accountId = accountId;
 
   @override
   Future<Either<Failure, User>> getCurrentUser() async {
     try {
       final user = await _remoteDataSource.getCurrentUser();
-      await _secureStorage.saveUserId(user.id);
+      await _secureStorage.saveUserIdFor(_accountId, user.id);
       return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
@@ -37,9 +40,9 @@ class AuthRepositoryImpl implements AuthRepository {
     String? csrfToken,
   }) async {
     try {
-      await _secureStorage.saveToken(token);
+      await _secureStorage.saveTokenFor(_accountId, token);
       if (csrfToken != null) {
-        await _secureStorage.saveCsrfToken(csrfToken);
+        await _secureStorage.saveCsrfFor(_accountId, csrfToken);
       }
       return const Right(null);
     } catch (e) {
@@ -54,7 +57,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (_) {
       // Best effort server logout
     }
-    await _secureStorage.clearAll();
+    await _secureStorage.clearFor(_accountId);
     return const Right(null);
   }
 
@@ -68,8 +71,8 @@ class AuthRepositoryImpl implements AuthRepository {
         loginId: loginId,
         password: password,
       );
-      await _secureStorage.saveToken(token);
-      await _secureStorage.saveUserId(user.id);
+      await _secureStorage.saveTokenFor(_accountId, token);
+      await _secureStorage.saveUserIdFor(_accountId, user.id);
       return Right(user);
     } on ServerException catch (e) {
       return Left(ServerFailure(message: e.message));
@@ -104,7 +107,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<bool> hasValidSession() async {
-    final token = await _secureStorage.getToken();
+    final token = await _secureStorage.getTokenFor(_accountId);
     if (token == null) return false;
     try {
       await _remoteDataSource.getCurrentUser();

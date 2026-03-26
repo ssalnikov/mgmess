@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/api_endpoints.dart';
@@ -12,12 +11,15 @@ import '../datasources/remote/user_remote_datasource.dart';
 class UserRepositoryImpl implements UserRepository {
   final UserRemoteDataSource _remoteDataSource;
   final UserLocalDataSource _localDataSource;
+  final String _baseUrl;
 
   UserRepositoryImpl({
     required UserRemoteDataSource remoteDataSource,
     required UserLocalDataSource localDataSource,
+    required String baseUrl,
   })  : _remoteDataSource = remoteDataSource,
-        _localDataSource = localDataSource;
+        _localDataSource = localDataSource,
+        _baseUrl = baseUrl;
 
   @override
   Future<Either<Failure, User>> getUser(String userId) async {
@@ -149,5 +151,5 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   String getUserImageUrl(String userId) =>
-      '${AppConfig.baseUrl}${ApiEndpoints.userImage(userId)}';
+      '$_baseUrl${ApiEndpoints.userImage(userId)}';
 }

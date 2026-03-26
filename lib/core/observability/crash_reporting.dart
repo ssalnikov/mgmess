@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import '../config/app_config.dart';
+import '../di/injection.dart';
+import '../di/session_manager.dart';
 
 class CrashReporting {
   static const String _defaultDsn = '';
@@ -48,7 +49,8 @@ class CrashReporting {
         id: userId,
         username: username,
       ));
-      scope.setTag('server_url', AppConfig.serverUrl);
+      final serverUrl = sl<SessionManager>().activeSession?.serverUrl ?? '';
+      scope.setTag('server_url', serverUrl);
     });
   }
 

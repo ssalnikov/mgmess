@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../../core/di/injection.dart';
-import '../../core/storage/secure_storage.dart';
 import '../../core/utils/custom_emoji_cache.dart';
 import '../../core/utils/emoji_utils.dart';
 
@@ -61,7 +60,7 @@ class _CustomEmojiImageState extends State<_CustomEmojiImage> {
   }
 
   Future<void> _loadHeaders() async {
-    final token = await sl<SecureStorage>().getToken();
+    final token = await currentSession.getAuthToken();
     if (mounted) {
       setState(() {
         _headers = {

@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import '../../../core/error/exceptions.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
@@ -8,11 +10,13 @@ class NotificationRemoteDataSource {
   NotificationRemoteDataSource({required ApiClient apiClient})
       : _apiClient = apiClient;
 
+  static String get _devicePrefix => Platform.isIOS ? 'apple' : 'android';
+
   Future<void> registerDeviceToken(String token) async {
     try {
       await _apiClient.dio.put(
         ApiEndpoints.deviceId,
-        data: {'device_id': 'android:$token'},
+        data: {'device_id': '$_devicePrefix:$token'},
       );
     } catch (e) {
       throw ServerException(message: 'Failed to register device token: $e');

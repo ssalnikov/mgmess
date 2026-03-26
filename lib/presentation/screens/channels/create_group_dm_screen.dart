@@ -11,8 +11,6 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../domain/entities/user.dart';
-import '../../../domain/repositories/channel_repository.dart';
-import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../widgets/user_avatar.dart';
@@ -62,7 +60,7 @@ class _CreateGroupDmScreenState extends State<CreateGroupDmScreen> {
     }
     setState(() => _isSearching = true);
     _debounce = Timer(const Duration(milliseconds: 300), () async {
-      final result = await sl<UserRepository>().autocompleteUsers(
+      final result = await currentSession.userRepository.autocompleteUsers(
         query,
         teamId: _teamId,
       );
@@ -102,7 +100,7 @@ class _CreateGroupDmScreenState extends State<CreateGroupDmScreen> {
 
     final userIds = [_currentUserId, ..._selectedUsers.map((u) => u.id)];
 
-    final channelRepo = sl<ChannelRepository>();
+    final channelRepo = currentSession.channelRepository;
     final result = _selectedUsers.length == 1
         ? await channelRepo.createDirectChannel(
             _currentUserId, _selectedUsers.first.id)

@@ -12,7 +12,11 @@ class FakeWebSocketClient extends WebSocketClient {
   final _stateController = StreamController<WsConnectionState>.broadcast();
   WsConnectionState _state = WsConnectionState.disconnected;
 
-  FakeWebSocketClient() : super(secureStorage: FakeSecureStorage());
+  FakeWebSocketClient()
+      : super(
+          secureStorage: FakeSecureStorage(),
+          wsUrl: 'wss://fake.test/api/v4/websocket',
+        );
 
   @override
   Stream<WsEvent> get events => _eventController.stream;

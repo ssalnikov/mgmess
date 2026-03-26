@@ -7,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/file_info.dart';
-import '../../../domain/repositories/file_repository.dart';
 import '../../widgets/file_icon.dart';
 import '../chat/widgets/file_attachment_widget.dart';
 import 'channel_files_cubit.dart';
@@ -34,7 +33,7 @@ class _ChannelFilesScreenState extends State<ChannelFilesScreen> {
   void initState() {
     super.initState();
     _cubit = ChannelFilesCubit(
-      fileRepository: sl<FileRepository>(),
+      fileRepository: currentSession.fileRepository,
       channelId: widget.channelId,
     );
     _cubit.loadFiles();

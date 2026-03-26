@@ -11,7 +11,6 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/post.dart';
-import '../../../domain/repositories/post_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../widgets/error_display.dart';
@@ -32,7 +31,7 @@ class _SavedMessagesScreenState extends State<SavedMessagesScreen> {
   @override
   void initState() {
     super.initState();
-    _bloc = SavedMessagesBloc(postRepository: sl<PostRepository>());
+    _bloc = SavedMessagesBloc(postRepository: currentSession.postRepository);
     _load();
   }
 

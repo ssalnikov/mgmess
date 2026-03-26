@@ -14,6 +14,8 @@ import 'notification_state.dart';
 class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   final NotificationRepository _repository;
   final NotificationService _notificationService;
+  final String? _accountId;
+  final String? _serverDisplayName;
   final _logger = Logger(printer: SimplePrinter());
 
   StreamSubscription<String>? _tokenRefreshSub;
@@ -25,13 +27,22 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
   static const _prefKeyEnabled = 'notification_enabled';
   static const _prefKeyFilter = 'notification_filter';
 
+  String get _channelPrefPrefix => _accountId != null
+      ? 'channel_notification_${_accountId}_'
+      : 'channel_notification_';
+
   NotificationBloc({
     required NotificationRepository repository,
     required NotificationService notificationService,
+    String? accountId,
+    String? serverDisplayName,
   })  : _repository = repository,
         _notificationService = notificationService,
+        _accountId = accountId,
+        _serverDisplayName = serverDisplayName,
         super(const NotificationInitial()) {
     on<NotificationInit>(_onInit);
+    on<NotificationInitBackground>(_onInitBackground);
     on<NotificationTokenRefreshed>(_onTokenRefreshed);
     on<NotificationWsEvent>(_onWsEvent);
     on<NotificationSetActiveChannel>(_onSetActiveChannel);
@@ -71,20 +82,39 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
     final prefs = await SharedPreferences.getInstance();
     final enabled = prefs.getBool(_prefKeyEnabled) ?? true;
 
-    // Load per-channel notification filters
+    _loadChannelFilters(prefs);
+
+    emit(NotificationReady(token: token, enabled: enabled));
+  }
+
+  /// Lightweight init for background sessions — sets userId, loads
+  /// per-channel filters, but does NOT request permissions or register FCM.
+  Future<void> _onInitBackground(
+    NotificationInitBackground event,
+    Emitter<NotificationState> emit,
+  ) async {
+    _currentUserId = event.userId;
+
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool(_prefKeyEnabled) ?? true;
+
+    _loadChannelFilters(prefs);
+
+    emit(NotificationReady(enabled: enabled));
+  }
+
+  void _loadChannelFilters(SharedPreferences prefs) {
     _channelNotificationFilters = {};
-    final keys = prefs.getKeys();
-    for (final key in keys) {
-      if (key.startsWith('channel_notification_')) {
-        final channelId = key.substring('channel_notification_'.length);
+    final prefix = _channelPrefPrefix;
+    for (final key in prefs.getKeys()) {
+      if (key.startsWith(prefix)) {
+        final channelId = key.substring(prefix.length);
         final value = prefs.getString(key);
         if (value != null && value != 'default') {
           _channelNotificationFilters[channelId] = value;
         }
       }
     }
-
-    emit(NotificationReady(token: token, enabled: enabled));
   }
 
   Future<void> _onTokenRefreshed(
@@ -164,8 +194,11 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
       final channelDisplayName =
           wsEvent.data['channel_display_name'] as String? ?? '';
 
-      final title =
+      final baseTitle =
           channelDisplayName.isNotEmpty ? channelDisplayName : senderName;
+      final title = _serverDisplayName != null && _serverDisplayName.isNotEmpty
+          ? '[$_serverDisplayName] $baseTitle'
+          : baseTitle;
 
       final body = senderName.isNotEmpty ? '$senderName: $message' : message;
 
@@ -174,6 +207,7 @@ class NotificationBloc extends Bloc<NotificationEvent, NotificationState> {
         body: body,
         channelId: channelId,
         postId: post['id'] as String?,
+        accountId: _accountId,
       );
     } catch (e) {
       _logger.w('Failed to show notification: $e');

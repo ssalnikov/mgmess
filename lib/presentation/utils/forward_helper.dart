@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/di/injection.dart';
 import '../../domain/entities/channel.dart';
 import '../../domain/entities/post.dart';
-import '../../domain/repositories/post_repository.dart';
 import '../screens/chat/widgets/channel_picker_sheet.dart';
 
 class ForwardHelper {
@@ -28,9 +26,9 @@ class ForwardHelper {
     if (channel == null || !context.mounted) return;
 
     final permalink =
-        '${AppConfig.serverUrl}/$teamName/pl/${post.id}';
+        '${currentSession.serverUrl}/$teamName/pl/${post.id}';
 
-    final result = await sl<PostRepository>().createPost(
+    final result = await currentSession.postRepository.createPost(
       channelId: channel.id,
       message: permalink,
     );

@@ -6,7 +6,6 @@ import '../../../core/di/injection.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/channel.dart';
-import '../../../domain/repositories/channel_repository.dart';
 import 'channel_info_cubit.dart';
 
 class EditChannelScreen extends StatefulWidget {
@@ -34,12 +33,12 @@ class _EditChannelScreenState extends State<EditChannelScreen> {
     _displayNameController = TextEditingController();
     _headerController = TextEditingController();
     _purposeController = TextEditingController();
-    _cubit = ChannelInfoCubit(channelRepository: sl<ChannelRepository>());
+    _cubit = ChannelInfoCubit(channelRepository: currentSession.channelRepository);
     _loadChannel();
   }
 
   Future<void> _loadChannel() async {
-    final repo = sl<ChannelRepository>();
+    final repo = currentSession.channelRepository;
     final result = await repo.getChannel(widget.channelId);
     result.fold(
       (failure) {

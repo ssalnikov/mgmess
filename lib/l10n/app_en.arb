@@ -357,5 +357,21 @@
   "channelFiles": "Files",
   "noFiles": "No files in this channel",
   "allFiles": "All",
-  "documents": "Documents"
+  "documents": "Documents",
+
+  "servers": "Servers",
+  "addServer": "Add Server",
+  "removeServer": "Remove Server",
+  "removeServerConfirm": "Remove server {serverName}? Your data on this server will not be deleted.",
+  "@removeServerConfirm": {
+    "placeholders": {
+      "serverName": {"type": "String"}
+    }
+  },
+  "remove": "Remove",
+  "activeServer": "Active",
+  "noOtherServers": "No other servers",
+  "serverAdded": "Server added",
+  "serverRemoved": "Server removed",
+  "cannotRemoveLastServer": "Cannot remove the only server"
 }

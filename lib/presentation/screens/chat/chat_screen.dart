@@ -14,10 +14,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/post.dart';
-import '../../../domain/repositories/channel_repository.dart';
-import '../../../domain/repositories/post_repository.dart';
-import '../../../domain/repositories/user_repository.dart';
-import '../../../domain/services/ws_post_parser.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/notification/notification_bloc.dart';
@@ -72,8 +68,8 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _channelName = widget.channelName;
     _chatBloc = ChatBloc(
-      postRepository: sl<PostRepository>(),
-      wsPostParser: sl<WsPostParser>(),
+      postRepository: currentSession.postRepository,
+      wsPostParser: currentSession.wsPostParser,
       userId: _currentUserId,
     );
     if (widget.lastViewedAt > 0) {
@@ -103,7 +99,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // Notify server immediately so push notifications stop arriving
     final userId = _currentUserId;
     if (userId.isNotEmpty) {
-      sl<ChannelRepository>().viewChannel(userId, widget.channelId);
+      currentSession.channelRepository.viewChannel(userId, widget.channelId);
     }
 
     _scrollController.addListener(_onScroll);
@@ -113,7 +109,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _loadChannelMetadata() async {
-    final channelRepo = sl<ChannelRepository>();
+    final channelRepo = currentSession.channelRepository;
     final userId = _currentUserId;
 
     // Launch all requests in parallel
@@ -128,7 +124,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (widget.dmUserId == null) {
       statsFuture = channelRepo.getChannelStats(widget.channelId);
     } else {
-      dmUserFuture = sl<UserRepository>().getUsersByIds([widget.dmUserId!]);
+      dmUserFuture = currentSession.userRepository.getUsersByIds([widget.dmUserId!]);
     }
     if (userId.isNotEmpty) {
       canPostFuture = channelRepo.canUserPost(widget.channelId, userId);
@@ -234,7 +230,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Get channel URL-safe name
     final channelResult =
-        await sl<ChannelRepository>().getChannel(widget.channelId);
+        await currentSession.channelRepository.getChannel(widget.channelId);
     final channelName = channelResult.fold((_) => null, (c) => c.name);
     if (channelName == null || !mounted) return;
 
@@ -261,7 +257,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final userId = _chatBloc.userId;
     final channelId = widget.channelId;
     if (userId.isNotEmpty) {
-      sl<ChannelRepository>().viewChannel(userId, channelId);
+      currentSession.channelRepository.viewChannel(userId, channelId);
     }
 
     _chatBloc.close();

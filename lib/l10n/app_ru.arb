@@ -272,5 +272,16 @@
   "channelFiles": "Файлы",
   "noFiles": "Нет файлов в этом канале",
   "allFiles": "Все",
-  "documents": "Документы"
+  "documents": "Документы",
+
+  "servers": "Серверы",
+  "addServer": "Добавить сервер",
+  "removeServer": "Удалить сервер",
+  "removeServerConfirm": "Удалить сервер {serverName}? Данные на сервере не будут удалены.",
+  "remove": "Удалить",
+  "activeServer": "Активный",
+  "noOtherServers": "Нет других серверов",
+  "serverAdded": "Сервер добавлен",
+  "serverRemoved": "Сервер удалён",
+  "cannotRemoveLastServer": "Нельзя удалить единственный сервер"
 }

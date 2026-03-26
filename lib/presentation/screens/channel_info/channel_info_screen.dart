@@ -11,7 +11,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../domain/entities/channel.dart';
 import '../../../domain/entities/channel_stats.dart';
-import '../../../domain/repositories/channel_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/notification/notification_bloc.dart';
@@ -42,7 +41,7 @@ class _ChannelInfoScreenState extends State<ChannelInfoScreen> {
   @override
   void initState() {
     super.initState();
-    _cubit = ChannelInfoCubit(channelRepository: sl<ChannelRepository>());
+    _cubit = ChannelInfoCubit(channelRepository: currentSession.channelRepository);
     _cubit.loadChannelInfo(widget.channelId, currentUserId: _currentUserId);
   }
 
@@ -430,8 +429,10 @@ class _ChannelNotificationSheetState extends State<_ChannelNotificationSheet> {
   String _filter = 'default';
   bool _loading = true;
 
-  static String _prefKey(String channelId) =>
-      'channel_notification_$channelId';
+  String _prefKey(String channelId) {
+    final accountId = currentSession.accountId;
+    return 'channel_notification_${accountId}_$channelId';
+  }
 
   @override
   void initState() {

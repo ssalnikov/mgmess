@@ -7,11 +7,8 @@ import 'package:gal/gal.dart';
 import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 
-import '../../../core/config/app_config.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/network/api_endpoints.dart';
-import '../../../core/network/api_client.dart';
-import '../../../core/storage/secure_storage.dart';
 import '../../../domain/entities/file_info.dart';
 
 class MediaViewerScreen extends StatefulWidget {
@@ -78,7 +75,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
         ],
       ),
       body: FutureBuilder<String?>(
-        future: sl<SecureStorage>().getToken(),
+        future: currentSession.getAuthToken(),
         builder: (context, snapshot) {
           final token = snapshot.data;
           if (token == null) {
@@ -96,7 +93,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
             builder: (context, index) {
               final file = widget.files[index];
               final url =
-                  '${AppConfig.baseUrl}${ApiEndpoints.file(file.id)}';
+                  '${currentSession.baseUrl}${ApiEndpoints.file(file.id)}';
               return PhotoViewGalleryPageOptions(
                 imageProvider: CachedNetworkImageProvider(
                   url,
@@ -122,8 +119,8 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
     setState(() => _isSaving = true);
     try {
       final file = widget.files[_currentIndex];
-      final url = '${AppConfig.baseUrl}${ApiEndpoints.file(file.id)}';
-      final apiClient = sl<ApiClient>();
+      final url = '${currentSession.baseUrl}${ApiEndpoints.file(file.id)}';
+      final apiClient = currentSession.apiClient;
 
       final response = await apiClient.dio.get<List<int>>(
         url,

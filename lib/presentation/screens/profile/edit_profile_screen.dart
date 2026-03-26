@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
@@ -62,7 +61,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isSaving = true);
 
-    final repo = sl<UserRepository>();
+    final repo = currentSession.userRepository;
     final result = await repo.updateUser(authState.user.id, {
       'first_name': _firstNameController.text,
       'last_name': _lastNameController.text,
@@ -132,7 +131,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     setState(() => _isUploadingAvatar = true);
 
-    final repo = sl<UserRepository>();
+    final repo = currentSession.userRepository;
     final result = await repo.uploadUserImage(
       authState.user.id,
       image.path,

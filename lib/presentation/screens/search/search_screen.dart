@@ -12,9 +12,6 @@ import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/channel.dart';
 import '../../../domain/entities/user.dart';
-import '../../../domain/repositories/channel_repository.dart';
-import '../../../domain/repositories/post_repository.dart';
-import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../widgets/user_avatar.dart';
@@ -34,7 +31,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _searchBloc = SearchBloc(postRepository: sl<PostRepository>());
+    _searchBloc = SearchBloc(postRepository: currentSession.postRepository);
   }
 
   String get _teamId {
@@ -297,8 +294,8 @@ class _FilterSheetState extends State<_FilterSheet> {
   String? _onDate;
 
   // Autocomplete state
-  final _userRepository = sl<UserRepository>();
-  final _channelRepository = sl<ChannelRepository>();
+  late final _userRepository = currentSession.userRepository;
+  late final _channelRepository = currentSession.channelRepository;
   List<User> _userSuggestions = [];
   List<Channel> _channelSuggestions = [];
   Timer? _userDebounce;

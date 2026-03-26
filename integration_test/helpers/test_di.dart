@@ -1,32 +1,30 @@
 import 'package:dartz/dartz.dart';
 import 'package:mgmess/core/config/app_config.dart';
 import 'package:mgmess/core/di/injection.dart';
+import 'package:mgmess/core/di/server_session.dart';
+import 'package:mgmess/core/di/session_manager.dart';
 import 'package:mgmess/domain/entities/channel.dart';
+import 'package:mgmess/domain/entities/server_account.dart';
 import 'package:mgmess/domain/entities/channel_category.dart';
 import 'package:mgmess/domain/entities/channel_member.dart';
 import 'package:mgmess/domain/entities/channel_stats.dart';
 import 'package:mgmess/domain/entities/user.dart';
+import 'package:mgmess/core/network/api_client.dart';
 import 'package:mgmess/core/network/network_info.dart';
 import 'package:mgmess/core/network/websocket_client.dart';
 import 'package:mgmess/core/notifications/notification_service.dart';
-import 'package:mgmess/core/storage/draft_storage.dart';
 import 'package:mgmess/core/storage/secure_storage.dart';
-import 'package:mgmess/domain/repositories/auth_repository.dart';
-import 'package:mgmess/domain/repositories/channel_repository.dart';
-import 'package:mgmess/domain/repositories/file_repository.dart';
-import 'package:mgmess/domain/repositories/notification_repository.dart';
-import 'package:mgmess/domain/repositories/post_repository.dart';
-import 'package:mgmess/domain/repositories/seens_repository.dart';
-import 'package:mgmess/domain/repositories/user_repository.dart';
-import 'package:mgmess/domain/services/ws_post_parser.dart';
+import 'package:mgmess/data/datasources/remote/emoji_remote_datasource.dart';
 import 'package:mgmess/data/services/ws_post_parser_impl.dart';
 import 'package:mgmess/core/auth/biometric_service.dart';
 import 'package:mgmess/core/feature_flags/feature_flags.dart';
 import 'package:mgmess/core/observability/analytics_service.dart';
+import 'package:mgmess/domain/repositories/server_account_repository.dart';
 import 'package:mgmess/presentation/blocs/auth/auth_bloc.dart';
 import 'package:mgmess/presentation/blocs/connectivity/connectivity_cubit.dart';
 import 'package:mgmess/presentation/blocs/notification/notification_bloc.dart';
 import 'package:mgmess/presentation/blocs/locale/locale_cubit.dart';
+import 'package:mgmess/presentation/blocs/server/server_list_cubit.dart';
 import 'package:mgmess/presentation/blocs/theme/theme_cubit.dart';
 import 'package:mgmess/presentation/blocs/user_status/user_status_cubit.dart';
 import 'package:mgmess/presentation/blocs/websocket/websocket_bloc.dart';
@@ -37,6 +35,11 @@ import '../mocks/fake_notification_service.dart';
 import '../mocks/fake_secure_storage.dart';
 import '../mocks/fake_websocket.dart';
 import '../mocks/mock_repositories.dart';
+
+class MockApiClient extends Mock implements ApiClient {}
+
+class MockEmojiRemoteDataSource extends Mock
+    implements EmojiRemoteDataSource {}
 
 /// Контейнер с доступом к мокам для настройки when() в тестах.
 class TestMocks {
@@ -84,6 +87,14 @@ Future<TestMocks> initTestDependencies() async {
     'onboarding_completed': true,
   });
 
+  // Register fallback values for mocktail
+  registerFallbackValue(ServerAccount(
+    id: 'fallback',
+    serverUrl: 'https://fallback',
+    addedAt: DateTime(2020),
+    lastActiveAt: DateTime(2020),
+  ));
+
   // Создаём моки
   final authRepo = MockAuthRepository();
   final channelRepo = MockChannelRepository();
@@ -92,17 +103,23 @@ Future<TestMocks> initTestDependencies() async {
   final fileRepo = MockFileRepository();
   final seensRepo = MockSeensRepository();
   final notificationRepo = MockNotificationRepository();
+  final serverAccountRepo = MockServerAccountRepository();
   final wsClient = FakeWebSocketClient();
   final secureStorage = FakeSecureStorage();
   final notificationService = FakeNotificationService();
   final networkInfo = FakeNetworkInfo();
 
   // Дефолтные стабы для UserRepository (нужен UserStatusCubit и DM каналы)
+  // Возвращаем 'offline' для каждого запрошенного userId, чтобы UserStatusCubit
+  // не пересоздавал таймер бесконечно (иначе pending timers ломают тесты).
   when(() => userRepo.getUserStatuses(any()))
-      .thenAnswer((_) async => const Right((
-            statuses: <String, String>{},
-            lastActivity: <String, int>{},
-          )));
+      .thenAnswer((invocation) async {
+    final ids = invocation.positionalArguments[0] as List<String>;
+    return Right((
+      statuses: {for (final id in ids) id: 'offline'},
+      lastActivity: <String, int>{},
+    ));
+  });
   when(() => userRepo.getUserImageUrl(any()))
       .thenReturn('https://mm.my.games/api/v4/users/fake/image');
   when(() => userRepo.getUser(any())).thenAnswer((_) async => const Right(
@@ -163,9 +180,59 @@ Future<TestMocks> initTestDependencies() async {
           page: any(named: 'page'), perPage: any(named: 'perPage')))
       .thenAnswer((_) async => const Right([]));
 
+  // Дефолтные стабы для ServerAccountRepository
+  final now = DateTime.now();
+  final testAccount = ServerAccount(
+    id: 'test-account',
+    serverUrl: 'https://mm.my.games',
+    displayName: 'Test Server',
+    addedAt: now,
+    lastActiveAt: now,
+  );
+  when(() => serverAccountRepo.getAll())
+      .thenAnswer((_) async => [testAccount]);
+  when(() => serverAccountRepo.getActive())
+      .thenAnswer((_) async => testAccount);
+  when(() => serverAccountRepo.setActive(any()))
+      .thenAnswer((_) async {});
+  when(() => serverAccountRepo.update(any()))
+      .thenAnswer((_) async {});
+
+  // BLoCs for the test session
+  final authBloc = AuthBloc(authRepository: authRepo);
+  final wsBloc = WebSocketBloc(webSocketClient: wsClient);
+  final notifBloc = NotificationBloc(
+    repository: notificationRepo,
+    notificationService: notificationService,
+  );
+  final userStatusCubit = UserStatusCubit(userRepository: userRepo);
+
+  // Create a test session with all mock dependencies
+  final testSession = ServerSession.forTest(
+    accountId: 'test-account',
+    serverUrl: 'https://mm.my.games',
+    baseUrl: 'https://mm.my.games/api/v4',
+    oauthUrl: 'https://mm.my.games/oauth/gitlab/mobile_login?redirect_to=mmauth:///oauth/callback',
+    secureStorage: secureStorage,
+    apiClient: MockApiClient(),
+    webSocketClient: wsClient,
+    authRepository: authRepo,
+    userRepository: userRepo,
+    channelRepository: channelRepo,
+    postRepository: postRepo,
+    fileRepository: fileRepo,
+    seensRepository: seensRepo,
+    notificationRepository: notificationRepo,
+    authBloc: authBloc,
+    webSocketBloc: wsBloc,
+    notificationBloc: notifBloc,
+    userStatusCubit: userStatusCubit,
+    wsPostParser: WsPostParserImpl(),
+    emojiRemoteDataSource: MockEmojiRemoteDataSource(),
+  );
+
   // Core
   sl.registerLazySingleton<SecureStorage>(() => secureStorage);
-  sl.registerLazySingleton(() => DraftStorage());
   sl.registerLazySingleton<WebSocketClient>(() => wsClient);
   sl.registerLazySingleton<NetworkInfo>(() => networkInfo);
   sl.registerLazySingleton<NotificationService>(() => notificationService);
@@ -179,27 +246,27 @@ Future<TestMocks> initTestDependencies() async {
   await featureFlagService.init();
   sl.registerLazySingleton(() => featureFlagService);
 
-  // Services
-  sl.registerLazySingleton<WsPostParser>(() => WsPostParserImpl());
+  // SessionManager with test session as active
+  final sessionManager = SessionManager(
+    secureStorage: secureStorage,
+    networkInfo: networkInfo,
+    notificationService: notificationService,
+  );
+  // Manually inject the test session via the internal map
+  sessionManager.setTestSession(testSession);
+  sl.registerLazySingleton(() => sessionManager);
 
-  // Repositories (мокированные по абстрактному типу)
-  sl.registerLazySingleton<AuthRepository>(() => authRepo);
-  sl.registerLazySingleton<UserRepository>(() => userRepo);
-  sl.registerLazySingleton<ChannelRepository>(() => channelRepo);
-  sl.registerLazySingleton<PostRepository>(() => postRepo);
-  sl.registerLazySingleton<FileRepository>(() => fileRepo);
-  sl.registerLazySingleton<SeensRepository>(() => seensRepo);
-  sl.registerLazySingleton<NotificationRepository>(() => notificationRepo);
+  // ServerAccountRepository
+  sl.registerLazySingleton<ServerAccountRepository>(() => serverAccountRepo);
 
-  // BLoCs (Factory — каждый раз новый)
-  sl.registerFactory(() => AuthBloc(authRepository: sl()));
-  sl.registerFactory(() => WebSocketBloc(webSocketClient: sl()));
+  // Global BLoCs / Cubits
   sl.registerFactory(() => ConnectivityCubit(networkInfo: sl()));
-  sl.registerFactory(
-      () => NotificationBloc(repository: sl(), notificationService: sl()));
-  sl.registerFactory(() => UserStatusCubit(userRepository: sl()));
   sl.registerLazySingleton(() => ThemeCubit());
   sl.registerLazySingleton(() => LocaleCubit());
+  sl.registerLazySingleton(() => ServerListCubit(
+        accountRepo: sl(),
+        sessionManager: sl(),
+      ));
 
   return TestMocks(
     authRepository: authRepo,

@@ -769,4 +769,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get documents => 'Documents';
+
+  @override
+  String get servers => 'Servers';
+
+  @override
+  String get addServer => 'Add Server';
+
+  @override
+  String get removeServer => 'Remove Server';
+
+  @override
+  String removeServerConfirm(String serverName) {
+    return 'Remove server $serverName? Your data on this server will not be deleted.';
+  }
+
+  @override
+  String get activeServer => 'Active';
+
+  @override
+  String get noOtherServers => 'No other servers';
+
+  @override
+  String get serverAdded => 'Server added';
+
+  @override
+  String get serverRemoved => 'Server removed';
+
+  @override
+  String get cannotRemoveLastServer => 'Cannot remove the only server';
 }

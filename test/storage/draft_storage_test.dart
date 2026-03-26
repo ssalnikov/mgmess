@@ -140,4 +140,48 @@ void main() {
       expect(await storage.getDraftCount(), 1);
     });
   });
+
+  group('DraftStorage per-account isolation', () {
+    test('different accountIds use different keys', () async {
+      SharedPreferences.setMockInitialValues({});
+      final storageA = DraftStorage(accountId: 'account-a');
+      final storageB = DraftStorage(accountId: 'account-b');
+
+      await storageA.saveDraft(Draft(
+        channelId: 'ch1',
+        channelName: 'general',
+        message: 'draft from A',
+        updatedAt: DateTime(2024, 6, 15),
+      ));
+
+      await storageB.saveDraft(Draft(
+        channelId: 'ch1',
+        channelName: 'general',
+        message: 'draft from B',
+        updatedAt: DateTime(2024, 6, 15),
+      ));
+
+      final draftA = await storageA.getDraft('ch1');
+      final draftB = await storageB.getDraft('ch1');
+
+      expect(draftA!.message, 'draft from A');
+      expect(draftB!.message, 'draft from B');
+    });
+
+    test('accountId storage does not see legacy drafts', () async {
+      SharedPreferences.setMockInitialValues({});
+      final legacy = DraftStorage();
+      final perAccount = DraftStorage(accountId: 'acc1');
+
+      await legacy.saveDraft(Draft(
+        channelId: 'ch1',
+        channelName: 'general',
+        message: 'legacy draft',
+        updatedAt: DateTime(2024, 6, 15),
+      ));
+
+      expect(await perAccount.getDraft('ch1'), isNull);
+      expect(await perAccount.getDraftCount(), 0);
+    });
+  });
 }

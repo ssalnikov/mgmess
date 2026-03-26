@@ -7,6 +7,7 @@ import 'package:mgmess/domain/repositories/user_repository.dart';
 import 'package:mgmess/domain/repositories/file_repository.dart';
 import 'package:mgmess/domain/repositories/seens_repository.dart';
 import 'package:mgmess/domain/repositories/notification_repository.dart';
+import 'package:mgmess/domain/repositories/server_account_repository.dart';
 
 class MockAuthRepository extends Mock implements AuthRepository {}
 
@@ -22,3 +23,6 @@ class MockSeensRepository extends Mock implements SeensRepository {}
 
 class MockNotificationRepository extends Mock
     implements NotificationRepository {}
+
+class MockServerAccountRepository extends Mock
+    implements ServerAccountRepository {}

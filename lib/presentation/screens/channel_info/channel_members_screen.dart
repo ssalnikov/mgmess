@@ -10,8 +10,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../domain/entities/channel_member.dart';
 import '../../../domain/entities/user.dart';
-import '../../../domain/repositories/channel_repository.dart';
-import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../widgets/error_display.dart';
@@ -63,7 +61,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     int page = 0;
 
     while (true) {
-      final result = await sl<ChannelRepository>().getChannelMembers(
+      final result = await currentSession.channelRepository.getChannelMembers(
         widget.channelId,
         page: page,
         perPage: _perPage,
@@ -276,7 +274,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
     required bool schemeAdmin,
   }) async {
     final result =
-        await sl<ChannelRepository>().updateChannelMemberSchemeRoles(
+        await currentSession.channelRepository.updateChannelMemberSchemeRoles(
       widget.channelId,
       member.user.id,
       schemeAdmin: schemeAdmin,
@@ -319,7 +317,7 @@ class _ChannelMembersScreenState extends State<ChannelMembersScreen> {
   }
 
   Future<void> _removeMember(ChannelMember member) async {
-    final result = await sl<ChannelRepository>().removeChannelMember(
+    final result = await currentSession.channelRepository.removeChannelMember(
       widget.channelId,
       member.user.id,
     );
@@ -380,7 +378,7 @@ class _InviteUserSheetState extends State<_InviteUserSheet> {
       return;
     }
     setState(() => _isSearching = true);
-    final result = await sl<UserRepository>().autocompleteUsers(
+    final result = await currentSession.userRepository.autocompleteUsers(
       query,
       teamId: widget.teamId,
     );
@@ -400,7 +398,7 @@ class _InviteUserSheetState extends State<_InviteUserSheet> {
   }
 
   Future<void> _invite(User user) async {
-    final result = await sl<ChannelRepository>().addChannelMember(
+    final result = await currentSession.channelRepository.addChannelMember(
       widget.channelId,
       user.id,
     );

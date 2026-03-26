@@ -125,6 +125,7 @@ void main() {
                 body: any(named: 'body'),
                 channelId: any(named: 'channelId'),
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               )).thenAnswer((_) async {});
           return NotificationBloc(
             repository: mockRepository,
@@ -144,6 +145,7 @@ void main() {
                 body: 'john: Hello!',
                 channelId: 'ch1',
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               )).called(1);
         },
       );
@@ -173,6 +175,7 @@ void main() {
                 body: any(named: 'body'),
                 channelId: any(named: 'channelId'),
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               ));
         },
       );
@@ -198,6 +201,7 @@ void main() {
                 body: any(named: 'body'),
                 channelId: any(named: 'channelId'),
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               ));
         },
       );
@@ -221,6 +225,7 @@ void main() {
                 body: any(named: 'body'),
                 channelId: any(named: 'channelId'),
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               ));
         },
       );
@@ -247,6 +252,7 @@ void main() {
                 body: any(named: 'body'),
                 channelId: any(named: 'channelId'),
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               ));
         },
       );
@@ -281,6 +287,7 @@ void main() {
                 body: any(named: 'body'),
                 channelId: any(named: 'channelId'),
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               )).thenAnswer((_) async {});
           return NotificationBloc(
             repository: mockRepository,
@@ -304,6 +311,7 @@ void main() {
                 body: 'john: Hello!',
                 channelId: 'ch1',
                 postId: any(named: 'postId'),
+                accountId: any(named: 'accountId'),
               )).called(1);
         },
       );

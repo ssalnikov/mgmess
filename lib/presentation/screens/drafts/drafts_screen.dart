@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
-import '../../../core/storage/draft_storage.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -18,7 +17,7 @@ class DraftsScreen extends StatefulWidget {
 }
 
 class _DraftsScreenState extends State<DraftsScreen> {
-  final _draftStorage = sl<DraftStorage>();
+  final _draftStorage = currentSession.draftStorage;
   List<Draft> _drafts = [];
   bool _isLoading = true;
 

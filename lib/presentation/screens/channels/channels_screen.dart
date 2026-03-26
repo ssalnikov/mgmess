@@ -9,16 +9,17 @@ import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
+import '../../../core/utils/url_utils.dart';
 import '../../../domain/entities/channel.dart';
 import '../../../domain/entities/user.dart';
-import '../../../domain/repositories/channel_repository.dart';
-import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/notification/notification_bloc.dart';
 import '../../blocs/notification/notification_event.dart';
+import '../../blocs/server/server_list_cubit.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
+import '../../widgets/server_drawer.dart';
 import 'widgets/category_header.dart';
 import 'widgets/channel_skeleton.dart';
 import '../../widgets/error_display.dart';
@@ -41,8 +42,8 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
   void initState() {
     super.initState();
     _channelsBloc = ChannelsBloc(
-      channelRepository: sl<ChannelRepository>(),
-      userRepository: sl<UserRepository>(),
+      channelRepository: currentSession.channelRepository,
+      userRepository: currentSession.userRepository,
     );
     _loadChannels();
     _subscribeToWs();
@@ -73,6 +74,8 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
     return '';
   }
 
+  static String _extractHost(String url) => UrlUtils.extractHost(url);
+
   @override
   void dispose() {
     _channelsBloc.close();
@@ -101,6 +104,28 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
         },
         child: Scaffold(
         appBar: AppBar(
+          leading: BlocBuilder<ServerListCubit, ServerListState>(
+            builder: (context, state) {
+              if (state.accounts.length <= 1) return const SizedBox.shrink();
+              final host = _extractHost(currentSession.serverUrl);
+              final letter = host.isNotEmpty ? host[0].toUpperCase() : '?';
+              return IconButton(
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                icon: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: AppColors.accent,
+                  child: Text(
+                    letter,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           title: Text(context.l10n.channels),
           actions: [
             IconButton(
@@ -108,6 +133,14 @@ class _ChannelsScreenState extends State<ChannelsScreen> {
               onPressed: () => context.push(RouteNames.search),
             ),
           ],
+        ),
+        drawer: BlocBuilder<ServerListCubit, ServerListState>(
+          builder: (context, state) {
+            if (state.accounts.length <= 1) return const SizedBox.shrink();
+            return ServerDrawer(
+              onAddServer: () => context.push(RouteNames.addServer),
+            );
+          },
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () => _showCreateOptions(context),
@@ -432,7 +465,7 @@ class _ChannelListTileState extends State<_ChannelListTile> {
         ? parts.last
         : parts.first;
     _dmUserId = otherId;
-    sl<UserRepository>().getUser(otherId).then((result) {
+    currentSession.userRepository.getUser(otherId).then((result) {
       if (!mounted) return;
       result.fold((_) {}, (user) {
         context.read<UserStatusCubit>().setCustomStatusFromUser(user);
@@ -661,7 +694,7 @@ class _UserSearchTile extends StatelessWidget {
         style: AppTextStyles.caption,
       ),
       onTap: () async {
-        final channelRepo = sl<ChannelRepository>();
+        final channelRepo = currentSession.channelRepository;
         final result = await channelRepo.createDirectChannel(
           currentUserId,
           user.id,

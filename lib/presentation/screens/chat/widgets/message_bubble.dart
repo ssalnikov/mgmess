@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/l10n/l10n.dart';
 import '../../../../core/router/route_names.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/utils/custom_emoji_cache.dart';
 import '../../../../core/utils/emoji_map.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -431,7 +430,7 @@ class _CustomReactionEmojiState extends State<_CustomReactionEmoji> {
 
   Future<void> _loadHeaders() async {
     final token =
-        await sl<SecureStorage>().getToken();
+        await currentSession.getAuthToken();
     if (mounted) {
       setState(() {
         _headers = {

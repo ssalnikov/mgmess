@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/error/exceptions.dart';
 import '../../core/error/failures.dart';
 import '../../core/network/api_endpoints.dart';
@@ -10,9 +9,13 @@ import '../datasources/remote/file_remote_datasource.dart';
 
 class FileRepositoryImpl implements FileRepository {
   final FileRemoteDataSource _remoteDataSource;
+  final String _baseUrl;
 
-  FileRepositoryImpl({required FileRemoteDataSource remoteDataSource})
-      : _remoteDataSource = remoteDataSource;
+  FileRepositoryImpl({
+    required FileRemoteDataSource remoteDataSource,
+    required String baseUrl,
+  })  : _remoteDataSource = remoteDataSource,
+        _baseUrl = baseUrl;
 
   @override
   Future<Either<Failure, List<FileInfo>>> uploadFiles({
@@ -60,13 +63,13 @@ class FileRepositoryImpl implements FileRepository {
 
   @override
   String getFileUrl(String fileId) =>
-      '${AppConfig.baseUrl}${ApiEndpoints.file(fileId)}';
+      '$_baseUrl${ApiEndpoints.file(fileId)}';
 
   @override
   String getThumbnailUrl(String fileId) =>
-      '${AppConfig.baseUrl}${ApiEndpoints.fileThumbnail(fileId)}';
+      '$_baseUrl${ApiEndpoints.fileThumbnail(fileId)}';
 
   @override
   String getPreviewUrl(String fileId) =>
-      '${AppConfig.baseUrl}${ApiEndpoints.filePreview(fileId)}';
+      '$_baseUrl${ApiEndpoints.filePreview(fileId)}';
 }

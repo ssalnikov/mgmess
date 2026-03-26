@@ -5,7 +5,6 @@ import 'dart:math';
 import 'package:logger/logger.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
-import '../config/app_config.dart';
 import '../storage/secure_storage.dart';
 import 'websocket_events.dart';
 
@@ -13,6 +12,8 @@ enum WsConnectionState { disconnected, connecting, connected }
 
 class WebSocketClient {
   final SecureStorage _secureStorage;
+  final String _wsUrl;
+  final String? _accountId;
   final _logger = Logger(printer: SimplePrinter());
 
   WebSocketChannel? _channel;
@@ -25,8 +26,13 @@ class WebSocketClient {
   Timer? _reconnectTimer;
   int _seq = 0;
 
-  WebSocketClient({required SecureStorage secureStorage})
-      : _secureStorage = secureStorage;
+  WebSocketClient({
+    required SecureStorage secureStorage,
+    required String wsUrl,
+    String? accountId,
+  })  : _secureStorage = secureStorage,
+        _wsUrl = wsUrl,
+        _accountId = accountId;
 
   Stream<WsEvent> get events => _eventController.stream;
   Stream<WsConnectionState> get stateChanges => _stateController.stream;
@@ -39,7 +45,7 @@ class WebSocketClient {
     }
 
     _setState(WsConnectionState.connecting);
-    final token = await _secureStorage.getToken();
+    final token = await _secureStorage.getTokenFor(_accountId);
     if (token == null) {
       _logger.e('WS: No auth token, cannot connect');
       _setState(WsConnectionState.disconnected);
@@ -47,7 +53,7 @@ class WebSocketClient {
     }
 
     try {
-      final wsUrl = Uri.parse(AppConfig.wsUrl);
+      final wsUrl = Uri.parse(_wsUrl);
       _channel = WebSocketChannel.connect(wsUrl);
       await _channel!.ready;
 

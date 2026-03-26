@@ -25,6 +25,7 @@ void main() {
     repository = UserRepositoryImpl(
       remoteDataSource: mockRemote,
       localDataSource: mockLocal,
+      baseUrl: 'https://test.example.com/api/v4',
     );
   });
 

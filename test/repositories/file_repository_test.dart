@@ -15,7 +15,10 @@ void main() {
 
   setUp(() {
     mockRemote = MockFileRemoteDataSource();
-    repository = FileRepositoryImpl(remoteDataSource: mockRemote);
+    repository = FileRepositoryImpl(
+      remoteDataSource: mockRemote,
+      baseUrl: 'https://test.example.com/api/v4',
+    );
   });
 
   const testFileInfo = FileInfoModel(

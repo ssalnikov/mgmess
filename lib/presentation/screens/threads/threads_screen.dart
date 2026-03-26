@@ -12,7 +12,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/user_thread.dart';
-import '../../../domain/repositories/post_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../widgets/error_display.dart';
@@ -34,7 +33,7 @@ class _ThreadsScreenState extends State<ThreadsScreen> {
   @override
   void initState() {
     super.initState();
-    _bloc = ThreadsBloc(postRepository: sl<PostRepository>());
+    _bloc = ThreadsBloc(postRepository: currentSession.postRepository);
     _scrollController = ScrollController()..addListener(_onScroll);
     _load();
   }

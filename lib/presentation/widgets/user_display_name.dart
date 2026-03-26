@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../core/di/injection.dart';
-import '../../core/storage/secure_storage.dart';
 import '../../core/utils/custom_emoji_cache.dart';
 import '../../core/utils/emoji_map.dart';
 import '../blocs/user_status/user_status_cubit.dart';
@@ -103,7 +102,7 @@ class _CustomEmojiIconState extends State<_CustomEmojiIcon> {
   @override
   void initState() {
     super.initState();
-    _tokenFuture = sl<SecureStorage>().getToken();
+    _tokenFuture = currentSession.getAuthToken();
   }
 
   @override

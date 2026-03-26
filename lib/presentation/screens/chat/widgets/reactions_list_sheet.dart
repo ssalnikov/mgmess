@@ -5,8 +5,6 @@ import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/custom_emoji_cache.dart';
 import '../../../../core/utils/emoji_map.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/storage/secure_storage.dart';
-import '../../../../domain/repositories/user_repository.dart';
 import '../../../widgets/user_avatar.dart';
 
 /// Shows who reacted with each emoji on a post.
@@ -46,7 +44,7 @@ class _ReactionsListSheetState extends State<ReactionsListSheet>
   }
 
   Future<void> _loadHeaders() async {
-    final token = await sl<SecureStorage>().getToken();
+    final token = await currentSession.getAuthToken();
     if (mounted) {
       setState(() {
         _authHeaders = {
@@ -163,7 +161,7 @@ class _ReactionUserTileState extends State<_ReactionUserTile> {
   }
 
   Future<void> _loadUser() async {
-    final result = await sl<UserRepository>().getUser(widget.userId);
+    final result = await currentSession.userRepository.getUser(widget.userId);
     if (!mounted) return;
     result.fold(
       (_) => setState(() => _displayName = widget.userId),

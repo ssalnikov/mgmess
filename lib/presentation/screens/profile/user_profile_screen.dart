@@ -11,8 +11,6 @@ import '../../../core/utils/emoji_map.dart';
 import '../../../core/utils/date_formatter.dart';
 import '../../../domain/entities/channel.dart';
 import '../../../domain/entities/user.dart';
-import '../../../domain/repositories/channel_repository.dart';
-import '../../../domain/repositories/user_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
@@ -59,11 +57,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       _error = null;
     });
 
-    final result = await sl<UserRepository>()
+    final result = await currentSession.userRepository
         .getUsersByIds([widget.userId]);
     result.fold(
       (failure) async {
-        final cached = await sl<UserRepository>().getUser(widget.userId);
+        final cached = await currentSession.userRepository.getUser(widget.userId);
         cached.fold(
           (_) => setState(() {
             _isLoading = false;
@@ -102,7 +100,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _loadCommonChannels() async {
     final myId = _currentUserId;
     if (myId.isEmpty || myId == widget.userId) return;
-    final result = await sl<ChannelRepository>()
+    final result = await currentSession.channelRepository
         .getCommonChannels(myId, widget.userId);
     result.fold(
       (_) {},
@@ -115,7 +113,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _loadDmChannel() async {
     final myId = _currentUserId;
     if (myId.isEmpty || myId == widget.userId) return;
-    final result = await sl<ChannelRepository>()
+    final result = await currentSession.channelRepository
         .createDirectChannel(myId, widget.userId);
     result.fold(
       (_) {},
@@ -123,7 +121,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         if (!mounted) return;
         setState(() => _dmChannel = channel);
         // Load mute status
-        final memberResult = await sl<ChannelRepository>()
+        final memberResult = await currentSession.channelRepository
             .getChannelMemberInfo(channel.id, myId);
         memberResult.fold(
           (_) {},
@@ -139,7 +137,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final channel = _dmChannel;
     if (channel == null || _isMuted == null) return;
     HapticFeedback.selectionClick();
-    final repo = sl<ChannelRepository>();
+    final repo = currentSession.channelRepository;
     final result = _isMuted!
         ? await repo.unmuteChannel(channel.id, _currentUserId)
         : await repo.muteChannel(channel.id, _currentUserId);
@@ -393,7 +391,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return;
     }
     setState(() => _isSendingDm = true);
-    final result = await sl<ChannelRepository>().createDirectChannel(
+    final result = await currentSession.channelRepository.createDirectChannel(
       _currentUserId,
       user.id,
     );

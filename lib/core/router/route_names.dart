@@ -32,4 +32,5 @@ class RouteNames {
   static const String createChannel = '/create-channel';
   static const String createGroupDm = '/create-group-dm';
   static const String onboarding = '/onboarding';
+  static const String addServer = '/add-server';
 }

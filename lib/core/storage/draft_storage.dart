@@ -5,7 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../domain/entities/draft.dart';
 
 class DraftStorage {
-  static const _key = 'drafts';
+  final String? _accountId;
+
+  DraftStorage({String? accountId}) : _accountId = accountId;
+
+  String get _key =>
+      _accountId != null ? 'drafts_$_accountId' : 'drafts';
 
   Future<void> saveDraft(Draft draft) async {
     if (draft.message.trim().isEmpty) {

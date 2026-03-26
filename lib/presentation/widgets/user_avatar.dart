@@ -2,10 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/config/app_config.dart';
 import '../../core/di/injection.dart';
 import '../../core/network/api_endpoints.dart';
-import '../../core/storage/secure_storage.dart';
 import '../../core/theme/app_colors.dart';
 import '../blocs/user_status/user_status_cubit.dart';
 
@@ -35,12 +33,12 @@ class _UserAvatarState extends State<UserAvatar> {
   @override
   void initState() {
     super.initState();
-    _tokenFuture = sl<SecureStorage>().getToken();
+    _tokenFuture = currentSession.getAuthToken();
   }
 
   String get _imageUrl {
     final base =
-        '${AppConfig.baseUrl}${ApiEndpoints.userImage(widget.userId)}';
+        '${currentSession.baseUrl}${ApiEndpoints.userImage(widget.userId)}';
     if (widget.cacheBuster != null) {
       return '$base?_=${widget.cacheBuster}';
     }

@@ -772,4 +772,33 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get documents => 'Документы';
+
+  @override
+  String get servers => 'Серверы';
+
+  @override
+  String get addServer => 'Добавить сервер';
+
+  @override
+  String get removeServer => 'Удалить сервер';
+
+  @override
+  String removeServerConfirm(String serverName) {
+    return 'Удалить сервер $serverName? Данные на сервере не будут удалены.';
+  }
+
+  @override
+  String get activeServer => 'Активный';
+
+  @override
+  String get noOtherServers => 'Нет других серверов';
+
+  @override
+  String get serverAdded => 'Сервер добавлен';
+
+  @override
+  String get serverRemoved => 'Сервер удалён';
+
+  @override
+  String get cannotRemoveLastServer => 'Нельзя удалить единственный сервер';
 }

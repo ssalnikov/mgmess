@@ -4,13 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/di/injection.dart';
 import '../../../../core/l10n/l10n.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/custom_emoji_cache.dart';
 import '../../../../core/utils/emoji_categories.dart';
 import '../../../../core/utils/emoji_map.dart';
 
-const _recentKey = 'recent_emojis';
 const _maxRecent = 32;
 
 /// Full emoji picker with categories, search, recents, and custom server emojis.
@@ -48,7 +46,7 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet>
   }
 
   Future<void> _loadHeaders() async {
-    final token = await sl<SecureStorage>().getToken();
+    final token = await currentSession.getAuthToken();
     if (mounted) {
       setState(() {
         _authHeaders = {
@@ -57,6 +55,8 @@ class _EmojiPickerSheetState extends State<EmojiPickerSheet>
       });
     }
   }
+
+  String get _recentKey => 'recent_emojis_${currentSession.accountId}';
 
   Future<void> _loadRecent() async {
     final prefs = await SharedPreferences.getInstance();

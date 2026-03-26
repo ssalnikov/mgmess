@@ -35,7 +35,7 @@ void main() {
     test('returns user on success', () async {
       when(() => mockRemote.getCurrentUser())
           .thenAnswer((_) async => testUser);
-      when(() => mockStorage.saveUserId(any()))
+      when(() => mockStorage.saveUserIdFor(any(), any()))
           .thenAnswer((_) async {});
 
       final result = await repository.getCurrentUser();
@@ -48,7 +48,7 @@ void main() {
           expect(user.username, 'testuser');
         },
       );
-      verify(() => mockStorage.saveUserId('user1')).called(1);
+      verify(() => mockStorage.saveUserIdFor(null, 'user1')).called(1);
     });
 
     test('returns ServerFailure on exception', () async {
@@ -62,9 +62,9 @@ void main() {
 
   group('saveAuthTokens', () {
     test('saves token and csrf', () async {
-      when(() => mockStorage.saveToken(any()))
+      when(() => mockStorage.saveTokenFor(any(), any()))
           .thenAnswer((_) async {});
-      when(() => mockStorage.saveCsrfToken(any()))
+      when(() => mockStorage.saveCsrfFor(any(), any()))
           .thenAnswer((_) async {});
 
       final result = await repository.saveAuthTokens(
@@ -73,8 +73,8 @@ void main() {
       );
 
       expect(result.isRight(), true);
-      verify(() => mockStorage.saveToken('tok')).called(1);
-      verify(() => mockStorage.saveCsrfToken('csrf')).called(1);
+      verify(() => mockStorage.saveTokenFor(null, 'tok')).called(1);
+      verify(() => mockStorage.saveCsrfFor(null, 'csrf')).called(1);
     });
   });
 
@@ -82,19 +82,19 @@ void main() {
     test('clears storage even on server error', () async {
       when(() => mockRemote.logout())
           .thenThrow(const ServerException(message: 'error'));
-      when(() => mockStorage.clearAll()).thenAnswer((_) async {});
+      when(() => mockStorage.clearFor(any())).thenAnswer((_) async {});
 
       final result = await repository.logout();
 
       expect(result.isRight(), true);
-      verify(() => mockStorage.clearAll()).called(1);
+      verify(() => mockStorage.clearFor(null)).called(1);
     });
   });
 
   group('hasValidSession', () {
     test('returns true when token exists and user loads', () async {
-      when(() => mockStorage.getToken())
-          .thenAnswer((_) async => 'token');
+      when(() => mockStorage.getTokenFor(null))
+          .thenAnswer((_) async =>'token');
       when(() => mockRemote.getCurrentUser())
           .thenAnswer((_) async => testUser);
 
@@ -103,16 +103,16 @@ void main() {
     });
 
     test('returns false when no token', () async {
-      when(() => mockStorage.getToken())
-          .thenAnswer((_) async => null);
+      when(() => mockStorage.getTokenFor(null))
+          .thenAnswer((_) async =>null);
 
       final result = await repository.hasValidSession();
       expect(result, false);
     });
 
     test('returns false when getCurrentUser throws', () async {
-      when(() => mockStorage.getToken())
-          .thenAnswer((_) async => 'token');
+      when(() => mockStorage.getTokenFor(null))
+          .thenAnswer((_) async =>'token');
       when(() => mockRemote.getCurrentUser())
           .thenThrow(const ServerException(message: 'error'));
 

@@ -8,7 +8,6 @@ import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../domain/entities/channel.dart';
-import '../../../domain/repositories/channel_repository.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 
@@ -58,7 +57,7 @@ class _CreateChannelScreenState extends State<CreateChannelScreen> {
         ? _nameController.text.trim()
         : _generateSlug(_displayNameController.text.trim());
 
-    final result = await sl<ChannelRepository>().createChannel(
+    final result = await currentSession.channelRepository.createChannel(
       teamId: authState.teamId,
       name: name,
       displayName: _displayNameController.text.trim(),

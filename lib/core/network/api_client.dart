@@ -8,13 +8,17 @@ import '../storage/secure_storage.dart';
 class ApiClient {
   late final Dio dio;
   final SecureStorage _secureStorage;
+  final String? accountId;
   final _logger = Logger(printer: SimplePrinter());
 
-  ApiClient({required SecureStorage secureStorage})
-      : _secureStorage = secureStorage {
+  ApiClient({
+    required SecureStorage secureStorage,
+    required String baseUrl,
+    this.accountId,
+  }) : _secureStorage = secureStorage {
     dio = Dio(
       BaseOptions(
-        baseUrl: AppConfig.baseUrl,
+        baseUrl: baseUrl,
         connectTimeout: AppConfig.connectTimeout,
         receiveTimeout: AppConfig.receiveTimeout,
         sendTimeout: AppConfig.sendTimeout,
@@ -25,7 +29,7 @@ class ApiClient {
     );
 
     dio.interceptors.addAll([
-      _AuthInterceptor(_secureStorage),
+      _AuthInterceptor(_secureStorage, accountId: accountId),
       _RetryInterceptor(dio),
       _LoggingInterceptor(_logger),
     ]);
@@ -34,19 +38,21 @@ class ApiClient {
 
 class _AuthInterceptor extends Interceptor {
   final SecureStorage _secureStorage;
+  final String? _accountId;
 
-  _AuthInterceptor(this._secureStorage);
+  _AuthInterceptor(this._secureStorage, {String? accountId})
+      : _accountId = accountId;
 
   @override
   void onRequest(
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final token = await _secureStorage.getToken();
+    final token = await _secureStorage.getTokenFor(_accountId);
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
-    final csrf = await _secureStorage.getCsrfToken();
+    final csrf = await _secureStorage.getCsrfFor(_accountId);
     if (csrf != null) {
       options.headers['X-CSRF-Token'] = csrf;
     }
@@ -56,7 +62,7 @@ class _AuthInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (err.response?.statusCode == 401) {
-      _secureStorage.clearAll();
+      _secureStorage.clearFor(_accountId);
     }
     handler.next(err);
   }

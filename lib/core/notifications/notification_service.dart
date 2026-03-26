@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -12,14 +13,37 @@ Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   // No additional processing needed.
 }
 
+/// Payload extracted from a notification the user tapped on.
+class NotificationTapPayload {
+  final String? channelId;
+  final String? postId;
+
+  /// Account ID from a local notification (WS-generated).
+  final String? accountId;
+
+  /// Server URL from an FCM push notification.
+  final String? serverUrl;
+
+  const NotificationTapPayload({
+    this.channelId,
+    this.postId,
+    this.accountId,
+    this.serverUrl,
+  });
+}
+
 class NotificationService {
   final _logger = Logger(printer: SimplePrinter());
   final _localNotifications = FlutterLocalNotificationsPlugin();
+  final _tapController = StreamController<NotificationTapPayload>.broadcast();
 
   FirebaseMessaging? _messaging;
   bool _initialized = false;
 
   bool get isInitialized => _initialized;
+
+  /// Stream of payloads from tapped notifications (local or FCM).
+  Stream<NotificationTapPayload> get onNotificationTap => _tapController.stream;
 
   Future<void> init() async {
     try {
@@ -42,7 +66,10 @@ class NotificationService {
       android: androidSettings,
       iOS: darwinSettings,
     );
-    await _localNotifications.initialize(initSettings);
+    await _localNotifications.initialize(
+      initSettings,
+      onDidReceiveNotificationResponse: _onLocalNotificationTap,
+    );
 
     final androidPlugin =
         _localNotifications.resolvePlatformSpecificImplementation<
@@ -58,7 +85,42 @@ class NotificationService {
       );
     }
 
+    // Handle FCM notification taps when app was in background.
+    FirebaseMessaging.onMessageOpenedApp.listen(_onFcmMessageTap);
+
+    // Handle FCM notification tap that launched the app from terminated state.
+    final initialMessage = await _messaging!.getInitialMessage();
+    if (initialMessage != null) {
+      _onFcmMessageTap(initialMessage);
+    }
+
     _initialized = true;
+  }
+
+  /// Handle tap on a local notification (generated from WS events).
+  void _onLocalNotificationTap(NotificationResponse response) {
+    final payloadStr = response.payload;
+    if (payloadStr == null || payloadStr.isEmpty) return;
+
+    try {
+      final data = jsonDecode(payloadStr) as Map<String, dynamic>;
+      _tapController.add(NotificationTapPayload(
+        channelId: data['channelId'] as String?,
+        accountId: data['accountId'] as String?,
+      ));
+    } catch (e) {
+      _logger.w('Failed to parse local notification payload: $e');
+    }
+  }
+
+  /// Handle tap on an FCM push notification (background or terminated).
+  void _onFcmMessageTap(RemoteMessage message) {
+    final data = message.data;
+    _tapController.add(NotificationTapPayload(
+      channelId: data['channel_id'] as String?,
+      postId: data['post_id'] as String?,
+      serverUrl: data['server_url'] as String?,
+    ));
   }
 
   Future<NotificationSettings?> requestPermission() async {
@@ -83,6 +145,7 @@ class NotificationService {
     required String body,
     String? channelId,
     String? postId,
+    String? accountId,
   }) async {
     const androidDetails = AndroidNotificationDetails(
       NotificationChannels.messagesId,
@@ -98,8 +161,10 @@ class NotificationService {
       iOS: darwinDetails,
     );
 
-    final payload =
-        channelId != null ? jsonEncode({'channelId': channelId}) : null;
+    final payloadMap = <String, String>{};
+    if (channelId != null) payloadMap['channelId'] = channelId;
+    if (accountId != null) payloadMap['accountId'] = accountId;
+    final payload = payloadMap.isNotEmpty ? jsonEncode(payloadMap) : null;
 
     await _localNotifications.show(
       postId?.hashCode ?? DateTime.now().millisecondsSinceEpoch,
@@ -108,5 +173,9 @@ class NotificationService {
       details,
       payload: payload,
     );
+  }
+
+  void dispose() {
+    _tapController.close();
   }
 }

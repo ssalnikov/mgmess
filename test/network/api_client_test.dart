@@ -16,8 +16,10 @@ void main() {
 
   setUp(() {
     mockStorage = MockSecureStorage();
-    AppConfig.serverUrlOverride = 'https://test.example.com';
-    apiClient = ApiClient(secureStorage: mockStorage);
+    apiClient = ApiClient(
+      secureStorage: mockStorage,
+      baseUrl: 'https://test.example.com/api/v4',
+    );
 
     // Replace the HTTP adapter with a mock adapter
     dioAdapter = _DioAdapter();
@@ -27,9 +29,9 @@ void main() {
   group('ApiClient', () {
     group('AuthInterceptor', () {
       test('adds Bearer token and CSRF header to requests', () async {
-        when(() => mockStorage.getToken())
+        when(() => mockStorage.getTokenFor(null))
             .thenAnswer((_) async => 'test-token');
-        when(() => mockStorage.getCsrfToken())
+        when(() => mockStorage.getCsrfFor(null))
             .thenAnswer((_) async => 'csrf-token');
 
         dioAdapter.onGet(
@@ -51,9 +53,9 @@ void main() {
       });
 
       test('skips Authorization when no token', () async {
-        when(() => mockStorage.getToken())
+        when(() => mockStorage.getTokenFor(null))
             .thenAnswer((_) async => null);
-        when(() => mockStorage.getCsrfToken())
+        when(() => mockStorage.getCsrfFor(null))
             .thenAnswer((_) async => null);
 
         dioAdapter.onGet(
@@ -69,11 +71,11 @@ void main() {
       });
 
       test('clears storage on 401 response', () async {
-        when(() => mockStorage.getToken())
+        when(() => mockStorage.getTokenFor(null))
             .thenAnswer((_) async => 'expired-token');
-        when(() => mockStorage.getCsrfToken())
+        when(() => mockStorage.getCsrfFor(null))
             .thenAnswer((_) async => 'csrf');
-        when(() => mockStorage.clearAll())
+        when(() => mockStorage.clearFor(null))
             .thenAnswer((_) async {});
 
         dioAdapter.onGet(
@@ -88,13 +90,13 @@ void main() {
           expect(e.response?.statusCode, 401);
         }
 
-        verify(() => mockStorage.clearAll()).called(1);
+        verify(() => mockStorage.clearFor(null)).called(1);
       });
 
       test('does not clear storage on non-401 errors', () async {
-        when(() => mockStorage.getToken())
+        when(() => mockStorage.getTokenFor(null))
             .thenAnswer((_) async => 'token');
-        when(() => mockStorage.getCsrfToken())
+        when(() => mockStorage.getCsrfFor(null))
             .thenAnswer((_) async => 'csrf');
 
         dioAdapter.onGet(
@@ -107,7 +109,7 @@ void main() {
           fail('Should have thrown');
         } on DioException catch (_) {}
 
-        verifyNever(() => mockStorage.clearAll());
+        verifyNever(() => mockStorage.clearFor(null));
       });
     });
 

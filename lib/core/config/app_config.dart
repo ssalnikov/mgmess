@@ -58,12 +58,5 @@ class AppConfig {
   static const int postsPerPage = 60;
   static const int channelsPerPage = 100;
 
-  static String get baseUrl => '$serverUrl$apiV4';
-  static String get wsUrl {
-    final uri = Uri.parse(serverUrl);
-    final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
-    final port = uri.hasPort ? ':${uri.port}' : '';
-    return '$scheme://${uri.host}$port$wsPath';
-  }
-  static String get oauthUrl => '$serverUrl$oauthPath?redirect_to=$callbackScheme://$callbackPath';
+  // baseUrl, wsUrl, oauthUrl removed — now computed per-server in ServerSession.
 }

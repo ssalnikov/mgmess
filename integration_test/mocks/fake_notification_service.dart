@@ -25,17 +25,28 @@ class FakeNotificationService extends NotificationService {
   Stream<String>? get onTokenRefresh => null;
 
   @override
+  Stream<NotificationTapPayload> get onNotificationTap =>
+      const Stream.empty();
+
+  @override
   Future<void> showNotification({
     required String title,
     required String body,
     String? channelId,
     String? postId,
+    String? accountId,
   }) async {
     shownNotifications.add({
       'title': title,
       'body': body,
       if (channelId != null) 'channelId': channelId,
       if (postId != null) 'postId': postId,
+      if (accountId != null) 'accountId': accountId,
     });
+  }
+
+  @override
+  void dispose() {
+    // no-op
   }
 }

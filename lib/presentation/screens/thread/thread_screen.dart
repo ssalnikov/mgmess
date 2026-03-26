@@ -7,8 +7,6 @@ import '../../../core/l10n/l10n.dart';
 import '../../../core/router/route_names.dart';
 import '../../../domain/entities/post.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../domain/repositories/post_repository.dart';
-import '../../../domain/services/ws_post_parser.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_state.dart';
 import '../../blocs/websocket/websocket_bloc.dart';
@@ -38,8 +36,8 @@ class _ThreadScreenState extends State<ThreadScreen> {
   void initState() {
     super.initState();
     _threadBloc = ThreadBloc(
-      postRepository: sl<PostRepository>(),
-      wsPostParser: sl<WsPostParser>(),
+      postRepository: currentSession.postRepository,
+      wsPostParser: currentSession.wsPostParser,
       userId: _currentUserId,
     );
     _threadBloc.add(LoadThread(postId: widget.postId));

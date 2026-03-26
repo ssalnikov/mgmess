@@ -10,21 +10,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/l10n/l10n.dart';
 import '../../../../core/di/injection.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/utils/custom_emoji_cache.dart';
 import '../../../../core/utils/emoji_map.dart';
 import '../../../../domain/entities/post.dart';
 import '../../../../domain/entities/slash_command.dart';
-import '../../../../core/storage/draft_storage.dart';
 import '../../../blocs/auth/auth_bloc.dart';
 import '../../../blocs/auth/auth_state.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../domain/entities/draft.dart';
 import '../../../../domain/entities/user.dart';
-import '../../../../domain/repositories/channel_repository.dart';
-import '../../../../domain/repositories/file_repository.dart';
-import '../../../../domain/repositories/post_repository.dart';
-import '../../../../domain/repositories/user_repository.dart';
 import 'emoji_autocomplete.dart';
 import 'emoji_picker_sheet.dart';
 import 'mention_autocomplete.dart';
@@ -65,7 +59,7 @@ class MessageInputState extends State<MessageInput> {
   final List<String> _pendingFileNames = [];
   bool _isUploading = false;
   Timer? _draftTimer;
-  final _draftStorage = sl<DraftStorage>();
+  final _draftStorage = currentSession.draftStorage;
 
   // Edit mode
   String? _savedDraftText;
@@ -80,7 +74,7 @@ class MessageInputState extends State<MessageInput> {
   bool _showMentions = false;
   bool _suppressMentionCheck = false;
   Timer? _mentionDebounce;
-  final _userRepository = sl<UserRepository>();
+  late final _userRepository = currentSession.userRepository;
   final LayerLink _mentionLayerLink = LayerLink();
   OverlayEntry? _mentionOverlay;
   Set<String> _channelMemberIds = {};
@@ -100,7 +94,7 @@ class MessageInputState extends State<MessageInput> {
   bool _showCommands = false;
   bool _suppressCommandCheck = false;
   Timer? _commandDebounce;
-  final _postRepository = sl<PostRepository>();
+  late final _postRepository = currentSession.postRepository;
   final LayerLink _commandLayerLink = LayerLink();
   OverlayEntry? _commandOverlay;
   List<SlashCommand>? _cachedCommands;
@@ -117,7 +111,7 @@ class MessageInputState extends State<MessageInput> {
   }
 
   Future<void> _loadAuthHeaders() async {
-    final token = await sl<SecureStorage>().getToken();
+    final token = await currentSession.getAuthToken();
     if (mounted) {
       _authHeaders = {
         if (token != null) 'Authorization': 'Bearer $token',
@@ -128,7 +122,7 @@ class MessageInputState extends State<MessageInput> {
   Future<void> _loadRecentEmojis() async {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
-      _recentEmojis = prefs.getStringList('recent_emojis') ?? [];
+      _recentEmojis = prefs.getStringList('recent_emojis_${currentSession.accountId}') ?? [];
     }
   }
 
@@ -242,7 +236,7 @@ class MessageInputState extends State<MessageInput> {
   Future<void> _fetchMentions(String query) async {
     if (query.isEmpty) {
       // Empty query: show special mentions + channel members
-      final result = await sl<ChannelRepository>().getChannelMembers(
+      final result = await currentSession.channelRepository.getChannelMembers(
         widget.channelId,
       );
       if (!mounted) return;
@@ -800,7 +794,7 @@ class MessageInputState extends State<MessageInput> {
   Future<void> _uploadFile(String path, String name) async {
     setState(() => _isUploading = true);
 
-    final repo = sl<FileRepository>();
+    final repo = currentSession.fileRepository;
     final result = await repo.uploadFiles(
       channelId: widget.channelId,
       filePaths: [path],

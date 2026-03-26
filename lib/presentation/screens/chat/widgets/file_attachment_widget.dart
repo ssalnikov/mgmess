@@ -1,10 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/config/app_config.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/network/api_endpoints.dart';
-import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../domain/entities/file_info.dart';
@@ -45,10 +43,10 @@ class _ImageAttachment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final thumbnailUrl =
-        '${AppConfig.baseUrl}${ApiEndpoints.fileThumbnail(fileInfo.id)}';
+        '${currentSession.baseUrl}${ApiEndpoints.fileThumbnail(fileInfo.id)}';
 
     return FutureBuilder<String?>(
-      future: sl<SecureStorage>().getToken(),
+      future: currentSession.getAuthToken(),
       builder: (context, snapshot) {
         final token = snapshot.data;
         if (token == null) return const SizedBox.shrink();

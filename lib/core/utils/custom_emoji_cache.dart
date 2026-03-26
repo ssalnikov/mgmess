@@ -1,7 +1,5 @@
-import '../config/app_config.dart';
 import '../di/injection.dart';
 import '../network/api_endpoints.dart';
-import '../../data/datasources/remote/emoji_remote_datasource.dart';
 
 /// Shared cache for custom (server) emoji shortcode -> image URL mapping.
 class CustomEmojiCache {
@@ -17,12 +15,12 @@ class CustomEmojiCache {
     if (_urls != null || _loading) return;
     _loading = true;
     try {
-      final datasource = sl<EmojiRemoteDataSource>();
-      final emojis = await datasource.getCustomEmojis();
+      final session = currentSession;
+      final emojis = await session.emojiRemoteDataSource.getCustomEmojis();
       _urls = {
         for (final e in emojis)
           e.name:
-              '${AppConfig.baseUrl}${ApiEndpoints.customEmojiImage(e.id)}',
+              '${session.baseUrl}${ApiEndpoints.customEmojiImage(e.id)}',
       };
     } catch (_) {
       _urls = {};

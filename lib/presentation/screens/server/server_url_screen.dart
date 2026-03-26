@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../../../core/config/app_config.dart';
 import '../../../core/di/injection.dart';
+import '../../../core/di/session_manager.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../domain/entities/server_account.dart';
+import '../../../domain/repositories/server_account_repository.dart';
 
 class ServerUrlScreen extends StatefulWidget {
   final VoidCallback onServerConfigured;
@@ -63,6 +66,24 @@ class _ServerUrlScreenState extends State<ServerUrlScreen> {
         await AppConfig.setServerUrl(url);
         await initDependencies();
         await sl<NotificationService>().init();
+
+        // Create first server account and session
+        final now = DateTime.now();
+        final account = ServerAccount(
+          id: now.millisecondsSinceEpoch.toString(),
+          serverUrl: url,
+          displayName: Uri.parse(url).host,
+          addedAt: now,
+          lastActiveAt: now,
+        );
+        final accountRepo = sl<ServerAccountRepository>();
+        await accountRepo.add(account);
+        await accountRepo.setActive(account.id);
+
+        final sessionManager = sl<SessionManager>();
+        sessionManager.createSession(account);
+        sessionManager.switchTo(account.id);
+
         if (mounted) {
           widget.onServerConfigured();
         }

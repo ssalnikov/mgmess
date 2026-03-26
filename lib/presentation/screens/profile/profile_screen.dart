@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
-import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:flutter/services.dart';
 
 import '../../../core/auth/biometric_service.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
@@ -19,7 +17,6 @@ import '../../blocs/auth/auth_state.dart';
 import '../../blocs/locale/locale_cubit.dart';
 import '../../blocs/theme/theme_cubit.dart';
 import '../../blocs/user_status/user_status_cubit.dart';
-import '../../widgets/restart_widget.dart';
 import '../../widgets/user_avatar.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../widgets/user_display_name.dart';
@@ -139,13 +136,13 @@ class ProfileScreen extends StatelessWidget {
               _ProfileItem(
                 icon: Icons.dns,
                 label: context.l10n.server,
-                value: AppConfig.serverUrl,
+                value: currentSession.serverUrl,
               ),
               const SizedBox(height: 12),
               OutlinedButton.icon(
-                onPressed: () => _showChangeServerDialog(context),
-                icon: const Icon(Icons.swap_horiz),
-                label: Text(context.l10n.changeServer),
+                onPressed: () => context.push(RouteNames.addServer),
+                icon: const Icon(Icons.add),
+                label: Text(context.l10n.addServer),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
@@ -166,35 +163,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showChangeServerDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(context.l10n.changeServer),
-        content: Text(
-          context.l10n.changeServerMessage,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(context.l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(dialogContext).pop();
-              context.read<AuthBloc>().add(const AuthLogoutRequested());
-              await AppConfig.clearServerUrl();
-              await GetIt.instance.reset();
-              if (context.mounted) {
-                RestartWidget.restartApp(context);
-              }
-            },
-            child: Text(context.l10n.change),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _CustomStatusButton extends StatelessWidget {

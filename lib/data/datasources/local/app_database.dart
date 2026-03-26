@@ -101,7 +101,9 @@ class ChannelCategories extends Table {
 
 @DriftDatabase(tables: [Posts, Channels, Users, ChannelCategories])
 class AppDatabase extends _$AppDatabase {
-  AppDatabase() : super(_openConnection());
+  AppDatabase() : super(_openConnection('mgmess.db'));
+
+  AppDatabase.named(String dbFileName) : super(_openConnection(dbFileName));
 
   AppDatabase.forTesting(super.e);
 
@@ -127,10 +129,10 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
-  static LazyDatabase _openConnection() {
+  static LazyDatabase _openConnection(String dbFileName) {
     return LazyDatabase(() async {
       final dbFolder = await getApplicationDocumentsDirectory();
-      final file = File(p.join(dbFolder.path, 'mgmess.db'));
+      final file = File(p.join(dbFolder.path, dbFileName));
       return NativeDatabase.createInBackground(file);
     });
   }

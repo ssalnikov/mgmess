@@ -1,18 +1,19 @@
-import 'dart:async';
-
-import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:get_it/get_it.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../core/config/app_config.dart';
+import '../../../core/di/injection.dart';
+import '../../../core/di/session_manager.dart';
 import '../../../core/l10n/l10n.dart';
+import '../../../core/router/route_names.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/url_utils.dart';
 import '../../blocs/auth/auth_bloc.dart';
 import '../../blocs/auth/auth_event.dart';
 import '../../blocs/auth/auth_state.dart';
-import '../../widgets/restart_widget.dart';
+import '../../blocs/server/server_list_cubit.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -22,8 +23,6 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  late final AppLinks _appLinks;
-  StreamSubscription<Uri>? _linkSub;
   final _loginController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -36,28 +35,14 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   void initState() {
     super.initState();
-    _appLinks = AppLinks();
-    _listenForDeepLinks();
     context.read<AuthBloc>().add(const AuthLoadConfig());
   }
 
-  void _listenForDeepLinks() {
-    _linkSub = _appLinks.uriLinkStream.listen((uri) {
-      if (!mounted) return;
-      if (uri.scheme == AppConfig.callbackScheme) {
-        final token = uri.queryParameters['MMAUTHTOKEN'];
-        final csrf = uri.queryParameters['MMCSRF'];
-        if (token != null && token.isNotEmpty) {
-          context.read<AuthBloc>().add(
-                AuthOAuthCompleted(token: token, csrfToken: csrf),
-              );
-        }
-      }
-    });
-  }
-
   Future<void> _launchOAuth() async {
-    final url = Uri.parse(AppConfig.oauthUrl);
+    // Record which account is authenticating so the OAuth callback
+    // (handled in App) routes tokens to the correct session.
+    sl<SessionManager>().startOAuth(currentSession.accountId);
+    final url = Uri.parse(currentSession.oauthUrl);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -76,7 +61,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   void dispose() {
-    _linkSub?.cancel();
     _loginController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -141,18 +125,12 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () async {
-                      await AppConfig.clearServerUrl();
-                      await GetIt.instance.reset();
-                      if (context.mounted) {
-                        RestartWidget.restartApp(context);
-                      }
-                    },
+                    onTap: () => context.push(RouteNames.addServer),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          AppConfig.serverUrl,
+                          currentSession.serverUrl,
                           style: const TextStyle(
                             fontSize: 13,
                             color: AppColors.textSecondary,
@@ -167,6 +145,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                     ),
                   ),
+                  _buildServerSwitcher(),
                   const SizedBox(height: 48),
                   BlocBuilder<AuthBloc, AuthState>(
                     builder: (context, state) {
@@ -228,6 +207,65 @@ class _AuthScreenState extends State<AuthScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildServerSwitcher() {
+    return BlocBuilder<ServerListCubit, ServerListState>(
+      builder: (context, state) {
+        final currentAccountId = currentSession.accountId;
+        final otherAccounts = state.accounts
+            .where((a) => a.id != currentAccountId)
+            .toList();
+        if (otherAccounts.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.l10n.servers,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...otherAccounts.map((account) {
+                final host = UrlUtils.extractHost(account.serverUrl);
+                final name = account.displayName.isNotEmpty
+                    ? account.displayName
+                    : host;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: ActionChip(
+                    avatar: CircleAvatar(
+                      backgroundColor: AppColors.accent,
+                      radius: 12,
+                      child: Text(
+                        name[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    label: Text(name),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      context
+                          .read<ServerListCubit>()
+                          .switchServer(account.id);
+                    },
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 

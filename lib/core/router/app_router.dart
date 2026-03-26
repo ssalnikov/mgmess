@@ -21,6 +21,7 @@ import '../../presentation/screens/drafts/drafts_screen.dart';
 import '../../presentation/screens/channels/create_channel_screen.dart';
 import '../../presentation/screens/channels/create_group_dm_screen.dart';
 import '../../presentation/screens/onboarding/onboarding_screen.dart';
+import '../../presentation/screens/server/add_server_screen.dart';
 import '../../presentation/screens/search/search_screen.dart';
 import '../../presentation/screens/thread/thread_screen.dart';
 import '../../presentation/screens/threads/threads_screen.dart';
@@ -51,7 +52,8 @@ class AppRouter {
       final isAuthPage = state.matchedLocation == RouteNames.auth;
       final isOnboarding = state.matchedLocation == RouteNames.onboarding;
 
-      if (!isAuth && !isAuthPage) return RouteNames.auth;
+      final isAddServer = state.matchedLocation == RouteNames.addServer;
+      if (!isAuth && !isAuthPage && !isAddServer) return RouteNames.auth;
       if (isAuth && isAuthPage) {
         if (_onboardingChecked && _needsOnboarding) {
           return RouteNames.onboarding;
@@ -209,6 +211,10 @@ class AppRouter {
           final postId = state.pathParameters['postId']!;
           return ThreadScreen(postId: postId);
         },
+      ),
+      GoRoute(
+        path: RouteNames.addServer,
+        builder: (context, state) => const AddServerScreen(),
       ),
     ],
   );

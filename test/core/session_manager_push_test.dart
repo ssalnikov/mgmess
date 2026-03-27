@@ -107,6 +107,9 @@ void main() {
       networkInfo: networkInfo,
       notificationService: notificationService,
     );
+
+    when(() => secureStorage.getAccountToken(any()))
+        .thenAnswer((_) async => null);
   });
 
   group('registerFcmTokenOnAllSessions', () {

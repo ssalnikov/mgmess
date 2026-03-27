@@ -409,17 +409,14 @@ class _CustomReactionEmojiState extends State<_CustomReactionEmoji> {
   @override
   void initState() {
     super.initState();
-    _loadHeaders();
-  }
-
-  Future<void> _loadHeaders() async {
-    final token =
-        await currentSession.getAuthToken();
-    if (mounted) {
-      setState(() {
-        _headers = {
-          if (token != null) 'Authorization': 'Bearer $token',
-        };
+    final token = currentSession.cachedAuthToken;
+    if (token != null) {
+      _headers = {'Authorization': 'Bearer $token'};
+    } else {
+      currentSession.getAuthToken().then((t) {
+        if (mounted && t != null) {
+          setState(() => _headers = {'Authorization': 'Bearer $t'});
+        }
       });
     }
   }

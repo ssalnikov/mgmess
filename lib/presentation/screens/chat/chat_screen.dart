@@ -518,66 +518,68 @@ class _ChatScreenState extends State<ChatScreen> {
         final showUnreadSeparator =
             state.firstUnreadId != null && post.id == state.firstUnreadId;
 
-        return Column(
-          children: [
-            if (showDateSeparator)
-              _buildDateSeparator(post.createAt),
-            if (showUnreadSeparator) _buildUnreadSeparator(),
-            MessageBubble(
-              post: post,
-              isOwn: isOwn,
-              showAvatar: showAvatar,
-              isHighlighted: post.id == state.highlightedPostId,
-              currentUserId: _currentUserId,
-              canPost: _canPost,
-              onThreadTap: (postId) =>
-                  context.push(RouteNames.threadPath(postId)),
-              onQuote: (post) {
-                _messageInputKey.currentState?.insertQuote(post.message);
-              },
-              onForward: (post) async {
-                final authState = context.read<AuthBloc>().state;
-                if (authState is AuthAuthenticated) {
-                  final channel = await ForwardHelper.pickForwardChannel(
-                    context,
-                    userId: authState.user.id,
-                    teamId: authState.teamId,
-                    excludeChannelId: widget.channelId,
-                  );
-                  if (channel != null && mounted) {
-                    setState(() {
-                      _forwardingPost = post;
-                      _forwardTargetChannelId = channel.id;
-                    });
-                    _messageInputKey.currentState?.focusInput();
+        return RepaintBoundary(
+          child: Column(
+            children: [
+              if (showDateSeparator)
+                _buildDateSeparator(post.createAt),
+              if (showUnreadSeparator) _buildUnreadSeparator(),
+              MessageBubble(
+                post: post,
+                isOwn: isOwn,
+                showAvatar: showAvatar,
+                isHighlighted: post.id == state.highlightedPostId,
+                currentUserId: _currentUserId,
+                canPost: _canPost,
+                onThreadTap: (postId) =>
+                    context.push(RouteNames.threadPath(postId)),
+                onQuote: (post) {
+                  _messageInputKey.currentState?.insertQuote(post.message);
+                },
+                onForward: (post) async {
+                  final authState = context.read<AuthBloc>().state;
+                  if (authState is AuthAuthenticated) {
+                    final channel = await ForwardHelper.pickForwardChannel(
+                      context,
+                      userId: authState.user.id,
+                      teamId: authState.teamId,
+                      excludeChannelId: widget.channelId,
+                    );
+                    if (channel != null && mounted) {
+                      setState(() {
+                        _forwardingPost = post;
+                        _forwardTargetChannelId = channel.id;
+                      });
+                      _messageInputKey.currentState?.focusInput();
+                    }
                   }
-                }
-              },
-              onEdit: (post) {
-                _chatBloc.add(StartEditMessage(post: post));
-              },
-              onDelete: (post) => _confirmDelete(context, post),
-              onMarkUnread: (post) {
-                _markedAsUnread = true;
-                final userId = _currentUserId;
-                if (userId.isNotEmpty) {
-                  currentSession.channelRepository.setUnread(
-                    userId,
-                    post.id,
-                  );
-                }
-                context.go(RouteNames.channels);
-              },
-              onPin: (post) =>
-                  _chatBloc.add(PinMessage(postId: post.id)),
-              onUnpin: (post) =>
-                  _chatBloc.add(UnpinMessage(postId: post.id)),
-              onAddReaction: (post, emoji) =>
-                  _chatBloc.add(AddReaction(postId: post.id, emojiName: emoji)),
-              onRemoveReaction: (post, emoji) =>
-                  _chatBloc.add(RemoveReaction(postId: post.id, emojiName: emoji)),
-            ),
-          ],
+                },
+                onEdit: (post) {
+                  _chatBloc.add(StartEditMessage(post: post));
+                },
+                onDelete: (post) => _confirmDelete(context, post),
+                onMarkUnread: (post) {
+                  _markedAsUnread = true;
+                  final userId = _currentUserId;
+                  if (userId.isNotEmpty) {
+                    currentSession.channelRepository.setUnread(
+                      userId,
+                      post.id,
+                    );
+                  }
+                  context.go(RouteNames.channels);
+                },
+                onPin: (post) =>
+                    _chatBloc.add(PinMessage(postId: post.id)),
+                onUnpin: (post) =>
+                    _chatBloc.add(UnpinMessage(postId: post.id)),
+                onAddReaction: (post, emoji) =>
+                    _chatBloc.add(AddReaction(postId: post.id, emojiName: emoji)),
+                onRemoveReaction: (post, emoji) =>
+                    _chatBloc.add(RemoveReaction(postId: post.id, emojiName: emoji)),
+              ),
+            ],
+          ),
         );
       },
     );

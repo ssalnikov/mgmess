@@ -257,8 +257,18 @@ class ServerSession {
     draftStorage = DraftStorage(accountId: accountId);
   }
 
+  /// Synchronous cached auth token. Populated by [refreshAuthToken].
+  /// Widgets should prefer this over [getAuthToken] to avoid async overhead.
+  String? cachedAuthToken;
+
+  /// Reads the auth token from secure storage and caches it in memory.
+  Future<String?> refreshAuthToken() async {
+    cachedAuthToken = await _secureStorage.getAccountToken(accountId);
+    return cachedAuthToken;
+  }
+
   /// Returns the auth token for this server account.
-  Future<String?> getAuthToken() => _secureStorage.getAccountToken(accountId);
+  Future<String?> getAuthToken() => refreshAuthToken();
 
   Future<void> dispose() async {
     authBloc.close();

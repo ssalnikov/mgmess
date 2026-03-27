@@ -49,6 +49,9 @@ void main() {
       networkInfo: MockNetworkInfo(),
       notificationService: MockNotificationService(),
     );
+
+    when(() => secureStorage.getAccountToken(any()))
+        .thenAnswer((_) async => null);
   });
 
   setUpAll(() {

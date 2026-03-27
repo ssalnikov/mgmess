@@ -55,6 +55,9 @@ void main() {
       networkInfo: networkInfo,
       notificationService: notificationService,
     );
+
+    when(() => secureStorage.getAccountToken(any()))
+        .thenAnswer((_) async => null);
   });
 
   group('backgroundSessions', () {
@@ -136,8 +139,8 @@ void main() {
       verify(() => secureStorage.getAccountToken('acc3')).called(1);
       verify(() => secureStorage.getAccountUserId('acc2')).called(1);
       verify(() => secureStorage.getAccountUserId('acc3')).called(1);
-      // Active session is NOT touched
-      verifyNever(() => secureStorage.getAccountToken('acc1'));
+      // Active session token is pre-cached by switchTo, but initBackgroundSessions
+      // does not check userId for it
       verifyNever(() => secureStorage.getAccountUserId('acc1'));
     });
   });

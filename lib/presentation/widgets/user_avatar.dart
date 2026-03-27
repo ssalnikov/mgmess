@@ -28,12 +28,17 @@ class UserAvatar extends StatefulWidget {
 }
 
 class _UserAvatarState extends State<UserAvatar> {
-  late Future<String?> _tokenFuture;
+  String? _token;
 
   @override
   void initState() {
     super.initState();
-    _tokenFuture = currentSession.getAuthToken();
+    _token = currentSession.cachedAuthToken;
+    if (_token == null) {
+      currentSession.getAuthToken().then((t) {
+        if (mounted && t != null) setState(() => _token = t);
+      });
+    }
   }
 
   String get _imageUrl {
@@ -60,40 +65,34 @@ class _UserAvatarState extends State<UserAvatar> {
 
     final avatar = Stack(
       children: [
-        FutureBuilder<String?>(
-          future: _tokenFuture,
-          builder: (context, snapshot) {
-            final token = snapshot.data;
-            return CircleAvatar(
-              radius: widget.radius,
-              backgroundColor: AppColors.divider,
-              child: ClipOval(
-                child: token != null
-                    ? CachedNetworkImage(
-                        imageUrl: _imageUrl,
-                        httpHeaders: {'Authorization': 'Bearer $token'},
-                        width: widget.radius * 2,
-                        height: widget.radius * 2,
-                        fit: BoxFit.cover,
-                        placeholder: (_, _) => Icon(
-                          Icons.person,
-                          size: widget.radius,
-                          color: AppColors.textSecondary,
-                        ),
-                        errorWidget: (_, _, _) => Icon(
-                          Icons.person,
-                          size: widget.radius,
-                          color: AppColors.textSecondary,
-                        ),
-                      )
-                    : Icon(
-                        Icons.person,
-                        size: widget.radius,
-                        color: AppColors.textSecondary,
-                      ),
-              ),
-            );
-          },
+        CircleAvatar(
+          radius: widget.radius,
+          backgroundColor: AppColors.divider,
+          child: ClipOval(
+            child: _token != null
+                ? CachedNetworkImage(
+                    imageUrl: _imageUrl,
+                    httpHeaders: {'Authorization': 'Bearer $_token'},
+                    width: widget.radius * 2,
+                    height: widget.radius * 2,
+                    fit: BoxFit.cover,
+                    placeholder: (_, _) => Icon(
+                      Icons.person,
+                      size: widget.radius,
+                      color: AppColors.textSecondary,
+                    ),
+                    errorWidget: (_, _, _) => Icon(
+                      Icons.person,
+                      size: widget.radius,
+                      color: AppColors.textSecondary,
+                    ),
+                  )
+                : Icon(
+                    Icons.person,
+                    size: widget.radius,
+                    color: AppColors.textSecondary,
+                  ),
+          ),
         ),
         if (showIndicator)
           Positioned(

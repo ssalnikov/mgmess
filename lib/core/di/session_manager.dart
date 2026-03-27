@@ -80,6 +80,8 @@ class SessionManager {
     assert(_sessions.containsKey(accountId),
         'Session for $accountId not found. Call createSession first.');
     _activeSessionId = accountId;
+    // Pre-cache auth token for synchronous access in widgets
+    _sessions[accountId]!.refreshAuthToken();
   }
 
   /// Remove and dispose session for [accountId].

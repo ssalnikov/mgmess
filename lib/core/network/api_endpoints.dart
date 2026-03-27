@@ -25,6 +25,8 @@ class ApiEndpoints {
       '/users/$userId/teams/$teamId/channels/members';
   static String channelViewForUser(String userId) =>
       '/channels/members/$userId/view';
+  static String postSetUnread(String userId, String postId) =>
+      '/users/$userId/posts/$postId/set_unread';
   static String directChannel = '/channels/direct';
   static const String channels = '/channels';
   static const String groupChannel = '/channels/group';

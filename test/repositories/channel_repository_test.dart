@@ -663,5 +663,33 @@ void main() {
         verifyNever(() => mockRemote.getRolePermissions(any()));
       });
     });
+
+    group('setUnread', () {
+      test('returns Right on success', () async {
+        when(() => mockRemote.setUnread(any(), any()))
+            .thenAnswer((_) async {});
+
+        final result =
+            await repository.setUnread('user1', 'post1');
+
+        expect(result.isRight(), true);
+        verify(() => mockRemote.setUnread('user1', 'post1'))
+            .called(1);
+      });
+
+      test('returns ServerFailure on exception', () async {
+        when(() => mockRemote.setUnread(any(), any()))
+            .thenThrow(
+                const ServerException(message: 'Failed to set unread'));
+
+        final result =
+            await repository.setUnread('user1', 'post1');
+
+        result.fold(
+          (failure) => expect(failure, isA<ServerFailure>()),
+          (_) => fail('Expected Left'),
+        );
+      });
+    });
   });
 }

@@ -771,5 +771,82 @@ void main() {
         ),
       ],
     );
+
+    blocTest<ChannelsBloc, ChannelsState>(
+      'MarkChannelAsUnread optimistically sets unread, keeps on success',
+      build: () {
+        when(() => mockRepo.getChannelsForUser(any(), any()))
+            .thenAnswer((_) async => const Right(channels));
+        when(() => mockRepo.setUnread(any(), any()))
+            .thenAnswer((_) async => const Right(null));
+        return ChannelsBloc(
+            channelRepository: mockRepo, userRepository: mockUserRepo);
+      },
+      act: (bloc) async {
+        bloc.add(const LoadChannels(userId: 'user1', teamId: 'team1'));
+        await Future.delayed(const Duration(milliseconds: 50));
+        bloc.add(const MarkChannelAsUnread(
+          channelId: 'ch2',
+          postId: 'post1',
+        ));
+      },
+      wait: const Duration(milliseconds: 100),
+      expect: () => [
+        isA<ChannelsState>().having((s) => s.isLoading, 'isLoading', true),
+        isA<ChannelsState>()
+            .having((s) => s.isLoading, 'isLoading', false)
+            .having(
+              (s) => s.channels.firstWhere((c) => c.id == 'ch2').unreadCount,
+              'ch2 unread before',
+              0,
+            ),
+        isA<ChannelsState>().having(
+          (s) => s.channels.firstWhere((c) => c.id == 'ch2').unreadCount,
+          'ch2 unread after mark',
+          1,
+        ),
+      ],
+    );
+
+    blocTest<ChannelsBloc, ChannelsState>(
+      'MarkChannelAsUnread rolls back on API error',
+      build: () {
+        when(() => mockRepo.getChannelsForUser(any(), any()))
+            .thenAnswer((_) async => const Right(channels));
+        when(() => mockRepo.setUnread(any(), any()))
+            .thenAnswer((_) async => Left(const ServerFailure(message: 'error')));
+        return ChannelsBloc(
+            channelRepository: mockRepo, userRepository: mockUserRepo);
+      },
+      act: (bloc) async {
+        bloc.add(const LoadChannels(userId: 'user1', teamId: 'team1'));
+        await Future.delayed(const Duration(milliseconds: 50));
+        bloc.add(const MarkChannelAsUnread(
+          channelId: 'ch2',
+          postId: 'post1',
+        ));
+      },
+      wait: const Duration(milliseconds: 100),
+      expect: () => [
+        isA<ChannelsState>().having((s) => s.isLoading, 'isLoading', true),
+        isA<ChannelsState>()
+            .having((s) => s.isLoading, 'isLoading', false)
+            .having(
+              (s) => s.channels.firstWhere((c) => c.id == 'ch2').unreadCount,
+              'ch2 unread before',
+              0,
+            ),
+        isA<ChannelsState>().having(
+          (s) => s.channels.firstWhere((c) => c.id == 'ch2').unreadCount,
+          'ch2 optimistic',
+          1,
+        ),
+        isA<ChannelsState>().having(
+          (s) => s.channels.firstWhere((c) => c.id == 'ch2').unreadCount,
+          'ch2 rolled back',
+          0,
+        ),
+      ],
+    );
   });
 }

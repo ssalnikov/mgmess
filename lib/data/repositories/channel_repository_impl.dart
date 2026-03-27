@@ -133,6 +133,19 @@ class ChannelRepositoryImpl implements ChannelRepository {
   }
 
   @override
+  Future<Either<Failure, void>> setUnread(
+    String userId,
+    String postId,
+  ) async {
+    try {
+      await _remoteDataSource.setUnread(userId, postId);
+      return const Right(null);
+    } on ServerException catch (e) {
+      return Left(ServerFailure(message: e.message));
+    }
+  }
+
+  @override
   Future<Either<Failure, Channel>> createDirectChannel(
     String userId,
     String otherUserId,

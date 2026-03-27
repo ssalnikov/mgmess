@@ -22,6 +22,10 @@ abstract class ChannelRepository {
     String userId,
     String channelId,
   );
+  Future<Either<Failure, void>> setUnread(
+    String userId,
+    String postId,
+  );
   Future<Either<Failure, Channel>> createDirectChannel(
     String userId,
     String otherUserId,

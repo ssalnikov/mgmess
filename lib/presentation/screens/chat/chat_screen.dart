@@ -64,6 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _canPost = true;
   Post? _forwardingPost;
   String? _forwardTargetChannelId;
+  bool _markedAsUnread = false;
 
   @override
   void initState() {
@@ -273,10 +274,12 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _notificationBloc?.add(const NotificationClearActiveChannel());
 
-    final userId = _chatBloc.userId;
-    final channelId = widget.channelId;
-    if (userId.isNotEmpty) {
-      currentSession.channelRepository.viewChannel(userId, channelId);
+    if (!_markedAsUnread) {
+      final userId = _chatBloc.userId;
+      final channelId = widget.channelId;
+      if (userId.isNotEmpty) {
+        currentSession.channelRepository.viewChannel(userId, channelId);
+      }
     }
 
     _chatBloc.close();
@@ -554,6 +557,17 @@ class _ChatScreenState extends State<ChatScreen> {
                 _chatBloc.add(StartEditMessage(post: post));
               },
               onDelete: (post) => _confirmDelete(context, post),
+              onMarkUnread: (post) {
+                _markedAsUnread = true;
+                final userId = _currentUserId;
+                if (userId.isNotEmpty) {
+                  currentSession.channelRepository.setUnread(
+                    userId,
+                    post.id,
+                  );
+                }
+                context.go(RouteNames.channels);
+              },
               onPin: (post) =>
                   _chatBloc.add(PinMessage(postId: post.id)),
               onUnpin: (post) =>

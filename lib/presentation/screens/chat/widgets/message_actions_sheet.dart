@@ -18,6 +18,7 @@ class MessageActionsSheet extends StatelessWidget {
   final VoidCallback? onDelete;
   final VoidCallback? onPin;
   final VoidCallback? onUnpin;
+  final VoidCallback? onMarkUnread;
   final void Function(String emojiName)? onReaction;
 
   const MessageActionsSheet({
@@ -31,6 +32,7 @@ class MessageActionsSheet extends StatelessWidget {
     this.onDelete,
     this.onPin,
     this.onUnpin,
+    this.onMarkUnread,
     this.onReaction,
   });
 
@@ -75,6 +77,16 @@ class MessageActionsSheet extends StatelessWidget {
                 HapticFeedback.selectionClick();
                 Navigator.pop(context);
                 onForward!();
+              },
+            ),
+          if (onMarkUnread != null)
+            ListTile(
+              leading: const Icon(Icons.markunread_outlined),
+              title: Text(context.l10n.markAsUnread),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                Navigator.pop(context);
+                onMarkUnread!();
               },
             ),
           if (canPost && !post.isPinned && onPin != null)

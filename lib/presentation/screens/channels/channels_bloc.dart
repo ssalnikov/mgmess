@@ -58,6 +58,17 @@ class MarkChannelAsRead extends ChannelsEvent {
   List<Object?> get props => [channelId];
 }
 
+class MarkChannelAsUnread extends ChannelsEvent {
+  final String channelId;
+  final String postId;
+  const MarkChannelAsUnread({
+    required this.channelId,
+    required this.postId,
+  });
+  @override
+  List<Object?> get props => [channelId, postId];
+}
+
 class ToggleMuteChannel extends ChannelsEvent {
   final String channelId;
   final String userId;
@@ -210,6 +221,7 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
     on<SearchChannels>(_onSearchChannels);
     on<_ServerSearchResults>(_onServerSearchResults);
     on<MarkChannelAsRead>(_onMarkChannelAsRead);
+    on<MarkChannelAsUnread>(_onMarkChannelAsUnread);
     on<ToggleMuteChannel>(_onToggleMuteChannel);
     on<ChannelWsEvent>(_onWsEvent);
     on<ToggleCategoryCollapsed>(_onToggleCategoryCollapsed);
@@ -421,6 +433,44 @@ class ChannelsBloc extends Bloc<ChannelsEvent, ChannelsState> {
         (_) {}, // Success — keep optimistic state
       );
     }
+  }
+
+  Future<void> _onMarkChannelAsUnread(
+    MarkChannelAsUnread event,
+    Emitter<ChannelsState> emit,
+  ) async {
+    if (_userId.isEmpty) return;
+
+    final oldChannel = state.channels.firstWhere(
+      (c) => c.id == event.channelId,
+      orElse: () => Channel(id: event.channelId),
+    );
+
+    if (oldChannel.unreadCount > 0) return;
+
+    final channels = state.channels.map((c) {
+      if (c.id == event.channelId) {
+        return c.copyWith(msgCountRoot: c.totalMsgCountRoot - 1);
+      }
+      return c;
+    }).toList();
+
+    _emitWithSections(emit, channels);
+
+    final result = await _channelRepository.setUnread(_userId, event.postId);
+
+    result.fold(
+      (_) {
+        final rolledBack = state.channels.map((c) {
+          if (c.id == event.channelId) {
+            return c.copyWith(msgCountRoot: oldChannel.msgCountRoot);
+          }
+          return c;
+        }).toList();
+        _emitWithSections(emit, rolledBack);
+      },
+      (_) {},
+    );
   }
 
   Future<void> _onToggleMuteChannel(

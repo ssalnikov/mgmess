@@ -255,6 +255,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unpin => 'Unpin';
 
   @override
+  String get markAsUnread => 'Mark as unread';
+
+  @override
   String get edit => 'Edit';
 
   @override

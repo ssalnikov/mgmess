@@ -33,6 +33,7 @@ class MessageBubble extends StatelessWidget {
   final void Function(Post post)? onDelete;
   final void Function(Post post)? onPin;
   final void Function(Post post)? onUnpin;
+  final void Function(Post post)? onMarkUnread;
   final void Function(Post post, String emojiName)? onAddReaction;
   final void Function(Post post, String emojiName)? onRemoveReaction;
   final String? currentUserId;
@@ -51,6 +52,7 @@ class MessageBubble extends StatelessWidget {
     this.onDelete,
     this.onPin,
     this.onUnpin,
+    this.onMarkUnread,
     this.onAddReaction,
     this.onRemoveReaction,
     this.currentUserId,
@@ -345,6 +347,7 @@ class MessageBubble extends StatelessWidget {
         onDelete: onDelete != null ? () => onDelete!(post) : null,
         onPin: onPin != null ? () => onPin!(post) : null,
         onUnpin: onUnpin != null ? () => onUnpin!(post) : null,
+        onMarkUnread: onMarkUnread != null ? () => onMarkUnread!(post) : null,
         onReaction: onAddReaction != null
             ? (emojiName) => onAddReaction!(post, emojiName)
             : null,

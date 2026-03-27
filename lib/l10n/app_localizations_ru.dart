@@ -256,6 +256,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get unpin => 'Открепить';
 
   @override
+  String get markAsUnread => 'Отметить как непрочитанное';
+
+  @override
   String get edit => 'Редактировать';
 
   @override

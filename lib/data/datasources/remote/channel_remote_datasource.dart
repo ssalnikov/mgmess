@@ -81,6 +81,19 @@ class ChannelRemoteDataSource {
     }
   }
 
+  Future<void> setUnread(
+    String userId,
+    String postId,
+  ) async {
+    try {
+      await _apiClient.dio.post(
+        ApiEndpoints.postSetUnread(userId, postId),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to set channel unread: $e');
+    }
+  }
+
   Future<void> updateChannelNotifyProps(
     String channelId,
     String userId,

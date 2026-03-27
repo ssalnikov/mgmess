@@ -123,6 +123,7 @@
   "forward": "Forward",
   "pin": "Pin",
   "unpin": "Unpin",
+  "markAsUnread": "Mark as unread",
   "edit": "Edit",
 
   "profile": "Profile",

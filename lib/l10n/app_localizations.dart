@@ -548,6 +548,12 @@ abstract class AppLocalizations {
   /// **'Unpin'**
   String get unpin;
 
+  /// No description provided for @markAsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unread'**
+  String get markAsUnread;
+
   /// No description provided for @edit.
   ///
   /// In en, this message translates to:

@@ -482,6 +482,12 @@ abstract class AppLocalizations {
   /// **'Editing message'**
   String get editingMessage;
 
+  /// No description provided for @forwardingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Forwarding message'**
+  String get forwardingMessage;
+
   /// No description provided for @writeAMessage.
   ///
   /// In en, this message translates to:
@@ -1189,6 +1195,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Forwarded'**
   String get forwarded;
+
+  /// No description provided for @forwardFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward failed: {error}'**
+  String forwardFailed(String error);
 
   /// No description provided for @forwardedFrom.
   ///

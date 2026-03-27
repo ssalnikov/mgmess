@@ -106,6 +106,7 @@
   "important": "Important",
   "urgent": "Urgent",
   "editingMessage": "Editing message",
+  "forwardingMessage": "Forwarding message",
   "writeAMessage": "Write a message...",
   "photoFromGallery": "Photo from Gallery",
   "file": "File",
@@ -272,6 +273,12 @@
   "pinned": "Pinned",
   "edited": "(edited)",
   "forwarded": "Forwarded",
+  "forwardFailed": "Forward failed: {error}",
+  "@forwardFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
   "forwardedFrom": "Forwarded from #{channelName}",
   "@forwardedFrom": {
     "placeholders": {

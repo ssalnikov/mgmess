@@ -71,6 +71,7 @@
   "important": "Важный",
   "urgent": "Срочный",
   "editingMessage": "Редактирование сообщения",
+  "forwardingMessage": "Пересылка сообщения",
   "writeAMessage": "Напишите сообщение...",
   "photoFromGallery": "Фото из галереи",
   "file": "Файл",
@@ -207,6 +208,7 @@
   "pinned": "Закреплено",
   "edited": "(изменено)",
   "forwarded": "Переслано",
+  "forwardFailed": "Ошибка пересылки: {error}",
   "forwardedFrom": "Переслано из #{channelName}",
 
   "newMessagesCount": "{count, plural, =1{1 новое сообщение} few{{count} новых сообщения} other{{count} новых сообщений}}",

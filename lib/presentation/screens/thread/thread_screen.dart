@@ -31,6 +31,8 @@ class _ThreadScreenState extends State<ThreadScreen> {
   final _messageInputKey = GlobalKey<MessageInputState>();
   final _scrollController = ScrollController();
   bool _isUserScrolledUp = false;
+  Post? _forwardingPost;
+  String? _forwardTargetChannelId;
 
   @override
   void initState() {
@@ -173,6 +175,13 @@ class _ThreadScreenState extends State<ThreadScreen> {
                       key: _messageInputKey,
                       channelId: state.channelId,
                       editingPost: state.editingPost,
+                      forwardingPost: _forwardingPost,
+                      onCancelForward: () {
+                        setState(() {
+                          _forwardingPost = null;
+                          _forwardTargetChannelId = null;
+                        });
+                      },
                       onCancelEdit: () {
                         _threadBloc.add(const CancelEditThreadPost());
                       },
@@ -183,6 +192,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
                         ));
                       },
                       onSend: (message, {fileIds, priority}) {
+                        if (_forwardingPost != null) {
+                          _sendForward(message);
+                          return;
+                        }
                         _threadBloc.add(SendThreadReply(
                           message: message,
                           fileIds: fileIds,
@@ -196,6 +209,23 @@ class _ThreadScreenState extends State<ThreadScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  void _sendForward(String userMessage) {
+    final post = _forwardingPost!;
+    final channelId = _forwardTargetChannelId!;
+
+    setState(() {
+      _forwardingPost = null;
+      _forwardTargetChannelId = null;
+    });
+
+    ForwardHelper.sendForward(
+      context,
+      post: post,
+      targetChannelId: channelId,
+      userMessage: userMessage,
     );
   }
 
@@ -245,17 +275,22 @@ class _ThreadScreenState extends State<ThreadScreen> {
               onQuote: (post) {
                 _messageInputKey.currentState?.insertQuote(post.message);
               },
-              onForward: (post) {
+              onForward: (post) async {
                 final authState = context.read<AuthBloc>().state;
                 if (authState is AuthAuthenticated) {
-                  ForwardHelper.forwardPost(
+                  final channel = await ForwardHelper.pickForwardChannel(
                     context,
-                    post: post,
                     userId: authState.user.id,
                     teamId: authState.teamId,
-                    teamName: authState.teamName,
                     excludeChannelId: _threadBloc.state.channelId,
                   );
+                  if (channel != null && mounted) {
+                    setState(() {
+                      _forwardingPost = post;
+                      _forwardTargetChannelId = channel.id;
+                    });
+                    _messageInputKey.currentState?.focusInput();
+                  }
                 }
               },
               onEdit: (post) {

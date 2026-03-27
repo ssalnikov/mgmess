@@ -36,6 +36,8 @@ class MessageInput extends StatefulWidget {
   final Post? editingPost;
   final VoidCallback? onCancelEdit;
   final void Function(String postId, String message)? onSaveEdit;
+  final Post? forwardingPost;
+  final VoidCallback? onCancelForward;
 
   const MessageInput({
     super.key,
@@ -46,6 +48,8 @@ class MessageInput extends StatefulWidget {
     this.editingPost,
     this.onCancelEdit,
     this.onSaveEdit,
+    this.forwardingPost,
+    this.onCancelForward,
   });
 
   @override
@@ -64,6 +68,8 @@ class MessageInputState extends State<MessageInput> {
   // Edit mode
   String? _savedDraftText;
   bool get _isEditing => widget.editingPost != null;
+
+  bool get _isForwarding => widget.forwardingPost != null;
 
   // Priority
   String? _selectedPriority;
@@ -665,7 +671,7 @@ class MessageInputState extends State<MessageInput> {
       return;
     }
 
-    if (text.isEmpty && _pendingFileIds.isEmpty) return;
+    if (text.isEmpty && _pendingFileIds.isEmpty && !_isForwarding) return;
 
     HapticFeedback.lightImpact();
     widget.onSend(
@@ -683,6 +689,10 @@ class MessageInputState extends State<MessageInput> {
       _selectedPriority = null;
       _showPriorityBar = false;
     });
+  }
+
+  void focusInput() {
+    _focusNode.requestFocus();
   }
 
   void insertQuote(String text) {
@@ -867,34 +877,20 @@ class MessageInputState extends State<MessageInput> {
               ),
             // Priority bar (toggleable)
             if (!_isEditing && _showPriorityBar) _buildPriorityBar(),
-            // Edit indicator
             if (_isEditing)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                color: AppColors.accent.withValues(alpha: 0.1),
-                child: Row(
-                  children: [
-                    const Icon(Icons.edit_outlined,
-                        size: 16, color: AppColors.accent),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        context.l10n.editingMessage,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.accent,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: widget.onCancelEdit,
-                      child: const Icon(Icons.close,
-                          size: 18, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
+              _InputBanner(
+                icon: Icons.edit_outlined,
+                label: context.l10n.editingMessage,
+                onCancel: widget.onCancelEdit,
+              ),
+            if (_isForwarding)
+              _InputBanner(
+                icon: Icons.shortcut,
+                label: context.l10n.forwardingMessage,
+                subtitle: widget.forwardingPost!.message.isNotEmpty
+                    ? widget.forwardingPost!.message
+                    : null,
+                onCancel: widget.onCancelForward,
               ),
             // Main input area
             Container(
@@ -1097,6 +1093,73 @@ class MessageInputState extends State<MessageInput> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _InputBanner extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String? subtitle;
+  final VoidCallback? onCancel;
+
+  const _InputBanner({
+    required this.icon,
+    required this.label,
+    this.subtitle,
+    this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: AppColors.accent.withValues(alpha: 0.1),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: AppColors.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: subtitle == null
+                ? Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      Text(
+                        subtitle!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+          GestureDetector(
+            onTap: onCancel,
+            child: const Icon(Icons.close,
+                size: 18, color: AppColors.textSecondary),
+          ),
+        ],
       ),
     );
   }

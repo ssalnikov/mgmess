@@ -221,6 +221,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editingMessage => 'Редактирование сообщения';
 
   @override
+  String get forwardingMessage => 'Пересылка сообщения';
+
+  @override
   String get writeAMessage => 'Напишите сообщение...';
 
   @override
@@ -599,6 +602,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get forwarded => 'Переслано';
+
+  @override
+  String forwardFailed(String error) {
+    return 'Ошибка пересылки: $error';
+  }
 
   @override
   String forwardedFrom(String channelName) {

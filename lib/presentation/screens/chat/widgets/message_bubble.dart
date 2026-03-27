@@ -179,25 +179,6 @@ class MessageBubble extends StatelessWidget {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              border: const Border(
-                                left: BorderSide(
-                                  color: AppColors.accent,
-                                  width: 2,
-                                ),
-                              ),
-                              color: Colors.black.withValues(alpha: 0.03),
-                            ),
-                            child: MessageMarkdown(
-                              data: post.forwardedPostMessage,
-                              styleSheet: MarkdownStyleSheet(
-                                p: AppTextStyles.body,
-                              ),
-                            ),
-                          ),
                           if (post.message.isNotEmpty)
                             const SizedBox(height: 4),
                         ],

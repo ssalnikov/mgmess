@@ -220,6 +220,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editingMessage => 'Editing message';
 
   @override
+  String get forwardingMessage => 'Forwarding message';
+
+  @override
   String get writeAMessage => 'Write a message...';
 
   @override
@@ -597,6 +600,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get forwarded => 'Forwarded';
+
+  @override
+  String forwardFailed(String error) {
+    return 'Forward failed: $error';
+  }
 
   @override
   String forwardedFrom(String channelName) {

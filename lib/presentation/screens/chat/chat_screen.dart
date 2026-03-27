@@ -62,6 +62,8 @@ class _ChatScreenState extends State<ChatScreen> {
   int? _memberCount;
   String _channelName = '';
   bool _canPost = true;
+  Post? _forwardingPost;
+  String? _forwardTargetChannelId;
 
   @override
   void initState() {
@@ -239,6 +241,23 @@ class _ChatScreenState extends State<ChatScreen> {
       teamId: authState.teamId,
       channelUrlName: channelName,
     ));
+  }
+
+  void _sendForward(String userMessage) {
+    final post = _forwardingPost!;
+    final channelId = _forwardTargetChannelId!;
+
+    setState(() {
+      _forwardingPost = null;
+      _forwardTargetChannelId = null;
+    });
+
+    ForwardHelper.sendForward(
+      context,
+      post: post,
+      targetChannelId: channelId,
+      userMessage: userMessage,
+    );
   }
 
   void _scrollToBottom() {
@@ -433,6 +452,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         channelName: _channelName,
                         initialDraft: widget.initialDraft,
                         editingPost: state.editingPost,
+                        forwardingPost: _forwardingPost,
+                        onCancelForward: () {
+                          setState(() {
+                            _forwardingPost = null;
+                            _forwardTargetChannelId = null;
+                          });
+                        },
                         onCancelEdit: () {
                           _chatBloc.add(const CancelEditMessage());
                         },
@@ -443,6 +469,10 @@ class _ChatScreenState extends State<ChatScreen> {
                           ));
                         },
                         onSend: (message, {fileIds, priority}) {
+                          if (_forwardingPost != null) {
+                            _sendForward(message);
+                            return;
+                          }
                           _chatBloc.add(SendMessage(
                             message: message,
                             fileIds: fileIds,
@@ -502,17 +532,22 @@ class _ChatScreenState extends State<ChatScreen> {
               onQuote: (post) {
                 _messageInputKey.currentState?.insertQuote(post.message);
               },
-              onForward: (post) {
+              onForward: (post) async {
                 final authState = context.read<AuthBloc>().state;
                 if (authState is AuthAuthenticated) {
-                  ForwardHelper.forwardPost(
+                  final channel = await ForwardHelper.pickForwardChannel(
                     context,
-                    post: post,
                     userId: authState.user.id,
                     teamId: authState.teamId,
-                    teamName: authState.teamName,
                     excludeChannelId: widget.channelId,
                   );
+                  if (channel != null && mounted) {
+                    setState(() {
+                      _forwardingPost = post;
+                      _forwardTargetChannelId = channel.id;
+                    });
+                    _messageInputKey.currentState?.focusInput();
+                  }
                 }
               },
               onEdit: (post) {

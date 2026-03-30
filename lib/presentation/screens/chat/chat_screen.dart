@@ -65,15 +65,19 @@ class _ChatScreenState extends State<ChatScreen> {
   Post? _forwardingPost;
   String? _forwardTargetChannelId;
   bool _markedAsUnread = false;
+  late final String _userId;
+  final _postKeys = <String, GlobalKey>{};
 
   @override
   void initState() {
     super.initState();
     _channelName = widget.channelName;
+    final authState = context.read<AuthBloc>().state;
+    _userId = authState is AuthAuthenticated ? authState.user.id : '';
     _chatBloc = ChatBloc(
       postRepository: currentSession.postRepository,
       wsPostParser: currentSession.wsPostParser,
-      userId: _currentUserId,
+      userId: _userId,
     );
     if (widget.lastViewedAt > 0) {
       _chatBloc.add(SetLastViewedAt(lastViewedAt: widget.lastViewedAt));
@@ -100,9 +104,8 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (_) {}
 
     // Notify server immediately so push notifications stop arriving
-    final userId = _currentUserId;
-    if (userId.isNotEmpty) {
-      currentSession.channelRepository.viewChannel(userId, widget.channelId);
+    if (_userId.isNotEmpty) {
+      currentSession.channelRepository.viewChannel(_userId, widget.channelId);
     }
 
     _scrollController.addListener(_onScroll);
@@ -113,7 +116,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadChannelMetadata() async {
     final channelRepo = currentSession.channelRepository;
-    final userId = _currentUserId;
+    final userId = _userId;
 
     // Launch all requests in parallel
     Future<Either<Failure, Channel>>? channelFuture;
@@ -287,12 +290,6 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  String get _currentUserId {
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthAuthenticated) return authState.user.id;
-    return '';
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocProvider.value(
@@ -378,14 +375,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 listener: (context, state) {
                   // Scroll to the highlighted post
                   WidgetsBinding.instance.addPostFrameCallback((_) {
-                    final index = state.posts.indexWhere(
-                        (p) => p.id == state.highlightedPostId);
-                    if (index >= 0 && _scrollController.hasClients) {
-                      final offset = index * 80.0;
-                      _scrollController.animateTo(
-                        offset,
+                    final key = _postKeys[state.highlightedPostId];
+                    final ctx = key?.currentContext;
+                    if (ctx != null) {
+                      Scrollable.ensureVisible(
+                        ctx,
                         duration: const Duration(milliseconds: 400),
                         curve: Curves.easeOut,
+                        alignment: 0.5,
                       );
                     }
                   });
@@ -496,6 +493,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageList(ChatState state) {
+    // Evict keys for posts no longer in the list
+    if (_postKeys.length > state.posts.length + 20) {
+      final currentIds = state.posts.map((p) => p.id).toSet();
+      _postKeys.removeWhere((id, _) => !currentIds.contains(id));
+    }
+
     return ListView.builder(
       controller: _scrollController,
       reverse: true,
@@ -509,7 +512,7 @@ class _ChatScreenState extends State<ChatScreen> {
           );
         }
         final post = state.posts[index];
-        final isOwn = post.userId == _currentUserId;
+        final isOwn = post.userId == _userId;
         final showAvatar = !isOwn &&
             (index == state.posts.length - 1 ||
                 state.posts[index + 1].userId != post.userId);
@@ -518,7 +521,10 @@ class _ChatScreenState extends State<ChatScreen> {
         final showUnreadSeparator =
             state.firstUnreadId != null && post.id == state.firstUnreadId;
 
+        final postKey = _postKeys.putIfAbsent(post.id, () => GlobalKey());
+
         return RepaintBoundary(
+          key: postKey,
           child: Column(
             children: [
               if (showDateSeparator)
@@ -529,7 +535,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 isOwn: isOwn,
                 showAvatar: showAvatar,
                 isHighlighted: post.id == state.highlightedPostId,
-                currentUserId: _currentUserId,
+                currentUserId: _userId,
                 canPost: _canPost,
                 onThreadTap: (postId) =>
                     context.push(RouteNames.threadPath(postId)),
@@ -560,7 +566,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 onDelete: (post) => _confirmDelete(context, post),
                 onMarkUnread: (post) {
                   _markedAsUnread = true;
-                  final userId = _currentUserId;
+                  final userId = _userId;
                   if (userId.isNotEmpty) {
                     currentSession.channelRepository.setUnread(
                       userId,

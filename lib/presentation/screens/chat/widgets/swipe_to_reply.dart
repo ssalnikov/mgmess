@@ -19,30 +19,27 @@ class SwipeToReply extends StatefulWidget {
 
 class _SwipeToReplyState extends State<SwipeToReply>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _animationController;
+  AnimationController? _animationController;
   double _dragOffset = 0;
   bool _hasTriggeredHaptic = false;
 
   static const _threshold = 64.0;
   static const _maxDrag = 80.0;
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
+  AnimationController _ensureController() {
+    return _animationController ??= AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
-    );
-    _animationController.addListener(() {
-      setState(() {
-        _dragOffset = _dragOffset * (1 - _animationController.value);
+    )..addListener(() {
+        setState(() {
+          _dragOffset = _dragOffset * (1 - _animationController!.value);
+        });
       });
-    });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _animationController?.dispose();
     super.dispose();
   }
 
@@ -63,7 +60,8 @@ class _SwipeToReplyState extends State<SwipeToReply>
     if (_dragOffset >= _threshold) {
       widget.onReply();
     }
-    _animationController.forward(from: 0).then((_) {
+    _ensureController().forward(from: 0).then((_) {
+      if (!mounted) return;
       setState(() {
         _dragOffset = 0;
         _hasTriggeredHaptic = false;

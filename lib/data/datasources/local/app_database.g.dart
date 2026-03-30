@@ -3546,6 +3546,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $UsersTable users = $UsersTable(this);
   late final $ChannelCategoriesTable channelCategories =
       $ChannelCategoriesTable(this);
+  late final Index idxPostsChannelCreateAt = Index(
+    'idx_posts_channel_create_at',
+    'CREATE INDEX idx_posts_channel_create_at ON posts (channel_id, create_at)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3555,6 +3559,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     channels,
     users,
     channelCategories,
+    idxPostsChannelCreateAt,
   ];
 }
 

@@ -43,10 +43,11 @@ class LinkPreviewWidget extends StatelessWidget {
                     width: double.infinity,
                     fit: BoxFit.cover,
                     errorWidget: (_, _, _) => const SizedBox.shrink(),
-                    placeholder: (_, _) => const SizedBox(
+                    placeholder: (_, _) => Container(
                       height: 80,
-                      child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                      color: AppColors.divider,
+                      child: const Center(
+                        child: Icon(Icons.image_outlined, color: AppColors.textSecondary),
                       ),
                     ),
                   ),

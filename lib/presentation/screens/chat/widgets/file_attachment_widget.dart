@@ -31,7 +31,7 @@ class FileAttachmentWidget extends StatelessWidget {
   }
 }
 
-class _ImageAttachment extends StatelessWidget {
+class _ImageAttachment extends StatefulWidget {
   final FileInfo fileInfo;
   final List<FileInfo> allMediaFiles;
 
@@ -41,59 +41,73 @@ class _ImageAttachment extends StatelessWidget {
   });
 
   @override
+  State<_ImageAttachment> createState() => _ImageAttachmentState();
+}
+
+class _ImageAttachmentState extends State<_ImageAttachment> {
+  Map<String, String>? _headers;
+
+  @override
+  void initState() {
+    super.initState();
+    final token = currentSession.cachedAuthToken;
+    if (token != null) {
+      _headers = {'Authorization': 'Bearer $token'};
+    } else {
+      currentSession.getAuthToken().then((t) {
+        if (mounted && t != null) {
+          setState(() => _headers = {'Authorization': 'Bearer $t'});
+        }
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_headers == null) return const SizedBox.shrink();
+
     final thumbnailUrl =
-        '${currentSession.baseUrl}${ApiEndpoints.fileThumbnail(fileInfo.id)}';
+        '${currentSession.baseUrl}${ApiEndpoints.fileThumbnail(widget.fileInfo.id)}';
 
-    return FutureBuilder<String?>(
-      future: currentSession.getAuthToken(),
-      builder: (context, snapshot) {
-        final token = snapshot.data;
-        if (token == null) return const SizedBox.shrink();
-
-        final headers = {'Authorization': 'Bearer $token'};
-
-        return GestureDetector(
-          onTap: () => _openFullscreen(context),
-          child: Hero(
-            tag: fileInfo.id,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: 250,
-                  maxHeight: 200,
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: thumbnailUrl,
-                  httpHeaders: headers,
-                  fit: BoxFit.cover,
-                  placeholder: (_, _) => Container(
-                    width: 100,
-                    height: 100,
-                    color: AppColors.divider,
-                    child: const Icon(Icons.image),
-                  ),
-                  errorWidget: (_, _, _) => Container(
-                    width: 100,
-                    height: 100,
-                    color: AppColors.divider,
-                    child: const Icon(Icons.broken_image),
-                  ),
-                ),
+    return GestureDetector(
+      onTap: () => _openFullscreen(context),
+      child: Hero(
+        tag: widget.fileInfo.id,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: 250,
+              maxHeight: 200,
+            ),
+            child: CachedNetworkImage(
+              imageUrl: thumbnailUrl,
+              httpHeaders: _headers!,
+              fit: BoxFit.cover,
+              placeholder: (_, _) => Container(
+                width: 100,
+                height: 100,
+                color: AppColors.divider,
+                child: const Icon(Icons.image),
+              ),
+              errorWidget: (_, _, _) => Container(
+                width: 100,
+                height: 100,
+                color: AppColors.divider,
+                child: const Icon(Icons.broken_image),
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   void _openFullscreen(BuildContext context) {
-    final mediaFiles = allMediaFiles.isNotEmpty
-        ? allMediaFiles
-        : [fileInfo];
-    final initialIndex = mediaFiles.indexWhere((f) => f.id == fileInfo.id);
+    final mediaFiles = widget.allMediaFiles.isNotEmpty
+        ? widget.allMediaFiles
+        : [widget.fileInfo];
+    final initialIndex = mediaFiles.indexWhere((f) => f.id == widget.fileInfo.id);
 
     Navigator.of(context).push(
       MaterialPageRoute(
